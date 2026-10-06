@@ -1,5 +1,7 @@
 // Refuz — data model. Matches the architecture doc: one block entry = one person with N identifiers.
-generator client { provider = "prisma-client-js" }
+generator client {
+  provider = "prisma-client-js"
+}
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
