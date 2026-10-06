@@ -2,6 +2,7 @@ import "@shopify/shopify-app-remix/adapters/node";
 import {
   ApiVersion,
   AppDistribution,
+  LogSeverity,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
@@ -14,6 +15,7 @@ const shopify = shopifyApp({
   scopes: process.env.SCOPES?.split(","),
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
+  logger: { level: process.env.SEMAFOR_DEBUG ? LogSeverity.Debug : LogSeverity.Info },
   sessionStorage: new PrismaSessionStorage(prisma) as any,
   distribution: AppDistribution.AppStore,
   future: {
