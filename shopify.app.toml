@@ -2,7 +2,7 @@
 client_id = "ff9a2bc78999c0b605d1fd3a38678477"
 name = "Semafor"
 handle = "semafor"
-application_url = "https://example.com"   # replaced by `shopify app dev` tunnel / production host
+application_url = "https://semafor-production.up.railway.app"
 embedded = true
 
 [build]
@@ -28,7 +28,7 @@ api_version = "2026-07"
 scopes = "read_orders,write_orders,read_customers,write_customers"
 
 [auth]
-redirect_urls = [ "https://example.com/auth/callback" ]
+redirect_urls = [ "https://semafor-production.up.railway.app/auth/callback", "https://semafor-production.up.railway.app/auth/shopify/callback", "https://semafor-production.up.railway.app/api/auth/callback" ]
 
 [pos]
 embedded = false

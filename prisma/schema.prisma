@@ -1,6 +1,9 @@
 // Refuz — data model. Matches the architecture doc: one block entry = one person with N identifiers.
 generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 model Shop {
   id          String   @id @default(cuid())
@@ -18,9 +21,27 @@ model Shop {
   devices     DeviceEvent[]
 }
 
-enum Reason { refuz_colet chargeback return_fraud abuse other }
-enum Source { manual order import courier }
-enum IdKind { email phone name address name_address device }
+enum Reason {
+  refuz_colet
+  chargeback
+  return_fraud
+  abuse
+  other
+}
+enum Source {
+  manual
+  order
+  import
+  courier
+}
+enum IdKind {
+  email
+  phone
+  name
+  address
+  name_address
+  device
+}
 
 model BlockEntry {
   id         String   @id @default(cuid())
@@ -55,7 +76,11 @@ model Identifier {
   @@index([hash])
 }
 
-enum Level { green yellow red }
+enum Level {
+  green
+  yellow
+  red
+}
 
 model OrderCheck {
   id           String   @id @default(cuid())
