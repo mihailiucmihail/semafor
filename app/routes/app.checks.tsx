@@ -4,12 +4,11 @@ import { Page, Layout, Card, IndexTable, Badge, Text, EmptyState, BlockStack } f
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { getShop } from "../semafor/shop.server";
+import { ensureShop } from "../semafor/shop.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const checks = await db.orderCheck.findMany({ where: { shopId: shop.id }, orderBy: { checkedAt: "desc" }, take: 200 });
   return { checks, storeHandle: session.shop.replace(".myshopify.com", "") };
 };

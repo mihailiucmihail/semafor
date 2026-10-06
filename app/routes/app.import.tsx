@@ -4,7 +4,7 @@ import { useFetcher } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, Text, TextField, Button, Banner, List } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { getShop } from "../semafor/shop.server";
+import { ensureShop } from "../semafor/shop.server";
 import { createEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 
@@ -13,8 +13,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => { await authent
 /** Accepts CSV with a header row. Recognised columns (case-insensitive): email, phone, first_name/prenume, last_name/nume, name, address/adresa, city/oras, reason/motiv, note. */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const csv = String((await request.formData()).get("csv") || "");
   const rows = parseCsv(csv);
   if (rows.length < 2) return { ok: false, error: "CSV gol sau fără antet", imported: 0, skipped: [] as string[] };

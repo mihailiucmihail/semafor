@@ -8,7 +8,7 @@ import {
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
-import { getShop } from "../semafor/shop.server";
+import { ensureShop } from "../semafor/shop.server";
 import { createEntry, deleteEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 
@@ -23,8 +23,7 @@ const KIND_LABEL: Record<string, string> = { email: "E-mail", phone: "Telefon", 
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const q = new URL(request.url).searchParams.get("q")?.trim() || "";
   const entries = await db.blockEntry.findMany({
     where: { shopId: shop.id, ...(q ? { identifiers: { some: { OR: [{ raw: { contains: q, mode: "insensitive" } }, { normalized: { contains: q.toLowerCase() } }] } } } : {}) },
@@ -39,8 +38,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const fd = await request.formData();
   const intent = String(fd.get("intent"));
   const actor = (session as any).email || session.shop;

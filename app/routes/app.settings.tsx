@@ -4,20 +4,18 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, Text, Select, Checkbox, TextField, Button, FormLayout } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
-import { getShop, saveSettings } from "../semafor/shop.server";
+import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { pushCheckoutMetafield } from "../semafor/entries.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   return { settings: shop.settings };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
-  const shop = await getShop(session.shop);
-  if (!shop) throw new Response("shop not found", { status: 404 });
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const fd = await request.formData();
   await saveSettings(shop.id, {
     yellowAction: String(fd.get("yellowAction")) as any,
