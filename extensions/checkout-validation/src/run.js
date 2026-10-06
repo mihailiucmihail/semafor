@@ -1,5 +1,5 @@
 // Refuz — Cart & Checkout Validation Function.
-// Reads short hashes from the shop metafield `refuz.blocklist` (JSON: {"v":1,"e":[...],"p":[...],"a":[...],"d":[...]})
+// Reads short hashes from the shop metafield `semafor.blocklist` (JSON: {"v":1,"e":[...],"p":[...],"a":[...],"d":[...]})
 // and blocks checkout on an exact match. No network access here by design.
 //
 // Hashing inside a Function: we cannot do HMAC with a secret (the secret would be in the metafield),

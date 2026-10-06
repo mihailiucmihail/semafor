@@ -1,5 +1,5 @@
 query RunInput {
-  shop { metafield(namespace: "refuz", key: "blocklist") { value } }
+  shop { metafield(namespace: "semafor", key: "blocklist") { value } }
   localization { country { isoCode } }
   buyerIdentity { email phone }
   cart {

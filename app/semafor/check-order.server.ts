@@ -2,13 +2,14 @@
 // 1) extract + normalize identifiers  2) look up own list  3) ask network  4) score
 // 5) write OrderCheck  6) act in Shopify: tag + risk assessment (+ optional cancel)
 import type { PrismaClient } from '@prisma/client';
-import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type Level } from '../core/score.ts';
-import { hmacId } from '../core/hash.ts';
-import type { IdKind } from '../core/normalize.ts';
+import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type Level } from '../../core/score';
+import { hmacId } from '../../core/hash';
+import type { IdKind } from '../../core/normalize';
 
-import { type ShopSettings } from '../core/settings.ts';
+import { type ShopSettings } from '../../core/settings';
 
-export interface AdminClient { graphql(q: string, vars?: Record<string, unknown>): Promise<any> }
+export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
+async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
 
 const TAG: Record<Level, string | null> = { red: 'refuz:blocked', yellow: 'refuz:warn', green: null };
 
@@ -28,7 +29,7 @@ export async function checkOrder(opts: {
   });
   const now = new Date();
   const ownMap = new Map<string, Array<{ entryId: string; reason: string }>>();
-  for (const r of rows) {
+  for (const r of rows as any[]) {
     if (r.entry.expiresAt && r.entry.expiresAt < now) continue;
     const k = `${r.kind}:${r.normalized}`;
     ownMap.set(k, [...(ownMap.get(k) ?? []), { entryId: r.entry.id, reason: r.entry.reason }]);
@@ -40,9 +41,9 @@ export async function checkOrder(opts: {
     const strong = hashes.filter((h) => ['email', 'phone', 'name_address'].includes(h.kind));
     const reports = await db.networkReport.findMany({ where: { hash: { in: strong.map((h) => h.hash) }, expiresAt: { gt: now } }, select: { hash: true, kind: true, reason: true, shopRef: true } });
     for (const h of strong) {
-      const mine = reports.filter((r) => r.hash === h.hash);
+      const mine = (reports as any[]).filter((r) => r.hash === h.hash);
       if (!mine.length) continue;
-      netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: [...new Set(mine.map((r) => r.reason))] });
+      netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: [...new Set(mine.map((r) => r.reason as string))] });
     }
   }
 
@@ -61,16 +62,19 @@ export async function checkOrder(opts: {
   let action = 'none';
   if (combined !== 'green') {
     const tag = TAG[combined]!;
-    await admin.graphql(`mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
-    const facts = result.matches.map((m) => ({ description: `Refuz: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
-    if (result.networkShops) facts.push({ description: `Refuz: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
-    await admin.graphql(
-      `mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
+    await gql(admin, `#graphql
+      mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
+    const facts = result.matches.map((m) => ({ description: `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
+    if (result.networkShops) facts.push({ description: `Semafor: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
+    await gql(admin,
+      `#graphql
+      mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
       { in: { orderId: order.admin_graphql_api_id, riskLevel: combined === 'red' ? 'HIGH' : 'MEDIUM', facts } },
     );
     action = 'tag+risk';
     if (combined === 'red' && settings.cancelRed) {
-      await admin.graphql(`mutation($id:ID!){ orderCancel(orderId:$id, reason:FRAUD, notifyCustomer:false, refund:false, restock:true){ userErrors{ message } } }`, { id: order.admin_graphql_api_id });
+      await gql(admin, `#graphql
+      mutation($id:ID!){ orderCancel(orderId:$id, reason:FRAUD, notifyCustomer:false, refund:false, restock:true){ userErrors{ message } } }`, { id: order.admin_graphql_api_id });
       action = 'tag+risk+cancel';
     }
   }

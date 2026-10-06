@@ -1,0 +1,81 @@
+import { useEffect, useState } from "react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { Page, Layout, Card, BlockStack, Text, Select, Checkbox, TextField, Button, FormLayout } from "@shopify/polaris";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { authenticate } from "../shopify.server";
+import { getShop, saveSettings } from "../semafor/shop.server";
+import { pushCheckoutMetafield } from "../semafor/entries.server";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const shop = await getShop(session.shop);
+  if (!shop) throw new Response("shop not found", { status: 404 });
+  return { settings: shop.settings };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = await getShop(session.shop);
+  if (!shop) throw new Response("shop not found", { status: 404 });
+  const fd = await request.formData();
+  await saveSettings(shop.id, {
+    yellowAction: String(fd.get("yellowAction")) as any,
+    cancelRed: fd.get("cancelRed") === "true",
+    shareNetwork: fd.get("shareNetwork") === "true",
+    thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
+  }, (session as any).email || session.shop);
+  await pushCheckoutMetafield(admin, shop.id);
+  return { ok: true };
+};
+
+export default function Settings() {
+  const { settings } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const app = useAppBridge();
+  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn) });
+  useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show("Setări salvate"); }, [fetcher.state, fetcher.data, app]);
+
+  return (
+    <Page narrowWidth>
+      <TitleBar title="Setări" />
+      <Layout>
+        <Layout.Section>
+          <BlockStack gap="400">
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Ce facem cu comenzile</Text>
+                <FormLayout>
+                  <Select label="Client galben (suspect, neconfirmat)" value={s.yellowAction} onChange={(v) => setS({ ...s, yellowAction: v as any })}
+                    options={[
+                      { label: "Doar marchează (etichetă + semnal de risc)", value: "tag" },
+                      { label: "Marchează și elimină plata ramburs (doar card)", value: "prepaid" },
+                      { label: "Blochează finalizarea comenzii", value: "block" },
+                    ]} helpText="Galben = semnalat de 1–2 magazine din rețea sau potrivire doar după nume." />
+                  <Checkbox label="Anulează automat comenzile roșii (client din lista ta sau 3+ magazine)" checked={s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText="Dezactivat: comanda rămâne, dar e marcată roșu. Clientul nu e notificat la anulare." />
+                </FormLayout>
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Rețeaua de magazine</Text>
+                <Checkbox label="Particip la rețea: raportez și văd semaforul altor magazine" checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })}
+                  helpText="În rețea ajung doar hash-uri (nu nume, e-mail sau adrese în clar). Refuzul de colet se raportează de la al doilea caz; chargeback și amenințările — imediat." />
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Praguri (avansat)</Text>
+                <FormLayout.Group>
+                  <TextField label="Blochează de la" type="number" value={s.block} onChange={(v) => setS({ ...s, block: v })} autoComplete="off" helpText="E-mail / telefon / nume+adresă = 100" />
+                  <TextField label="Avertizează de la" type="number" value={s.warn} onChange={(v) => setS({ ...s, warn: v })} autoComplete="off" helpText="Nume = 40, adresă = 60, dispozitiv = 70" />
+                </FormLayout.Group>
+              </BlockStack>
+            </Card>
+            <Button variant="primary" loading={fetcher.state !== "idle"} onClick={() => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork) }, { method: "post" })}>Salvează</Button>
+          </BlockStack>
+        </Layout.Section>
+      </Layout>
+    </Page>
+  );
+}
