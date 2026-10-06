@@ -1,0 +1,89 @@
+// Refuz — full server-side check run from the orders/create webhook (via job queue).
+// 1) extract + normalize identifiers  2) look up own list  3) ask network  4) score
+// 5) write OrderCheck  6) act in Shopify: tag + risk assessment (+ optional cancel)
+import type { PrismaClient } from '@prisma/client';
+import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type Level } from '../core/score.ts';
+import { hmacId } from '../core/hash.ts';
+import type { IdKind } from '../core/normalize.ts';
+
+import { type ShopSettings } from '../core/settings.ts';
+
+export interface AdminClient { graphql(q: string, vars?: Record<string, unknown>): Promise<any> }
+
+const TAG: Record<Level, string | null> = { red: 'refuz:blocked', yellow: 'refuz:warn', green: null };
+
+export async function checkOrder(opts: {
+  db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
+  settings: ShopSettings; order: any; admin: AdminClient;
+}): Promise<ScoreResult & { combined: Level; action: string }> {
+  const { db, secret, shopId, settings, order, admin } = opts;
+  const ids = extractIdentifiers(order, opts.country);
+  const isIphone = /iPhone/i.test(order.client_details?.user_agent ?? '');
+
+  // Own list: one query for all hashes.
+  const hashes = ids.map((i) => ({ kind: i.kind, hash: hmacId(secret, i.kind, i.normalized), normalized: i.normalized }));
+  const rows = await db.identifier.findMany({
+    where: { shopId, OR: hashes.map((h) => ({ kind: h.kind, hash: h.hash })) },
+    include: { entry: { select: { id: true, reason: true, expiresAt: true } } },
+  });
+  const now = new Date();
+  const ownMap = new Map<string, Array<{ entryId: string; reason: string }>>();
+  for (const r of rows) {
+    if (r.entry.expiresAt && r.entry.expiresAt < now) continue;
+    const k = `${r.kind}:${r.normalized}`;
+    ownMap.set(k, [...(ownMap.get(k) ?? []), { entryId: r.entry.id, reason: r.entry.reason }]);
+  }
+
+  // Network: only when the shop shares; only strong kinds.
+  let netMap = new Map<string, { kind: IdKind; shops: number; reasons: string[] }>();
+  if (settings.shareNetwork) {
+    const strong = hashes.filter((h) => ['email', 'phone', 'name_address'].includes(h.kind));
+    const reports = await db.networkReport.findMany({ where: { hash: { in: strong.map((h) => h.hash) }, expiresAt: { gt: now } }, select: { hash: true, kind: true, reason: true, shopRef: true } });
+    for (const h of strong) {
+      const mine = reports.filter((r) => r.hash === h.hash);
+      if (!mine.length) continue;
+      netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: [...new Set(mine.map((r) => r.reason))] });
+    }
+  }
+
+  const result = scoreOrder({
+    ids, isIphone, thresholds: settings.thresholds,
+    own: (k, n) => ownMap.get(`${k}:${n}`) ?? [],
+    network: (k, n) => netMap.get(`${k}:${n}`) ?? null,
+  });
+  const combined = combinedLevel(result);
+
+  // Device trail
+  const dev = ids.find((i) => i.kind === 'device');
+  if (dev) await db.deviceEvent.create({ data: { shopId, deviceHash: dev.normalized, orderId: order.admin_graphql_api_id } });
+
+  // Act in Shopify
+  let action = 'none';
+  if (combined !== 'green') {
+    const tag = TAG[combined]!;
+    await admin.graphql(`mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
+    const facts = result.matches.map((m) => ({ description: `Refuz: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
+    if (result.networkShops) facts.push({ description: `Refuz: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
+    await admin.graphql(
+      `mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
+      { in: { orderId: order.admin_graphql_api_id, riskLevel: combined === 'red' ? 'HIGH' : 'MEDIUM', facts } },
+    );
+    action = 'tag+risk';
+    if (combined === 'red' && settings.cancelRed) {
+      await admin.graphql(`mutation($id:ID!){ orderCancel(orderId:$id, reason:FRAUD, notifyCustomer:false, refund:false, restock:true){ userErrors{ message } } }`, { id: order.admin_graphql_api_id });
+      action = 'tag+risk+cancel';
+    }
+  }
+
+  await db.orderCheck.upsert({
+    where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } },
+    create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action },
+    update: { score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
+  });
+
+  return { ...result, combined, action };
+}
+
+function labelKind(k: IdKind): string {
+  return { email: 'e-mail', phone: 'telefon', name: 'nume', address: 'adresă', name_address: 'nume + adresă', device: 'dispozitiv' }[k];
+}

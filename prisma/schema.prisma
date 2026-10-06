@@ -1,0 +1,125 @@
+// Refuz — data model. Matches the architecture doc: one block entry = one person with N identifiers.
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+model Shop {
+  id          String   @id @default(cuid())
+  domain      String   @unique            // mihailiuc-2.myshopify.com
+  accessToken String
+  plan        String   @default("free")   // free | pro
+  country     String   @default("RO")
+  settings    Json     @default("{}")     // { thresholds:{block:100,warn:40}, yellowAction:"tag"|"prepaid"|"block", shareNetwork:bool, cancelRed:bool }
+  installedAt DateTime @default(now())
+  uninstalledAt DateTime?
+
+  entries     BlockEntry[]
+  checks      OrderCheck[]
+  audits      AuditLog[]
+  devices     DeviceEvent[]
+}
+
+enum Reason { refuz_colet chargeback return_fraud abuse other }
+enum Source { manual order import courier }
+enum IdKind { email phone name address name_address device }
+
+model BlockEntry {
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  reason     Reason
+  note       String?
+  source     Source   @default(manual)
+  orderId    String?                        // gid://shopify/Order/…
+  orderName  String?                        // #1234 for display
+  createdBy  String?                        // staff email / "system"
+  shared     Boolean  @default(false)       // contributed to the network
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime?
+
+  identifiers Identifier[]
+  @@index([shopId, createdAt])
+}
+
+model Identifier {
+  id          String     @id @default(cuid())
+  entryId     String
+  entry       BlockEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  shopId      String                         // denormalised for the hot lookup
+  kind        IdKind
+  raw         String                         // as the customer typed it (shown to the merchant)
+  normalized  String
+  hash        String                         // HMAC hex
+  normVersion Int        @default(1)
+
+  @@index([shopId, kind, hash])
+  @@index([hash])
+}
+
+enum Level { green yellow red }
+
+model OrderCheck {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderId      String
+  orderName    String?
+  score        Int
+  level        Level                          // own list
+  networkShops Int      @default(0)
+  networkLevel Level    @default(green)
+  matched      Json                           // Match[]
+  actionTaken  String?                        // tag | risk | prepaid | cancel | none
+  checkedAt    DateTime @default(now())
+
+  @@unique([shopId, orderId])
+  @@index([shopId, checkedAt])
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  shopId   String
+  shop     Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  actor    String
+  action   String                              // entry.create | entry.delete | settings.update | gdpr.redact …
+  entryId  String?
+  payload  Json?
+  at       DateTime @default(now())
+  @@index([shopId, at])
+}
+
+model DeviceEvent {
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deviceHash String
+  orderId    String?
+  seenAt     DateTime @default(now())
+  @@index([shopId, deviceHash])
+}
+
+// ---- Network registry (logically separate; could move to its own DB later) ----
+model NetworkReport {
+  id        String   @id @default(cuid())
+  hash      String                              // HMAC of normalized id
+  kind      IdKind
+  reason    Reason
+  country   String
+  shopRef   String                              // irreversible shop hash
+  createdAt DateTime @default(now())
+  expiresAt DateTime                            // createdAt + 24 months
+
+  @@unique([hash, shopRef])
+  @@index([hash])
+  @@index([expiresAt])
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+}

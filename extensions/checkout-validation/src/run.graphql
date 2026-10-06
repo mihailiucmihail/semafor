@@ -1,0 +1,11 @@
+query RunInput {
+  shop { metafield(namespace: "refuz", key: "blocklist") { value } }
+  localization { country { isoCode } }
+  buyerIdentity { email phone }
+  cart {
+    attribute(key: "_dev") { value }
+    deliveryGroups {
+      deliveryAddress { address1 address2 city zip phone countryCode }
+    }
+  }
+}

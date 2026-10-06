@@ -1,0 +1,16 @@
+api_version = "2025-07"
+
+[[extensions]]
+name = "refuz-checkout-validation"
+handle = "refuz-checkout-validation"
+type = "function"
+description = "Blochează finalizarea comenzii pentru clienții din lista neagră (Refuz)."
+
+  [[extensions.targeting]]
+  target = "purchase.validation.run"
+  input_query = "src/run.graphql"
+  export = "run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"

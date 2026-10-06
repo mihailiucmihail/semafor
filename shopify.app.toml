@@ -1,0 +1,34 @@
+# Semafor — Shopify app configuration (Dev Dashboard app 432372121601)
+client_id = "ff9a2bc78999c0b605d1fd3a38678477"
+name = "Semafor"
+handle = "semafor"
+application_url = "https://example.com"   # replaced by `shopify app dev` tunnel / production host
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2026-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "/webhooks/compliance"
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_customers,write_customers"
+
+[auth]
+redirect_urls = [ "https://example.com/auth/callback" ]
+
+[pos]
+embedded = false
