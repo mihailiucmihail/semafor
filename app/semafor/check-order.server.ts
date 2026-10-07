@@ -7,6 +7,7 @@ import { hmacId } from '../../core/hash';
 import type { IdKind } from '../../core/normalize';
 
 import { type ShopSettings } from '../../core/settings';
+import { deviceLinks } from './device-links.server';
 
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
@@ -52,6 +53,18 @@ export async function checkOrder(opts: {
     own: (k, n) => ownMap.get(`${k}:${n}`) ?? [],
     network: (k, n) => netMap.get(`${k}:${n}`) ?? null,
   });
+  // Device chain: identities tried from the same device in checkout (Semafor pixel)
+  try {
+    const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country);
+    if (dl.findings.length) {
+      result.matches.push(...(dl.findings as any));
+      result.score += Math.max(...dl.findings.map((f) => f.weight));
+      const lvl = result.score >= settings.thresholds.block ? 'red' : result.score >= settings.thresholds.warn ? 'yellow' : 'green';
+      const rank = { green: 0, yellow: 1, red: 2 } as const;
+      if (rank[lvl] > rank[result.level]) result.level = lvl;
+    }
+    if (order.checkout_token) await db.checkoutAttempt.updateMany({ where: { shopId, checkoutToken: order.checkout_token }, data: { orderId: order.admin_graphql_api_id } });
+  } catch (e) { console.error('[semafor] deviceLinks', e); }
   const combined = combinedLevel(result);
 
   // Device trail
@@ -64,7 +77,7 @@ export async function checkOrder(opts: {
     const tag = TAG[combined]!;
     await gql(admin, `#graphql
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
-    const facts = result.matches.map((m) => ({ description: `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
+    const facts = result.matches.map((m) => ({ description: m.kind === 'device' ? `Semafor: ${m.normalized}` : `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
     if (result.networkShops) facts.push({ description: `Semafor: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
     await gql(admin,
       `#graphql

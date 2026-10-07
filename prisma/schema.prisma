@@ -21,6 +21,7 @@ model Shop {
   checks      OrderCheck[]
   audits      AuditLog[]
   devices     DeviceEvent[]
+  attempts    CheckoutAttempt[]
 }
 
 enum Reason {
@@ -158,4 +159,32 @@ model Session {
   emailVerified       Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+}
+
+// Every step a buyer submits in checkout (from the Semafor custom pixel), even when the checkout is then blocked.
+// Lets Semafor link the identities one device tries ("tries the husband's e-mail/phone").
+// Raw values stay in the merchant's own shop scope only; kept 120 days.
+model CheckoutAttempt {
+  id            String   @id @default(cuid())
+  shopId        String
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deviceId      String                          // random id kept in the browser
+  fingerprint   String?                         // hash of UA + screen + language + timezone
+  ip            String?
+  checkoutToken String?
+  event         String                          // contact | address | shipping | payment | completed
+  email         String?
+  phone         String?
+  firstName     String?
+  lastName      String?
+  address1      String?
+  city          String?
+  orderId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId, deviceId])
+  @@index([shopId, checkoutToken])
+  @@index([shopId, fingerprint])
+  @@index([shopId, ip])
+  @@index([shopId, createdAt])
 }
