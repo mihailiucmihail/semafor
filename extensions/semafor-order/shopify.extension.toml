@@ -6,6 +6,17 @@ name = "Semafor"
 handle = "semafor-order"
 uid = "171594cb-249a-47a0-bcc6-aefc1d07cfe0"
 
+# Order page: traffic light block
 [[extensions.targeting]]
 module = "./src/OrderBlock.jsx"
 target = "admin.order-details.block.render"
+
+# Order page → "More actions": add the customer to the blacklist (appears automatically, no setup)
+[[extensions.targeting]]
+module = "./src/AddAction.jsx"
+target = "admin.order-details.action.render"
+
+# Orders list → select orders → "More actions": add their customers to the blacklist
+[[extensions.targeting]]
+module = "./src/AddAction.jsx"
+target = "admin.order-index.selection-action.render"

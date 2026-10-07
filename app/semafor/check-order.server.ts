@@ -13,8 +13,9 @@ export interface AdminClient { graphql(q: string, opts?: { variables?: Record<st
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
 
 // Visible in the Orders list (Tags column) — the whole point: see the traffic light without opening the app.
-export const TAG: Record<Level, string> = { red: '🔴 Semafor', yellow: '🟡 Semafor', green: '🟢 Semafor' };
-const ALL_TAGS = [...Object.values(TAG), 'refuz:blocked', 'refuz:warn'];
+// A text traffic light: the active lamp lit, the other two dark.
+export const TAG: Record<Level, string> = { red: '🔴⚫⚫', yellow: '⚫🟡⚫', green: '⚫⚫🟢' };
+const ALL_TAGS = [...Object.values(TAG), '🔴 Semafor', '🟡 Semafor', '🟢 Semafor', 'refuz:blocked', 'refuz:warn'];
 
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;

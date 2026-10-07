@@ -45,7 +45,7 @@ export default function Checks() {
               </EmptyState>
             ) : (
               <IndexTable resourceName={{ singular: "comandă", plural: "comenzi" }} itemCount={checks.length} selectable={false}
-                headings={[{ title: "Comandă" }, { title: "Lista ta" }, { title: "Rețea" }, { title: "Potriviri" }, { title: "Acțiune" }, { title: "Când" }]}>
+                headings={[{ title: "Comandă" }, { title: "Semafor" }, { title: "Lista ta" }, { title: "Rețea" }, { title: "Potriviri" }, { title: "Acțiune" }, { title: "Când" }]}>
                 {checks.map((c: any, i: number) => {
                   const own = c.level as keyof typeof TONE; const net = c.networkLevel as keyof typeof TONE;
                   const m = (c.matched as any[]) || [];
@@ -53,6 +53,7 @@ export default function Checks() {
                   return (
                     <IndexTable.Row id={c.id} key={c.id} position={i}>
                       <IndexTable.Cell><a href={`https://admin.shopify.com/store/${storeHandle}/orders/${oid}`} target="_top" rel="noreferrer">{c.orderName || oid}</a></IndexTable.Cell>
+                      <IndexTable.Cell>{(() => { const rk = { green: 0, yellow: 1, red: 2 } as const; const lv = rk[net] > rk[own] ? net : own; return <img src={`/light/${lv}?o=h`} alt={LABEL[lv]} height={26} style={{ display: "block" }} />; })()}</IndexTable.Cell>
                       <IndexTable.Cell><Badge tone={TONE[own]}>{`${LABEL[own]} · ${c.score}`}</Badge></IndexTable.Cell>
                       <IndexTable.Cell><Badge tone={TONE[net]}>{c.networkShops ? `${LABEL[net]} · ${c.networkShops} mag.` : "Verde"}</Badge></IndexTable.Cell>
                       <IndexTable.Cell>
