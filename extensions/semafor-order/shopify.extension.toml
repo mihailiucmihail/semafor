@@ -1,0 +1,11 @@
+api_version = "2026-07"
+
+[[extensions]]
+type = "ui_extension"
+name = "Semafor"
+handle = "semafor-order"
+uid = "171594cb-249a-47a0-bcc6-aefc1d07cfe0"
+
+[[extensions.targeting]]
+module = "./src/OrderBlock.jsx"
+target = "admin.order-details.block.render"

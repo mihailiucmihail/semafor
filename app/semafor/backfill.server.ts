@@ -13,6 +13,21 @@ query($n:Int!){ orders(first:$n, sortKey:CREATED_AT, reverse:true){ nodes{
 
 const addr = (a: any) => a ? { first_name: a.firstName, last_name: a.lastName, name: a.name, phone: a.phone, address1: a.address1, address2: a.address2, city: a.city, zip: a.zip, country_code: a.countryCodeV2 } : null;
 
+const Q1 = `#graphql
+query($id:ID!){ order(id:$id){
+  id name email phone customAttributes{ key value }
+  customer{ firstName lastName defaultEmailAddress{ emailAddress } defaultPhoneNumber{ phoneNumber } }
+  shippingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
+  billingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
+} }`;
+
+/** One order from the Admin API, in webhook (REST) shape. */
+export async function fetchOrder(admin: AdminClient, id: string) {
+  const j: any = await (await admin.graphql(Q1, { variables: { id } })).json();
+  if (!j?.data?.order) throw new Error(j?.errors?.map((e: any) => e.message).join("; ") || "order not found");
+  return toOrderLike(j.data.order);
+}
+
 /** Map an Admin GraphQL order to the webhook (REST) shape checkOrder expects. */
 export function toOrderLike(o: any) {
   return {

@@ -12,7 +12,9 @@ import { deviceLinks } from './device-links.server';
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
 
-const TAG: Record<Level, string | null> = { red: 'refuz:blocked', yellow: 'refuz:warn', green: null };
+// Visible in the Orders list (Tags column) — the whole point: see the traffic light without opening the app.
+export const TAG: Record<Level, string> = { red: '🔴 Semafor', yellow: '🟡 Semafor', green: '🟢 Semafor' };
+const ALL_TAGS = [...Object.values(TAG), 'refuz:blocked', 'refuz:warn'];
 
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
@@ -72,11 +74,16 @@ export async function checkOrder(opts: {
   if (dev) await db.deviceEvent.create({ data: { shopId, deviceHash: dev.normalized, orderId: order.admin_graphql_api_id } });
 
   // Act in Shopify
-  let action = 'none';
-  if (combined !== 'green') {
-    const tag = TAG[combined]!;
+  let action = 'tag';
+  {
+    const tag = TAG[combined];
+    const stale = ALL_TAGS.filter((t) => t !== tag);
+    await gql(admin, `#graphql
+      mutation($id:ID!,$tags:[String!]!){ tagsRemove(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: stale });
     await gql(admin, `#graphql
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
+  }
+  if (combined !== 'green') {
     const facts = result.matches.map((m) => ({ description: m.kind === 'device' ? `Semafor: ${m.normalized}` : `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
     if (result.networkShops) facts.push({ description: `Semafor: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
     await gql(admin,
