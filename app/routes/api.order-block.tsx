@@ -7,6 +7,8 @@ import { fetchOrder } from "../semafor/backfill.server";
 import { createEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 
+const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
+
 /**
  * Backend for the Semafor block on the order page (admin UI extension).
  * GET  ?orderId=gid://shopify/Order/…  → traffic light for this order (checks it now if never checked)
@@ -29,9 +31,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session, cors } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const orderId = new URL(request.url).searchParams.get("orderId") || "";
-  if (!orderId) return cors(Response.json({ error: "orderId lipsă" }, { status: 400 }));
-  try { return cors(Response.json(await status(admin, shop, orderId))); }
-  catch (e: any) { return cors(Response.json({ error: String(e?.message || e) }, { status: 500 })); }
+  if (!orderId) return cors(json({ error: "orderId lipsă" }, 400));
+  try { return cors(json(await status(admin, shop, orderId))); }
+  catch (e: any) { return cors(json({ error: String(e?.message || e) }, 500)); }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -53,8 +55,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
     await pushCheckoutMetafield(admin, shop.id);
-    return cors(Response.json(await status(admin, shop, orderId, true)));
+    return cors(json(await status(admin, shop, orderId, true)));
   } catch (e: any) {
-    return cors(Response.json({ error: String(e?.message || e) }, { status: 500 }));
+    return cors(json({ error: String(e?.message || e) }, 500));
   }
 };
