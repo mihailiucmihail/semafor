@@ -1,0 +1,11 @@
+api_version = "2026-07"
+
+[[extensions]]
+type = "ui_extension"
+name = "Semafor: adaugă în lista neagră"
+handle = "semafor-add-bulk"
+uid = "11aa1a66-8f7e-48a8-b330-a2501ff067d6"
+
+[[extensions.targeting]]
+module = "./src/AddAction.jsx"
+target = "admin.order-index.selection-action.render"
