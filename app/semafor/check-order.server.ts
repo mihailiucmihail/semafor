@@ -78,9 +78,15 @@ export async function checkOrder(opts: {
   let action = 'tag';
   {
     const tag = TAG[combined];
-    const stale = ALL_TAGS.filter((t) => t !== tag);
-    await gql(admin, `#graphql
-      mutation($id:ID!,$tags:[String!]!){ tagsRemove(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: stale });
+    const cur: any = await gql(admin, `#graphql
+      query($id:ID!){ order(id:$id){ tags } }`, { id: order.admin_graphql_api_id });
+    const present: string[] = cur?.data?.order?.tags ?? [];
+    const stale = present.filter((t) => t !== tag && ALL_TAGS.includes(t));
+    if (stale.length) {
+      const r: any = await gql(admin, `#graphql
+        mutation($id:ID!,$tags:[String!]!){ tagsRemove(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: stale });
+      const ue = r?.data?.tagsRemove?.userErrors; if (ue?.length || r?.errors) console.error('[semafor] tagsRemove', JSON.stringify(ue || r.errors));
+    }
     await gql(admin, `#graphql
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
   }
