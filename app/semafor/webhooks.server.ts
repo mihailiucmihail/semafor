@@ -61,3 +61,36 @@ export async function ensureWebhooks(admin: Admin, shop: string, force = false):
   lastCheck.set(shop, { at: Date.now(), status });
   return status;
 }
+
+/** Activate the Semafor app pixel (web pixel extension) on this shop. Needs write_pixels + read_customer_events. */
+const pixelDone = new Set<string>();
+export async function ensurePixel(admin: Admin, shop: string, force = false): Promise<WebhookStatus> {
+  if (!force && pixelDone.has(shop)) return { topic: "PIXEL", ok: true };
+  const settings = JSON.stringify({ endpoint: baseUrl() + "/api/attempt" });
+  try {
+    const q: any = await (await admin.graphql(`query { webPixel { id settings } }`)).json();
+    const existing = q?.data?.webPixel;
+    if (existing?.id) {
+      if (existing.settings !== settings) {
+        await admin.graphql(`mutation($id: ID!, $s: JSON!) { webPixelUpdate(id: $id, webPixel: { settings: $s }) { userErrors { message } } }`, { variables: { id: existing.id, s: settings } });
+      }
+      pixelDone.add(shop);
+      return { topic: "PIXEL", ok: true };
+    }
+  } catch { /* no pixel yet, or no scope — try create below */ }
+  try {
+    const j: any = await (await admin.graphql(
+      `mutation($s: JSON!) { webPixelCreate(webPixel: { settings: $s }) { webPixel { id } userErrors { field message code } } }`,
+      { variables: { s: settings } },
+    )).json();
+    const r = j?.data?.webPixelCreate;
+    const err = r?.userErrors?.map((u: any) => `${u.code || ""} ${u.message}`).join("; ") || j?.errors?.map((x: any) => x.message).join("; ");
+    if (r?.webPixel?.id || /taken|already/i.test(err || "")) { pixelDone.add(shop); console.log(`[semafor] pixel ok (${shop})`); return { topic: "PIXEL", ok: true }; }
+    console.log(`[semafor] pixel FAILED: ${err} (${shop})`);
+    return { topic: "PIXEL", ok: false, error: err || "unknown error" };
+  } catch (e: any) {
+    const msg = e?.body?.errors?.graphQLErrors?.map((g: any) => g.message).join("; ") || e?.message || String(e);
+    console.log(`[semafor] pixel FAILED: ${msg} (${shop})`);
+    return { topic: "PIXEL", ok: false, error: msg };
+  }
+}

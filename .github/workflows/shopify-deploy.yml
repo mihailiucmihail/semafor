@@ -1,0 +1,34 @@
+# Releases the Shopify part of Semafor (app config, webhooks, scopes, web pixel extension)
+# with Shopify CLI. Needs the repo secret SHOPIFY_APP_AUTOMATION_TOKEN
+# (Dev Dashboard → Semafor → Settings → App Automation Token).
+name: Shopify deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "extensions/**"
+      - "shopify.app.production.toml"
+      - ".github/workflows/shopify-deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install extension dependencies
+        run: |
+          for d in extensions/*/; do
+            if [ -f "$d/package.json" ]; then (cd "$d" && npm install --no-audit --no-fund); fi
+          done
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli@latest
+      - name: Deploy
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: shopify app deploy --config production --allow-updates --source-control-url "$COMMIT_URL"

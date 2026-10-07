@@ -6,13 +6,14 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { pushCheckoutMetafield } from "../semafor/entries.server";
-import { ensureWebhooks } from "../semafor/webhooks.server";
+import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const webhooks = await ensureWebhooks(admin as any, session.shop, true).catch((e) => [{ topic: "ALL", ok: false, error: String(e?.message || e) }]);
-  return { settings: shop.settings, webhooks };
+  const pixel = await ensurePixel(admin as any, session.shop, true);
+  return { settings: shop.settings, webhooks: [...(webhooks as any[]), pixel] };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -77,7 +78,7 @@ export default function Settings() {
                 <Text as="h2" variant="headingMd">Legătura cu Shopify</Text>
                 {(webhooks as any[]).map((w) => (
                   <Text as="p" key={w.topic} tone={w.ok ? "success" : "critical"}>
-                    {w.ok ? "✓" : "✗"} {w.topic === "ORDERS_CREATE" ? "Comenzi noi" : w.topic === "APP_UNINSTALLED" ? "Dezinstalare" : w.topic}
+                    {w.ok ? "✓" : "✗"} {w.topic === "ORDERS_CREATE" ? "Comenzi noi" : w.topic === "APP_UNINSTALLED" ? "Dezinstalare" : w.topic === "PIXEL" ? "Urmărire dispozitiv la checkout" : w.topic}
                     {w.ok ? " — activ" : ` — eroare: ${w.error}`}
                   </Text>
                 ))}

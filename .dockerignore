@@ -3,3 +3,5 @@ build
 .git
 .env*
 test
+extensions
+drafts

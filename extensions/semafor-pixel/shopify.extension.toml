@@ -1,0 +1,21 @@
+type = "web_pixel_extension"
+name = "semafor-pixel"
+uid = "daf344e1-44dd-4129-877a-2acd5c4f190b"
+runtime_context = "strict"
+
+# Fraud prevention: runs without waiting for analytics/marketing consent (like other anti-fraud apps).
+# To require consent instead, set analytics = true.
+[customer_privacy]
+analytics = false
+marketing = false
+preferences = false
+sale_of_data = "disabled"
+
+[settings]
+type = "object"
+
+[settings.fields.endpoint]
+name = "Semafor endpoint"
+description = "Where checkout steps are sent"
+type = "single_line_text_field"
+validations = [ { name = "min", value = "1" } ]
