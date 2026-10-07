@@ -6,11 +6,13 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { pushCheckoutMetafield } from "../semafor/entries.server";
+import { ensureWebhooks } from "../semafor/webhooks.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
-  return { settings: shop.settings };
+  const webhooks = await ensureWebhooks(admin as any, session.shop, true).catch((e) => [{ topic: "ALL", ok: false, error: String(e?.message || e) }]);
+  return { settings: shop.settings, webhooks };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -28,7 +30,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Settings() {
-  const { settings } = useLoaderData<typeof loader>();
+  const { settings, webhooks } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn) });
@@ -68,6 +70,17 @@ export default function Settings() {
                   <TextField label="Blochează de la" type="number" value={s.block} onChange={(v) => setS({ ...s, block: v })} autoComplete="off" helpText="E-mail / telefon / nume+adresă = 100" />
                   <TextField label="Avertizează de la" type="number" value={s.warn} onChange={(v) => setS({ ...s, warn: v })} autoComplete="off" helpText="Nume = 40, adresă = 60, dispozitiv = 70" />
                 </FormLayout.Group>
+              </BlockStack>
+            </Card>
+            <Card>
+              <BlockStack gap="200">
+                <Text as="h2" variant="headingMd">Legătura cu Shopify</Text>
+                {(webhooks as any[]).map((w) => (
+                  <Text as="p" key={w.topic} tone={w.ok ? "success" : "critical"}>
+                    {w.ok ? "✓" : "✗"} {w.topic === "ORDERS_CREATE" ? "Comenzi noi" : w.topic === "APP_UNINSTALLED" ? "Dezinstalare" : w.topic}
+                    {w.ok ? " — activ" : ` — eroare: ${w.error}`}
+                  </Text>
+                ))}
               </BlockStack>
             </Card>
             <Button variant="primary" loading={fetcher.state !== "idle"} onClick={() => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork) }, { method: "post" })}>Salvează</Button>

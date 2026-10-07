@@ -6,12 +6,14 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
+import { ensureWebhooks } from "../semafor/webhooks.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   await ensureShop(session.shop, session.accessToken ?? "");
+  await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 
