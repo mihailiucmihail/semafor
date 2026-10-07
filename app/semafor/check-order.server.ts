@@ -15,7 +15,7 @@ const TAG: Record<Level, string | null> = { red: 'refuz:blocked', yellow: 'refuz
 
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
-  settings: ShopSettings; order: any; admin: AdminClient;
+  settings: ShopSettings; order: any; admin: AdminClient; skipCancel?: boolean;
 }): Promise<ScoreResult & { combined: Level; action: string }> {
   const { db, secret, shopId, settings, order, admin } = opts;
   const ids = extractIdentifiers(order, opts.country);
@@ -72,7 +72,7 @@ export async function checkOrder(opts: {
       { in: { orderId: order.admin_graphql_api_id, riskLevel: combined === 'red' ? 'HIGH' : 'MEDIUM', facts } },
     );
     action = 'tag+risk';
-    if (combined === 'red' && settings.cancelRed) {
+    if (combined === 'red' && settings.cancelRed && !opts.skipCancel) {
       await gql(admin, `#graphql
       mutation($id:ID!){ orderCancel(orderId:$id, reason:FRAUD, notifyCustomer:false, refund:false, restock:true){ userErrors{ message } } }`, { id: order.admin_graphql_api_id });
       action = 'tag+risk+cancel';

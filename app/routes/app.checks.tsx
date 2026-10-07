@@ -1,7 +1,9 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { backfill } from "../semafor/backfill.server";
 import { Page, Layout, Card, IndexTable, Badge, Text, EmptyState, BlockStack } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import { Button, Banner } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
@@ -13,16 +15,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { checks, storeHandle: session.shop.replace(".myshopify.com", "") };
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  try { return { ok: true as const, ...(await backfill(admin as any, shop, 50)) }; }
+  catch (e: any) { return { ok: false as const, error: String(e?.message || e) }; }
+};
+
 const TONE = { green: "success", yellow: "warning", red: "critical" } as const;
 const LABEL = { green: "Verde", yellow: "Galben", red: "Roșu" } as const;
 
 export default function Checks() {
   const { checks, storeHandle } = useLoaderData<typeof loader>();
+  const f = useFetcher<typeof action>();
+  const d: any = f.data;
   return (
     <Page>
       <TitleBar title="Comenzi verificate" />
       <Layout>
         <Layout.Section>
+          <BlockStack gap="300">
+          <Button loading={f.state !== "idle"} onClick={() => f.submit({}, { method: "post" })}>Verifică ultimele 50 de comenzi</Button>
+          {d && d.ok && <Banner tone={d.red ? "critical" : d.yellow ? "warning" : "success"}>{`Verificate: ${d.checked} · roșu: ${d.red} · galben: ${d.yellow}${d.failed ? ` · erori: ${d.failed}` : ""}${d.noCustomerData ? ` · fără date client: ${d.noCustomerData}` : ""}`}</Banner>}
+          {d && !d.ok && <Banner tone="critical">{d.error}</Banner>}
           <Card padding="0">
             {checks.length === 0 ? (
               <EmptyState heading="Nicio comandă verificată încă" image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png">
@@ -51,6 +66,7 @@ export default function Checks() {
               </IndexTable>
             )}
           </Card>
+          </BlockStack>
         </Layout.Section>
       </Layout>
     </Page>

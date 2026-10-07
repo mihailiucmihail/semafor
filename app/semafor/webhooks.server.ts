@@ -49,7 +49,7 @@ export async function ensureWebhooks(admin: Admin, shop: string, force = false):
       const j: any = await r.json();
       const res = j?.data?.webhookSubscriptionCreate;
       const err = res?.userErrors?.map((u: any) => u.message).join("; ") || j?.errors?.map((x: any) => x.message).join("; ");
-      if (res?.webhookSubscription) status.push({ topic: n.topic, ok: true, uri });
+      if (res?.webhookSubscription || /already been taken/i.test(err || "")) status.push({ topic: n.topic, ok: true, uri });
       else status.push({ topic: n.topic, ok: false, uri, error: err || "unknown error" });
     } catch (e: any) {
       const msg = e?.body?.errors?.graphQLErrors?.map((g: any) => g.message).join("; ") || e?.message || String(e);
