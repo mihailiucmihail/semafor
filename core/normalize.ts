@@ -60,7 +60,8 @@ function words(s: string): string[] {
 
 /** Name: no diacritics, lower-case, hyphens → spaces, word order irrelevant (sorted). */
 export function normName(first: string | null | undefined, last?: string | null): string | null {
-  const w = words(`${first ?? ''} ${last ?? ''}`);
+  // dedupe: old lists often repeat the full name in both fields ("sevda bolat" / "sevda bolat")
+  const w = [...new Set(words(`${first ?? ''} ${last ?? ''}`))];
   if (w.length === 0) return null;
   return w.sort().join(' ');
 }
@@ -103,11 +104,13 @@ export interface AddressInput { address1?: string | null; address2?: string | nu
  * "Str. Mihai Eminescu nr. 12, bl. A2, ap. 5" + "București" → "mihai eminescu|12|bucuresti".
  * Street type (strada/bulevardul…) is dropped from the key because customers mix them up.
  * Returns null when there is no house number (too weak to block on).
+ * Without a city the key ends in "|*"; orders also produce that wildcard key, so such entries match any city.
  */
 export function normAddress(a: AddressInput): string | null {
-  const toks = words(`${a.address1 ?? ''} ${a.address2 ?? ''}`).map((x) => ADDR_WORDS[x] ?? x);
-  const city = normCity(a.city);
-  if (!toks.length || !city) return null;
+  const toks = words(`${a.address1 ?? ''} ${a.address2 ?? ''}`.replace(/\bnr\.?(\d)/gi, 'nr $1')).map((x) => ADDR_WORDS[x] ?? x);
+  // No city → wildcard key "street|number|*" (lists imported from other apps often have no city).
+  const city = normCity(a.city) || '*';
+  if (!toks.length) return null;
 
   const street: string[] = [];
   let number: string | null = null;

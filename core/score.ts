@@ -52,6 +52,11 @@ export function extractIdentifiers(o: OrderLike, defaultCountry = 'RO'): Extract
     const ad = normAddress({ address1: a.address1, address2: a.address2, city: a.city, zip: a.zip, country: a.country_code });
     const rawAddr = [a.address1, a.address2, a.city].filter(Boolean).join(', ');
     push('address', rawAddr, ad);
+    // wildcard-city key, to match entries saved without a city
+    const adAny = normAddress({ address1: a.address1, address2: a.address2, city: null });
+    if (adAny && adAny !== ad) push('address', rawAddr, adAny);
+    // single words of the name, to match one-word entries ("suliman", "bolat") — name weight only
+    if (n && n.includes(' ')) for (const part of n.split(' ')) if (part.length >= 4) push('name', rawName, part);
     push('name_address', `${rawName} / ${rawAddr}`, normNameAddress(n, ad));
   }
   if (cust && !names.includes(cust)) push('name', `${o.customer?.first_name ?? ''} ${o.customer?.last_name ?? ''}`.trim(), cust);

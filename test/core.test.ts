@@ -61,6 +61,9 @@ test('extract: one row per normalized identifier', () => {
     'phone=+40743088138',
     'name=andreea popescu',
     'address=mihai eminescu|12|bucuresti',
+    'address=mihai eminescu|12|*',
+    'name=andreea',
+    'name=popescu',
     'name_address=andreea popescu#mihai eminescu|12|bucuresti',
     'device=ab12cd34ef56ab12cd34ef56ab12cd34',
   ]);
@@ -118,4 +121,15 @@ test('network sharing: refuz_colet from the 2nd time, chargeback immediately, ye
   assert.equal(shouldShareToNetwork(DEFAULT_SETTINGS, 'refuz_colet', 1), true);
   assert.equal(shouldShareToNetwork(DEFAULT_SETTINGS, 'chargeback', 0), true);
   assert.equal(shouldShareToNetwork({ ...DEFAULT_SETTINGS, shareNetwork: false }, 'chargeback', 5), false);
+});
+
+test('import compatibility: city-less address and one-word names', () => {
+  assert.equal(normAddress({ address1: 'Str Oituz,nr 22' }), 'oituz|22|*');
+  assert.equal(normName('sevda bolat', 'sevda bolat'), 'bolat sevda');
+  const ids = extractIdentifiers({ shipping_address: { first_name: 'Hulia', last_name: 'Suliman', address1: 'Strada Oituz 22', city: 'Bacău' } });
+  const keys = ids.map((i) => `${i.kind}:${i.normalized}`);
+  assert.ok(keys.includes('address:oituz|22|*'));
+  assert.ok(keys.includes('address:oituz|22|bacau'));
+  assert.ok(keys.includes('name:suliman'));
+  assert.ok(keys.includes('name:hulia suliman'));
 });
