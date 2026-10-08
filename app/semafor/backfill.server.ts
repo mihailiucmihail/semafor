@@ -5,8 +5,8 @@ import type { ShopSettings } from "../../core/settings";
 
 const Q = `#graphql
 query($n:Int!){ orders(first:$n, sortKey:CREATED_AT, reverse:true){ nodes{
-  id name email phone customAttributes{ key value }
-  customer{ firstName lastName defaultEmailAddress{ emailAddress } defaultPhoneNumber{ phoneNumber } }
+  id name email phone displayFinancialStatus customAttributes{ key value }
+  customer{ id firstName lastName defaultEmailAddress{ emailAddress } defaultPhoneNumber{ phoneNumber } }
   shippingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
   billingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
 } } }`;
@@ -15,8 +15,8 @@ const addr = (a: any) => a ? { first_name: a.firstName, last_name: a.lastName, n
 
 const Q1 = `#graphql
 query($id:ID!){ order(id:$id){
-  id name email phone customAttributes{ key value }
-  customer{ firstName lastName defaultEmailAddress{ emailAddress } defaultPhoneNumber{ phoneNumber } }
+  id name email phone displayFinancialStatus customAttributes{ key value }
+  customer{ id firstName lastName defaultEmailAddress{ emailAddress } defaultPhoneNumber{ phoneNumber } }
   shippingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
   billingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
 } }`;
@@ -31,8 +31,8 @@ export async function fetchOrder(admin: AdminClient, id: string) {
 /** Map an Admin GraphQL order to the webhook (REST) shape checkOrder expects. */
 export function toOrderLike(o: any) {
   return {
-    admin_graphql_api_id: o.id, name: o.name, email: o.email, phone: o.phone,
-    customer: o.customer ? { first_name: o.customer.firstName, last_name: o.customer.lastName, email: o.customer.defaultEmailAddress?.emailAddress, phone: o.customer.defaultPhoneNumber?.phoneNumber } : null,
+    admin_graphql_api_id: o.id, name: o.name, email: o.email, phone: o.phone, financial_status: o.displayFinancialStatus?.toLowerCase(),
+    customer: o.customer ? { id: o.customer.id, first_name: o.customer.firstName, last_name: o.customer.lastName, email: o.customer.defaultEmailAddress?.emailAddress, phone: o.customer.defaultPhoneNumber?.phoneNumber } : null,
     shipping_address: addr(o.shippingAddress), billing_address: addr(o.billingAddress),
     note_attributes: (o.customAttributes || []).map((x: any) => ({ name: x.key, value: x.value })),
   };

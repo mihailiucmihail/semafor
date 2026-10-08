@@ -79,7 +79,7 @@ export default function Settings() {
                 <Text as="h2" variant="headingMd">Legătura cu Shopify</Text>
                 {(webhooks as any[]).map((w) => (
                   <Text as="p" key={w.topic} tone={w.ok ? "success" : "critical"}>
-                    {w.ok ? "✓" : "✗"} {w.topic === "ORDERS_CREATE" ? "Comenzi noi" : w.topic === "APP_UNINSTALLED" ? "Dezinstalare" : w.topic === "PIXEL" ? "Urmărire dispozitiv la checkout" : w.topic === "PAYMENTS" ? "Ascundere plăți pentru lista neagră" : w.topic}
+                    {w.ok ? "✓" : "✗"} {w.topic === "ORDERS_CREATE" ? "Comenzi noi" : w.topic === "APP_UNINSTALLED" ? "Dezinstalare" : w.topic === "ORDERS_PAID" ? "Comenzi achitate" : w.topic === "ORDERS_CANCELLED" ? "Comenzi anulate" : w.topic === "PIXEL" ? "Urmărire dispozitiv la checkout" : w.topic === "PAYMENTS" ? "Ascundere plăți pentru lista neagră" : w.topic}
                     {w.ok ? " — activ" : ` — eroare: ${w.error}`}
                   </Text>
                 ))}

@@ -8,6 +8,7 @@ import type { IdKind } from '../../core/normalize';
 
 import { type ShopSettings } from '../../core/settings';
 import { deviceLinks } from './device-links.server';
+import { findOpenCod } from './open-cod.server';
 
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
@@ -68,6 +69,14 @@ export async function checkOrder(opts: {
     }
     if (order.checkout_token) await db.checkoutAttempt.updateMany({ where: { shopId, checkoutToken: order.checkout_token }, data: { orderId: order.admin_graphql_api_id } });
   } catch (e) { console.error('[semafor] deviceLinks', e); }
+  // Another cash-on-delivery order of the same customer still open → at least yellow
+  try {
+    const open = await findOpenCod(admin as any, order);
+    if (open.length) {
+      for (const o of open) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${o.name} cu ramburs, ${o.status} — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
+      if (result.level === 'green') result.level = 'yellow';
+    }
+  } catch (e) { console.error('[semafor] findOpenCod', e); }
   const combined = combinedLevel(result);
 
   // Device trail
@@ -91,7 +100,7 @@ export async function checkOrder(opts: {
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
   }
   if (combined !== 'green') {
-    const facts = result.matches.map((m) => ({ description: m.kind === 'device' ? `Semafor: ${m.normalized}` : `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
+    const facts = result.matches.map((m) => ({ description: (m.kind as string) === 'device' || (m.kind as string) === 'order' ? `Semafor: ${m.normalized}` : `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
     if (result.networkShops) facts.push({ description: `Semafor: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
     await gql(admin,
       `#graphql

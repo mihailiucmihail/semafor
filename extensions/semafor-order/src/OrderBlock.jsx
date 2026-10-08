@@ -25,7 +25,7 @@ function Block() {
           <s-stack gap="small-200">
             <s-heading>{TITLE[st.level]}</s-heading>
             {(st.matches || []).map((m, i) => (
-              <s-text key={i} color="subdued">{m.kind === "device" ? m.normalized : `${KIND[m.kind] || m.kind}: ${m.normalized} (${m.reason})`}</s-text>
+              <s-text key={i} color="subdued">{m.kind === "device" || m.kind === "order" ? m.normalized : `${KIND[m.kind] || m.kind}: ${m.normalized} (${m.reason})`}</s-text>
             ))}
             {st.networkShops > 0 && <s-text color="subdued">Raportat de {st.networkShops} magazin(e) din rețea</s-text>}
             {st.inList

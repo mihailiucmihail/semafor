@@ -57,7 +57,7 @@ export default function Checks() {
                       <IndexTable.Cell><Badge tone={TONE[own]}>{`${LABEL[own]} · ${c.score}`}</Badge></IndexTable.Cell>
                       <IndexTable.Cell><Badge tone={TONE[net]}>{c.networkShops ? `${LABEL[net]} · ${c.networkShops} mag.` : "Verde"}</Badge></IndexTable.Cell>
                       <IndexTable.Cell>
-                        <BlockStack gap="050">{m.length ? m.map((x, k) => <Text key={k} as="span" variant="bodySm">{x.kind}: {x.normalized} ({x.reason})</Text>) : <Text as="span" tone="subdued">—</Text>}</BlockStack>
+                        <BlockStack gap="050">{m.length ? m.map((x, k) => <Text key={k} as="span" variant="bodySm">{x.kind === "device" || x.kind === "order" ? x.normalized : `${x.kind}: ${x.normalized} (${x.reason})`}</Text>) : <Text as="span" tone="subdued">—</Text>}</BlockStack>
                       </IndexTable.Cell>
                       <IndexTable.Cell>{c.actionTaken || "—"}</IndexTable.Cell>
                       <IndexTable.Cell>{new Date(c.checkedAt).toLocaleString("ro-RO")}</IndexTable.Cell>

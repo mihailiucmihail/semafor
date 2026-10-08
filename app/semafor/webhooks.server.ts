@@ -12,6 +12,8 @@ type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 const NEEDED: { topic: string; path: string }[] = [
   { topic: "ORDERS_CREATE", path: "/webhooks/orders/create" },
   { topic: "APP_UNINSTALLED", path: "/webhooks/app/uninstalled" },
+  { topic: "ORDERS_PAID", path: "/webhooks/orders/status" },
+  { topic: "ORDERS_CANCELLED", path: "/webhooks/orders/status" },
 ];
 
 export type WebhookStatus = { topic: string; ok: boolean; uri?: string; error?: string };
