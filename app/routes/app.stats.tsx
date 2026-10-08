@@ -27,11 +27,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true } } } })) as any[]) : [];
   const hitSet = new Map(hits.map((h) => [h.hash, h.entry.reason]));
 
-  type Dev = { id: string; first: Date; last: Date; emails: Set<string>; phones: Set<string>; names: Set<string>; steps: number; completed: boolean; matched: string[] };
+  type Dev = { id: string; first: Date; last: Date; emails: Set<string>; phones: Set<string>; names: Set<string>; steps: number; completed: boolean; matched: string[]; events: string[]; orderId: string | null; city: string | null };
   const devs = new Map<string, Dev>();
   attempts.forEach((a, idx) => {
-    const d: Dev = devs.get(a.deviceId) ?? { id: a.deviceId, first: a.createdAt, last: a.createdAt, emails: new Set<string>(), phones: new Set<string>(), names: new Set<string>(), steps: 0, completed: false, matched: [] as string[] };
+    const d: Dev = devs.get(a.deviceId) ?? { id: a.deviceId, first: a.createdAt, last: a.createdAt, emails: new Set<string>(), phones: new Set<string>(), names: new Set<string>(), steps: 0, completed: false, matched: [] as string[], events: [] as string[], orderId: null, city: null };
     d.last = a.createdAt; d.steps++;
+    if (!d.events.includes(a.event)) d.events.push(a.event);
+    if (a.orderId) d.orderId = a.orderId;
+    if (a.city) d.city = a.city;
     if (a.event === "completed") d.completed = true;
     const e = a.email && normEmail(a.email); if (e) d.emails.add(a.email);
     const p = a.phone && normPhone(a.phone, shop.country); if (p) d.phones.add(a.phone);
@@ -53,11 +56,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     .sort((a, b) => +b.last - +a.last).slice(0, 50)
     .map((d) => ({ id: d.id.slice(0, 6), last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], matched: d.matched, completed: d.completed, hopping: hopping.includes(d) }));
 
+  // every device, newest first, with the order it ended in (if any)
+  const orderIds = all.map((d) => d.orderId).filter(Boolean) as string[];
+  const names = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderId: true, orderName: true } })) as any[]) : [];
+  const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
+  const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
+    id: d.id.slice(0, 6), first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
+    events: d.events, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
+    matched: d.matched,
+  }));
+  const storeHandle = session.shop.replace(".myshopify.com", "");
+
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
   return {
     days, since: firstAttempt?.createdAt ?? null,
     kpi: { attempts: attempts.length, devices: all.length, completedDevices: all.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
-    orders, suspicious,
+    orders, suspicious, devices, storeHandle,
   };
 };
 
@@ -74,7 +88,7 @@ function Kpi({ label, value, tone, hint }: { label: string; value: number | stri
 }
 
 export default function Stats() {
-  const { days, since, kpi, orders, suspicious } = useLoaderData<typeof loader>();
+  const { days, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
   const [, setSp] = useSearchParams();
   const total = orders.green + orders.yellow + orders.red;
   return (
@@ -126,6 +140,42 @@ export default function Stats() {
                       <IndexTable.Cell>{new Date(s.last).toLocaleString("ro-RO")}</IndexTable.Cell>
                     </IndexTable.Row>
                   ))}
+                </IndexTable>
+              )}
+            </Card>
+            <Text as="h2" variant="headingMd">Toate încercările de comandă</Text>
+            <Card padding="0">
+              {devices.length === 0 ? (
+                <Box padding="400"><Text as="p" tone="subdued">Nicio încercare în această perioadă.</Text></Box>
+              ) : (
+                <IndexTable resourceName={{ singular: "client", plural: "clienți" }} itemCount={devices.length} selectable={false}
+                  headings={[{ title: "Client" }, { title: "Contact" }, { title: "Până unde a ajuns" }, { title: "Rezultat" }, { title: "Când" }]}>
+                  {devices.map((d: any, i: number) => {
+                    const step = d.completed ? "a plătit / a plasat comanda" : d.events.includes("payment") ? "la plată" : d.events.includes("shipping") ? "a ales livrarea" : d.events.includes("address") ? "a completat adresa" : "a completat contactul";
+                    return (
+                      <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
+                        <IndexTable.Cell>
+                          <BlockStack gap="050">
+                            <Text as="span" fontWeight="semibold">{d.names[0] || "—"}</Text>
+                            {d.city && <Text as="span" variant="bodySm" tone="subdued">{d.city}</Text>}
+                            {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution">alte nume: {d.names.slice(1).join(", ")}</Text>}
+                          </BlockStack>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <BlockStack gap="050">
+                            {[...d.emails, ...d.phones].slice(0, 6).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
+                          </BlockStack>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>{step}</IndexTable.Cell>
+                        <IndexTable.Cell>
+                          {d.orderId
+                            ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || "Comanda"}</a>
+                            : d.matched.length ? <Badge tone="critical">din lista neagră — fără comandă</Badge> : <Badge>a abandonat</Badge>}
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>{new Date(d.last).toLocaleString("ro-RO")}</IndexTable.Cell>
+                      </IndexTable.Row>
+                    );
+                  })}
                 </IndexTable>
               )}
             </Card>
