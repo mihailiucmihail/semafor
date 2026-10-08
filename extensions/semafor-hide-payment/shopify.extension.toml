@@ -1,0 +1,17 @@
+api_version = "2026-07"
+
+[[extensions]]
+name = "Semafor — plăți"
+handle = "semafor-hide-payment"
+type = "function"
+uid = "ee3947ac-57c5-43e9-be97-4fcb123c87a0"
+description = "Ascunde toate metodele de plată (inclusiv ramburs) pentru clienții din lista neagră Semafor."
+
+  [[extensions.targeting]]
+  target = "cart.payment-methods.transform.run"
+  input_query = "src/run.graphql"
+  export = "cartPaymentMethodsTransformRun"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"

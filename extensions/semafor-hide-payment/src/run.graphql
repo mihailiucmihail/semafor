@@ -1,0 +1,10 @@
+query CartPaymentMethodsTransformRunInput {
+  paymentMethods { id }
+  localization { country { isoCode } }
+  cart {
+    buyerIdentity { email phone }
+    deliveryGroups { deliveryAddress { address1 address2 city phone } }
+    attribute(key: "_dev") { value }
+  }
+  paymentCustomization { metafield(namespace: "$app", key: "blocklist") { jsonValue } }
+}

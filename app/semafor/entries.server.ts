@@ -114,5 +114,38 @@ export async function pushCheckoutMetafield(admin: { graphql: (q: string, o?: an
     { variables: { m: [{ ownerId: shopGid, namespace: "semafor", key: "blocklist", type: "json", value: JSON.stringify(payload) }] } });
   const j = await res.json();
   if (j.data?.metafieldsSet?.userErrors?.length) console.error("metafieldsSet", j.data.metafieldsSet.userErrors);
+  // same list on the payment customization (read by the hide-payment Function)
+  try { await syncPaymentBlock(admin, payload); } catch (e) { console.error("[semafor] syncPaymentBlock", e); }
   return payload;
+}
+
+/**
+ * Make sure the "Semafor — plăți" payment customization exists and carries the current blocklist.
+ * Returns a status line for the Settings page.
+ */
+export async function syncPaymentBlock(admin: { graphql: (q: string, o?: any) => Promise<Response> }, payload?: any) {
+  const q: any = await (await admin.graphql(`#graphql
+    query { paymentCustomizations(first: 25) { nodes { id title enabled functionId } }
+            shopifyFunctions(first: 25, apiType: "payment_customization") { nodes { id handle app { title } } } }`)).json();
+  if (q.errors) return { ok: false, error: q.errors.map((e: any) => e.message).join("; ") };
+  const fn = q.data.shopifyFunctions.nodes.find((f: any) => f.handle === "semafor-hide-payment");
+  if (!fn) return { ok: false, error: "funcția nu este încă publicată" };
+  const value = JSON.stringify(payload ?? {});
+  let pc = q.data.paymentCustomizations.nodes.find((n: any) => n.functionId === fn.id);
+  if (!pc) {
+    const r: any = await (await admin.graphql(`#graphql
+      mutation($in: PaymentCustomizationInput!) { paymentCustomizationCreate(paymentCustomization: $in) { paymentCustomization { id } userErrors { field message code } } }`,
+      { variables: { in: { title: "Semafor — lista neagră", enabled: true, functionHandle: "semafor-hide-payment", metafields: [{ namespace: "$app", key: "blocklist", type: "json", value }] } } })).json();
+    const ue = r?.data?.paymentCustomizationCreate?.userErrors;
+    if (ue?.length || r.errors) return { ok: false, error: (ue || r.errors).map((e: any) => e.message).join("; ") };
+    return { ok: true, created: true };
+  }
+  if (payload) {
+    const r: any = await (await admin.graphql(`#graphql
+      mutation($m:[MetafieldsSetInput!]!){ metafieldsSet(metafields:$m){ userErrors{ field message } } }`,
+      { variables: { m: [{ ownerId: pc.id, namespace: "$app", key: "blocklist", type: "json", value }] } })).json();
+    const ue = r?.data?.metafieldsSet?.userErrors;
+    if (ue?.length) return { ok: false, error: ue.map((e: any) => e.message).join("; ") };
+  }
+  return { ok: pc.enabled, error: pc.enabled ? undefined : "dezactivată în Setări → Plăți" };
 }
