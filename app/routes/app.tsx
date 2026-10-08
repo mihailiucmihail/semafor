@@ -24,6 +24,7 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <NavMenu>
         <Link to="/app" rel="home">Lista neagră</Link>
+        <Link to="/app/stats">Statistici</Link>
         <Link to="/app/checks">Comenzi verificate</Link>
         <Link to="/app/import">Import</Link>
         <Link to="/app/settings">Setări</Link>
