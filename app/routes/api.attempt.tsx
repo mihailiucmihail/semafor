@@ -34,5 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       address1: cut(b.address1), city: cut(b.city, 80), orderId: cut(b.orderId, 80),
     },
   });
+  // retention: checkout events are kept 120 days (privacy policy)
+  if (Math.random() < 0.01) db.checkoutAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 120 * 86_400_000) } } }).catch(() => {});
   return new Response("ok", { headers: CORS });
 };

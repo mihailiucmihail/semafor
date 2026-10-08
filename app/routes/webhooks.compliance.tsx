@@ -22,6 +22,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       // Remove raw values; keep hashes (anonymised) so the block itself survives, as stated in the policy.
       const where = { shopId: s.id, OR: [email ? { kind: "email" as const, raw: { equals: email, mode: "insensitive" as const } } : undefined, phone ? { kind: "phone" as const, raw: phone } : undefined].filter(Boolean) as any };
       if (where.OR.length) await db.identifier.updateMany({ where, data: { raw: "[redacted]" } });
+      const or = [email ? { email: { equals: email, mode: "insensitive" as const } } : null, phone ? { phone } : null].filter(Boolean) as any[];
+      if (or.length) await db.checkoutAttempt.deleteMany({ where: { shopId: s.id, OR: or } });
       await db.auditLog.create({ data: { shopId: s.id, actor: "shopify", action: "gdpr.customer_redact", payload: { hadEmail: !!email, hadPhone: !!phone } } });
       break;
     }
