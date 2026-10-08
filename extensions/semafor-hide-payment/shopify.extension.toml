@@ -10,7 +10,7 @@ description = "Ascunde toate metodele de platÄƒ (inclusiv ramburs) pentru clienÈ
   [[extensions.targeting]]
   target = "cart.payment-methods.transform.run"
   input_query = "src/run.graphql"
-  export = "cartPaymentMethodsTransformRun"
+  export = "cart-payment-methods-transform-run"
 
   [extensions.build]
   command = ""
