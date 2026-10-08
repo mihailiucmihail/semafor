@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Text, Select, Checkbox, TextField, Button, FormLayout } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, Text, Select, Checkbox, TextField, Button, FormLayout, Banner } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { pushCheckoutMetafield, buildCheckoutPayload, syncPaymentBlock } from "../semafor/entries.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
+import { planOf } from "../semafor/plan.server";
+import { can } from "../../core/plans";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -14,7 +16,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const webhooks = await ensureWebhooks(admin as any, session.shop, true).catch((e) => [{ topic: "ALL", ok: false, error: String(e?.message || e) }]);
   const pixel = await ensurePixel(admin as any, session.shop, true);
   const pay: any = await syncPaymentBlock(admin as any, await buildCheckoutPayload(shop.id)).catch((e: any) => ({ ok: false, error: String(e?.message || e) }));
-  return { settings: shop.settings, webhooks: [...(webhooks as any[]), pixel, { topic: "PAYMENTS", ok: pay.ok, error: pay.error }] };
+  const plan = planOf(shop);
+  return { settings: shop.settings, basic: can(plan, "auto_cancel"), webhooks: [...(webhooks as any[]), pixel, { topic: "PAYMENTS", ok: pay.ok, error: pay.error }] };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -32,7 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Settings() {
-  const { settings, webhooks } = useLoaderData<typeof loader>();
+  const { settings, webhooks, basic } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn) });
@@ -47,14 +50,15 @@ export default function Settings() {
             <Card>
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">Ce facem cu comenzile</Text>
+                {!basic && <Banner tone="info" action={{ content: "Vezi planurile", url: "/app/plan" }}>Pe planul Gratuit comenzile sunt doar marcate (etichetă + semnal de risc). Blocarea în checkout, eliminarea plății ramburs și anularea automată sunt incluse în Basic.</Banner>}
                 <FormLayout>
-                  <Select label="Client galben (suspect, neconfirmat)" value={s.yellowAction} onChange={(v) => setS({ ...s, yellowAction: v as any })}
+                  <Select label="Client galben (suspect, neconfirmat)" disabled={!basic} value={basic ? s.yellowAction : "tag"} onChange={(v) => setS({ ...s, yellowAction: v as any })}
                     options={[
                       { label: "Doar marchează (etichetă + semnal de risc)", value: "tag" },
                       { label: "Marchează și elimină plata ramburs (doar card)", value: "prepaid" },
                       { label: "Blochează finalizarea comenzii", value: "block" },
                     ]} helpText="Galben = semnalat de 1–2 magazine din rețea sau potrivire doar după nume." />
-                  <Checkbox label="Anulează automat comenzile roșii (client din lista ta sau 3+ magazine)" checked={s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText="Dezactivat: comanda rămâne, dar e marcată roșu. Clientul nu e notificat la anulare." />
+                  <Checkbox label="Anulează automat comenzile roșii (client din lista ta sau 3+ magazine)" disabled={!basic} checked={basic && s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText="Dezactivat: comanda rămâne, dar e marcată roșu. Clientul nu e notificat la anulare." />
                 </FormLayout>
               </BlockStack>
             </Card>

@@ -1,4 +1,6 @@
 // Block entries: create / delete, network sharing rule, checkout metafield rebuild.
+import { can } from "../../core/plans";
+import { planOf } from "./plan.server";
 import { createHash } from "node:crypto";
 import db from "../db.server";
 import { SECRET } from "./shop.server";
@@ -93,6 +95,9 @@ export async function deleteEntry(shopId: string, shopDomain: string, entryId: s
  * {"v":1,"e":[...],"p":[...],"a":[...],"d":[...],"msg":"..."}
  */
 export async function buildCheckoutPayload(shopId: string, msg?: string) {
+  const empty = { v: 1, e: [] as string[], p: [] as string[], a: [] as string[], d: [] as string[], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
+  // Blocking in checkout (hide cash on delivery / block) is a Basic feature.
+  if (!can(planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true } })), "checkout_block")) return empty;
   const rows = await db.identifier.findMany({
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
     select: { kind: true, normalized: true },

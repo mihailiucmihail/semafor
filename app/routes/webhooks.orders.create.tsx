@@ -4,6 +4,7 @@ import db from "../db.server";
 import { getShop, SECRET } from "../semafor/shop.server";
 import { checkOrder } from "../semafor/check-order.server";
 import { fetchOrder } from "../semafor/backfill.server";
+import { withinQuota } from "../semafor/plan.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, payload, admin, topic } = await authenticate.webhook(request);
@@ -15,6 +16,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Respond fast; do the work after the response is sent.
   queueMicrotask(async () => {
     try {
+      if (!(await withinQuota(s))) { console.log(`[semafor] ${shop}: free plan monthly limit reached, order not checked`); return; }
       const res = await checkOrder({ db, secret: SECRET, shopId: s.id, shopDomain: shop, country: s.country, settings: s.settings, order: payload, admin });
       for (const id of res.related) {
         const o = await fetchOrder(admin as any, id);

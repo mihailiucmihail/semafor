@@ -6,6 +6,8 @@
  *  - sends through Resend (env RESEND_API_KEY) and logs every send in EmailSend,
  *  - runs the automatic 1st / 2nd reminder every 5 minutes.
  */
+import { can } from "../../core/plans";
+import { planOf } from "./plan.server";
 import db from "../db.server";
 import { unauthenticated } from "../shopify.server";
 import { settingsOf, type RecoverySettings } from "../../core/settings";
@@ -188,7 +190,8 @@ async function pickTemplate(shopId: string, purpose: "auto1" | "auto2", locale: 
 }
 
 /** One pass of the automatic reminders for one shop. */
-export async function runAutomation(shop: { id: string; domain: string; settings: unknown }) {
+export async function runAutomation(shop: { id: string; domain: string; settings: unknown; plan?: string | null }) {
+  if (!can(planOf(shop), "recovery")) return { sent: 0 };
   const s = settingsOf(shop.settings).recovery;
   if (!s.enabled || !process.env.RESEND_API_KEY || !s.fromEmail) return { sent: 0 };
   const { admin } = await unauthenticated.admin(shop.domain);
@@ -243,7 +246,7 @@ export function startRecoveryScheduler() {
   if (g.__semaforRecovery) return;
   g.__semaforRecovery = setInterval(async () => {
     try {
-      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true } })) as any[];
+      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true } })) as any[];
       for (const sh of shops) {
         try { await runAutomation(sh); } catch (e: any) { console.error("[semafor] recovery", sh.domain, e?.message || e); }
       }

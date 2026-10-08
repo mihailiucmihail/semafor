@@ -7,6 +7,8 @@ import { hmacId } from '../../core/hash';
 import type { IdKind } from '../../core/normalize';
 
 import { type ShopSettings } from '../../core/settings';
+import { can, effectiveSettings } from '../../core/plans';
+import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
 import { findRelated } from './open-cod.server';
 
@@ -22,7 +24,9 @@ export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
   settings: ShopSettings; order: any; admin: AdminClient; skipCancel?: boolean;
 }): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
-  const { db, secret, shopId, settings, order, admin } = opts;
+  const { db, secret, shopId, order, admin } = opts;
+  const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true } }));
+  const settings = effectiveSettings(opts.settings, plan);
   const ids = extractIdentifiers(order, opts.country);
   const isIphone = /iPhone/i.test(order.client_details?.user_agent ?? '');
 
@@ -58,7 +62,7 @@ export async function checkOrder(opts: {
     network: (k, n) => netMap.get(`${k}:${n}`) ?? null,
   });
   // Device chain: identities tried from the same device in checkout (Semafor pixel)
-  try {
+  if (can(plan, 'device_links')) try {
     const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country);
     if (dl.findings.length) {
       result.matches.push(...(dl.findings as any));

@@ -11,7 +11,7 @@ model Shop {
   id          String   @id @default(cuid())
   domain      String   @unique            // mihailiuc-2.myshopify.com
   accessToken String
-  plan        String   @default("free")   // free | pro
+  plan        String   @default("free")   // free | basic | pro (core/plans.ts)
   country     String   @default("RO")
   settings    Json     @default("{}")     // { thresholds:{block:100,warn:40}, yellowAction:"tag"|"prepaid"|"block", shareNetwork:bool, cancelRed:bool }
   installedAt DateTime @default(now())

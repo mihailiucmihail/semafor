@@ -133,3 +133,20 @@ test('import compatibility: city-less address and one-word names', () => {
   assert.ok(keys.includes('name:suliman'));
   assert.ok(keys.includes('name:hulia suliman'));
 });
+
+// ---- plans ----
+import { planFromSubscriptionName, can, effectiveSettings } from '../core/plans.ts';
+test('plans: subscription name → plan', () => {
+  assert.equal(planFromSubscriptionName('Semafor Pro'), 'pro');
+  assert.equal(planFromSubscriptionName('Basic'), 'basic');
+  assert.equal(planFromSubscriptionName(''), 'free');
+});
+test('plans: feature gates and effective settings', () => {
+  assert.equal(can('free', 'recovery'), false);
+  assert.equal(can('basic', 'checkout_block'), true);
+  assert.equal(can('basic', 'checkout_stats'), false);
+  assert.equal(can('pro', 'recovery'), true);
+  const s = { ...DEFAULT_SETTINGS, yellowAction: 'block' as const, cancelRed: true };
+  assert.deepEqual([effectiveSettings(s, 'free').yellowAction, effectiveSettings(s, 'free').cancelRed], ['tag', false]);
+  assert.deepEqual([effectiveSettings(s, 'basic').yellowAction, effectiveSettings(s, 'basic').cancelRed], ['block', true]);
+});

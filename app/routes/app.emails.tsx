@@ -4,6 +4,7 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { ensureTemplates } from "../semafor/recovery.server";
@@ -13,8 +14,9 @@ import { defaultTemplates } from "../semafor/recovery-templates";
 const DAY = 86_400_000;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  requireFeature(shop, "recovery", redirect);
   await ensureTemplates(shop.id);
   const templates = (await db.emailTemplate.findMany({ where: { shopId: shop.id }, orderBy: [{ locale: "asc" }, { purpose: "asc" }, { name: "asc" }] })) as any[];
   const since = new Date(Date.now() - 30 * DAY);
@@ -32,8 +34,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  requireFeature(shop, "recovery", redirect);
   const fd = await request.formData();
   const intent = String(fd.get("intent"));
   if (intent === "settings") {

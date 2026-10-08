@@ -4,14 +4,16 @@ import { useFetcher, useLoaderData } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, Divider, Thumbnail } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { deviceContext, ensureTemplates, consentOf, localeOf, sendRecovery } from "../semafor/recovery.server";
 import { STEP_LABEL, stoppedAt } from "../semafor/render";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  requireFeature(shop, "recovery", redirect);
   await ensureTemplates(shop.id);
   const dev = String(params.dev || "");
   const ctx = await deviceContext(shop.id, dev);
@@ -29,8 +31,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
+  const { session, admin, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  requireFeature(shop, "recovery", redirect);
   const fd = await request.formData();
   const preview = fd.get("intent") === "preview";
   try {

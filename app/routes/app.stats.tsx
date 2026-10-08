@@ -3,6 +3,7 @@ import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers } from "../semafor/entries.server";
@@ -12,8 +13,9 @@ import { normEmail, normPhone, normName } from "../../core/normalize";
 const DAY = 86_400_000;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  requireFeature(shop, "checkout_stats", redirect);
   const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("d")) || 30));
   const since = new Date(Date.now() - days * DAY);
 
