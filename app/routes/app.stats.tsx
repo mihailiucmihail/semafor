@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
@@ -61,7 +61,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const names = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderId: true, orderName: true } })) as any[]) : [];
   const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
   const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
-    id: d.id.slice(0, 6), first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
+    id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
     matched: d.matched,
   }));
@@ -151,12 +151,12 @@ export default function Stats() {
                 <IndexTable resourceName={{ singular: "client", plural: "clienți" }} itemCount={devices.length} selectable={false}
                   headings={[{ title: "Client" }, { title: "Contact" }, { title: "Până unde a ajuns" }, { title: "Rezultat" }, { title: "Când" }]}>
                   {devices.map((d: any, i: number) => {
-                    const step = d.completed ? "a plătit / a plasat comanda" : d.events.includes("payment") ? "la plată" : d.events.includes("shipping") ? "a ales livrarea" : d.events.includes("address") ? "a completat adresa" : "a completat contactul";
+                    const step = d.completed ? "a plătit / a plasat comanda" : d.events.includes("payment") ? "a trimis plata (comanda nu s-a creat)" : d.events.includes("shipping") ? "a plecat la plată" : d.events.includes("address") ? "a plecat la livrare" : d.events.includes("contact") ? "a plecat la adresă" : "a plecat la e-mail";
                     return (
                       <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
                         <IndexTable.Cell>
                           <BlockStack gap="050">
-                            <Text as="span" fontWeight="semibold">{d.names[0] || "—"}</Text>
+                            <Link url={`/app/client/${d.dev}`} removeUnderline><Text as="span" fontWeight="semibold">{d.names[0] || d.emails[0] || "—"}</Text></Link>
                             {d.city && <Text as="span" variant="bodySm" tone="subdued">{d.city}</Text>}
                             {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution">alte nume: {d.names.slice(1).join(", ")}</Text>}
                           </BlockStack>
@@ -166,7 +166,7 @@ export default function Stats() {
                             {[...d.emails, ...d.phones].slice(0, 6).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
                           </BlockStack>
                         </IndexTable.Cell>
-                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Text as="span" variant="bodySm" tone="subdued">{d.steps} {d.steps === 1 ? "pas" : "pași"} în checkout</Text></BlockStack></IndexTable.Cell>
+                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Link url={`/app/client/${d.dev}`}>{d.steps} {d.steps === 1 ? "pas" : "pași"} — vezi pașii →</Link></BlockStack></IndexTable.Cell>
                         <IndexTable.Cell>
                           {d.orderId
                             ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || "Comanda"}</a>

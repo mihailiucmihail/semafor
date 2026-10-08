@@ -22,6 +22,8 @@ model Shop {
   audits      AuditLog[]
   devices     DeviceEvent[]
   attempts    CheckoutAttempt[]
+  templates   EmailTemplate[]
+  sends       EmailSend[]
 }
 
 enum Reason {
@@ -180,11 +182,58 @@ model CheckoutAttempt {
   address1      String?
   city          String?
   orderId       String?
+  // v2 (recovery e-mails): what the buyer had in the checkout and where
+  host          String?                         // storefront host, e.g. mihailiuc.de
+  locale        String?                         // checkout language, e.g. de
+  country       String?                         // shipping / market country, e.g. DE
+  currency      String?
+  total         Float?
+  items         Json?                           // [{ title, qty, image }]
+  acceptsMarketing Boolean?                     // buyer ticked the e-mail marketing box in checkout
   createdAt     DateTime @default(now())
 
   @@index([shopId, deviceId])
   @@index([shopId, checkoutToken])
   @@index([shopId, fingerprint])
   @@index([shopId, ip])
+  @@index([shopId, createdAt])
+}
+
+// Recovery e-mails: templates the merchant writes / uploads (HTML with {{placeholders}}).
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name      String
+  locale    String                                // de | pl | ro | en …
+  purpose   String   @default("manual")           // manual | auto1 (first reminder) | auto2 (second, with discount)
+  subject   String
+  html      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId, locale])
+}
+
+// Every recovery e-mail sent (manual from the client page or automatic).
+model EmailSend {
+  id            String   @id @default(cuid())
+  shopId        String
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deviceId      String
+  checkoutToken String?
+  email         String
+  templateId    String?
+  subject       String
+  kind          String                          // manual | auto1 | auto2
+  discountCode  String?
+  discountPct   Int?
+  status        String                          // sent | failed | skipped
+  error         String?
+  providerId    String?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId, deviceId])
+  @@index([shopId, email])
   @@index([shopId, createdAt])
 }

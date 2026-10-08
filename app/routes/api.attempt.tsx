@@ -6,7 +6,7 @@ import db from "../db.server";
  * Body is JSON sent as text/plain (no CORS preflight from the pixel sandbox).
  */
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
-const EVENTS = new Set(["contact", "address", "shipping", "payment", "completed"]);
+const EVENTS = new Set(["started", "contact", "address", "shipping", "payment", "completed"]);
 const hits = new Map<string, { n: number; t: number }>();
 const cut = (v: unknown, n = 200) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : null);
 
@@ -32,6 +32,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shopId: shop.id, deviceId, fingerprint: cut(b.fingerprint, 64), ip, checkoutToken: cut(b.checkoutToken, 100), event,
       email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80),
       address1: cut(b.address1), city: cut(b.city, 80), orderId: cut(b.orderId, 80),
+      host: cut(b.host, 120), locale: cut(b.locale, 10)?.toLowerCase() ?? null, country: cut(b.country, 4)?.toUpperCase() ?? null,
+      currency: cut(b.currency, 4), total: Number.isFinite(Number(b.total)) && b.total !== null ? Number(b.total) : null,
+      items: Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500) })) : undefined,
+      acceptsMarketing: typeof b.acceptsMarketing === "boolean" ? b.acceptsMarketing : null,
     },
   });
   // retention: checkout events are kept 120 days (privacy policy)

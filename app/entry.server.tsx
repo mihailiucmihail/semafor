@@ -7,6 +7,10 @@ import {
 } from "@remix-run/node";
 import { isbot } from "isbot";
 import { addDocumentResponseHeaders } from "./shopify.server";
+import { startRecoveryScheduler } from "./semafor/recovery.server";
+
+// automatic abandoned-checkout e-mails (every 5 min, once per process)
+startRecoveryScheduler();
 
 export const streamTimeout = 5000;
 

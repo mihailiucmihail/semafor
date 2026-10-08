@@ -9,7 +9,27 @@ export interface ShopSettings {
   shareNetwork: boolean;
   /** Reasons that go to the network after ONE entry (chargeback, abuse). refuz_colet only after the 2nd. */
   networkImmediate: Array<'chargeback' | 'return_fraud' | 'abuse'>;
+  /** Abandoned-checkout recovery e-mails (sent by Semafor through Resend). */
+  recovery: RecoverySettings;
 }
+
+export interface RecoverySettings {
+  enabled: boolean;          // automatic e-mails on/off
+  delay1Min: number;         // first reminder after N minutes without an order
+  second: boolean;           // send a second e-mail
+  delay2Hours: number;       // second e-mail N hours after the first
+  pct2: number;              // discount in the second e-mail (0 = none)
+  validHours2: number;       // how long that code is valid
+  onlyConsent: boolean;      // automatic e-mails only to buyers with e-mail marketing consent
+  fromName: string;
+  fromEmail: string;         // must be on a domain verified in Resend
+  replyTo: string;
+}
+
+export const DEFAULT_RECOVERY: RecoverySettings = {
+  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, pct2: 10, validHours2: 24,
+  onlyConsent: true, fromName: 'MIA by MIHAILIUC', fromEmail: '', replyTo: '',
+};
 
 export const DEFAULT_SETTINGS: ShopSettings = {
   thresholds: { block: 100, warn: 40 },
@@ -17,10 +37,12 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   cancelRed: false,
   shareNetwork: true,
   networkImmediate: ['chargeback', 'abuse'],
+  recovery: DEFAULT_RECOVERY,
 };
 
 export function settingsOf(json: unknown): ShopSettings {
-  return { ...DEFAULT_SETTINGS, ...(json as Partial<ShopSettings> ?? {}) };
+  const j = (json as Partial<ShopSettings>) ?? {};
+  return { ...DEFAULT_SETTINGS, ...j, recovery: { ...DEFAULT_RECOVERY, ...(j.recovery ?? {}) } };
 }
 
 /**
