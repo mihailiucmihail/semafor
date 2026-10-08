@@ -62,7 +62,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
   const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
     id: d.id.slice(0, 6), first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
-    events: d.events, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
+    events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
     matched: d.matched,
   }));
   const storeHandle = session.shop.replace(".myshopify.com", "");
@@ -107,7 +107,7 @@ export default function Stats() {
 
             <Text as="h2" variant="headingMd">Checkout</Text>
             <InlineGrid columns={{ xs: 2, md: 3 }} gap="300">
-              <Kpi label="Încercări de comandă" value={kpi.attempts} hint={`${kpi.devices} dispozitive · ${kpi.completedDevices} au finalizat`} />
+              <Kpi label="Clienți în checkout" value={kpi.devices} hint={`${kpi.completedDevices} au plasat comanda · ${kpi.attempts} pași în total`} />
               <Kpi label="Clienți din lista neagră care au încercat" value={kpi.black} tone={kpi.black ? "critical" : undefined} hint="dispozitive care au introdus un e-mail, telefon sau adresă din listă" />
               <Kpi label="…și au reușit totuși să comande" value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint="trecuți de blocare — verifică-i în Comenzi verificate" />
               <Kpi label="Schimbă datele" value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint="3+ e-mailuri, telefoane sau nume pe același dispozitiv" />
@@ -166,7 +166,7 @@ export default function Stats() {
                             {[...d.emails, ...d.phones].slice(0, 6).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
                           </BlockStack>
                         </IndexTable.Cell>
-                        <IndexTable.Cell>{step}</IndexTable.Cell>
+                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Text as="span" variant="bodySm" tone="subdued">{d.steps} {d.steps === 1 ? "pas" : "pași"} în checkout</Text></BlockStack></IndexTable.Cell>
                         <IndexTable.Cell>
                           {d.orderId
                             ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || "Comanda"}</a>
