@@ -1,31 +1,36 @@
-// "Comandă cu ramburs încă în drum": the same customer already has an unpaid cash-on-delivery order
-// that is not delivered/paid yet. We don't know if they will pay for the first one → yellow.
-// Paid orders (card/PayPal) are never flagged.
+// Other open orders of the same customer → yellow, with a note:
+//  • unshipped orders (any payment): "can be merged into one parcel"
+//  • unpaid cash-on-delivery order already shipped, not delivered: "wait until they pick it up"
+//    (only when THIS order is unpaid too — a paid order is never flagged for this)
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
-export type OpenCod = { name: string; status: "neexpediată" | "în drum" };
+export type Related = { unshipped: string[]; codInTransit: string[]; ids: string[] };
 
 const Q = `#graphql
-query($q: String!) { orders(first: 10, query: $q, sortKey: CREATED_AT, reverse: true) {
-  nodes { id name cancelledAt displayFinancialStatus displayFulfillmentStatus fulfillments(first: 5) { displayStatus } }
+query($q: String!) { orders(first: 15, query: $q, sortKey: CREATED_AT, reverse: true) {
+  nodes { id name createdAt cancelledAt closed displayFinancialStatus displayFulfillmentStatus fulfillments(first: 5) { displayStatus } }
 } }`;
 
-export async function findOpenCod(admin: Admin, order: any): Promise<OpenCod[]> {
-  const fin = String(order.financial_status || order.displayFinancialStatus || "").toLowerCase();
-  if (fin && fin !== "pending") return []; // this order is already paid → green, no notice
+const NOT_SHIPPED = new Set(["UNFULFILLED", "ON_HOLD", "SCHEDULED", "PENDING_FULFILLMENT", "OPEN", "IN_PROGRESS"]);
+
+export async function findRelated(admin: Admin, order: any): Promise<Related> {
+  const out: Related = { unshipped: [], codInTransit: [], ids: [] };
   const cid = order.customer?.id ? String(order.customer.id).split("/").pop() : null;
   const email = order.email || order.customer?.email;
-  if (!cid && !email) return [];
+  if (!cid && !email) return out;
   const who = cid ? `customer_id:${cid}` : `email:"${String(email).replace(/"/g, "")}"`;
-  const j: any = await (await admin.graphql(Q, { variables: { q: `${who} financial_status:pending -status:cancelled` } })).json();
+  // only recent orders: old ones left "unfulfilled" in Shopify are usually already settled
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
+  const j: any = await (await admin.graphql(Q, { variables: { q: `${who} -status:cancelled created_at:>=${since}` } })).json();
+  const unshippedSince = Date.now() - 10 * 86_400_000;
   const me = String(order.admin_graphql_api_id || "");
-  const out: OpenCod[] = [];
+  const thisUnpaid = !order.financial_status || String(order.financial_status).toLowerCase() === "pending";
   for (const o of j?.data?.orders?.nodes ?? []) {
-    if (o.id === me || o.cancelledAt) continue;
-    if (o.displayFinancialStatus !== "PENDING") continue;
+    if (o.id === me || o.cancelledAt || o.closed) continue;
+    const shipped = (o.fulfillments || []).length > 0 || !NOT_SHIPPED.has(o.displayFulfillmentStatus);
+    if (!shipped) { if (Date.parse(o.createdAt) >= unshippedSince) { out.unshipped.push(o.name); out.ids.push(o.id); } continue; }
     const delivered = (o.fulfillments || []).some((f: any) => f.displayStatus === "DELIVERED");
-    if (delivered) continue; // delivered but not marked paid yet — courier money on the way, not a risk signal
-    out.push({ name: o.name, status: o.displayFulfillmentStatus === "UNFULFILLED" ? "neexpediată" : "în drum" });
+    if (thisUnpaid && o.displayFinancialStatus === "PENDING" && !delivered) out.codInTransit.push(o.name);
   }
   return out;
 }

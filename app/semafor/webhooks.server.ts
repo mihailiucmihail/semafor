@@ -14,6 +14,7 @@ const NEEDED: { topic: string; path: string }[] = [
   { topic: "APP_UNINSTALLED", path: "/webhooks/app/uninstalled" },
   { topic: "ORDERS_PAID", path: "/webhooks/orders/status" },
   { topic: "ORDERS_CANCELLED", path: "/webhooks/orders/status" },
+  { topic: "ORDERS_FULFILLED", path: "/webhooks/orders/status" },
 ];
 
 export type WebhookStatus = { topic: string; ok: boolean; uri?: string; error?: string };

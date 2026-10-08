@@ -8,7 +8,7 @@ import type { IdKind } from '../../core/normalize';
 
 import { type ShopSettings } from '../../core/settings';
 import { deviceLinks } from './device-links.server';
-import { findOpenCod } from './open-cod.server';
+import { findRelated } from './open-cod.server';
 
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
@@ -21,7 +21,7 @@ const ALL_TAGS = [...Object.values(TAG), '🔴 Semafor', '🟡 Semafor', '🟢 S
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
   settings: ShopSettings; order: any; admin: AdminClient; skipCancel?: boolean;
-}): Promise<ScoreResult & { combined: Level; action: string }> {
+}): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
   const { db, secret, shopId, settings, order, admin } = opts;
   const ids = extractIdentifiers(order, opts.country);
   const isIphone = /iPhone/i.test(order.client_details?.user_agent ?? '');
@@ -69,14 +69,15 @@ export async function checkOrder(opts: {
     }
     if (order.checkout_token) await db.checkoutAttempt.updateMany({ where: { shopId, checkoutToken: order.checkout_token }, data: { orderId: order.admin_graphql_api_id } });
   } catch (e) { console.error('[semafor] deviceLinks', e); }
-  // Another cash-on-delivery order of the same customer still open → at least yellow
+  // Other open orders of the same customer → at least yellow
+  let related: string[] = [];
   try {
-    const open = await findOpenCod(admin as any, order);
-    if (open.length) {
-      for (const o of open) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${o.name} cu ramburs, ${o.status} — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
-      if (result.level === 'green') result.level = 'yellow';
-    }
-  } catch (e) { console.error('[semafor] findOpenCod', e); }
+    const r = await findRelated(admin as any, order);
+    related = r.ids;
+    if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet`, entryId: '', reason: 'mai multe comenzi', weight: 40 });
+    for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
+    if ((r.unshipped.length || r.codInTransit.length) && result.level === 'green') result.level = 'yellow';
+  } catch (e) { console.error('[semafor] findRelated', e); }
   const combined = combinedLevel(result);
 
   // Device trail
@@ -121,7 +122,7 @@ export async function checkOrder(opts: {
     update: { score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
   });
 
-  return { ...result, combined, action };
+  return { ...result, combined, action, related };
 }
 
 function labelKind(k: IdKind): string {
