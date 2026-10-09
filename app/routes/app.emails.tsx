@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst } from "../semafor/recovery.server";
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
@@ -79,6 +79,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html, uurl, tpl.locale, s.fromName || me.name), fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       return { ok: true, msg: `E-mail de test trimis la ${to}` };
     } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
+  }
+  if (intent === "blast") {
+    const days = Math.min(14, Math.max(1, Number(fd.get("days")) || 7));
+    const dry = fd.get("dry") === "1";
+    if (dry) {
+      const r = await blastFirst(shop as any, { days, dryRun: true });
+      return { ok: true, msg: `Vor primi e-mailul: ${r.candidates}`, blast: r };
+    }
+    // real send runs in the background (it can take a few minutes)
+    blastFirst(shop as any, { days, dryRun: false }).then((r) => console.log("[semafor] blast done", shop.domain, JSON.stringify(r))).catch((e) => console.error("[semafor] blast", e));
+    return { ok: true, msg: "Trimiterea a pornit — durează câteva minute", blast: null };
   }
   if (intent === "reset") {
     const d = String(fd.get("design") || "elegant");
@@ -201,6 +212,20 @@ export default function Emails() {
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
                 <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 3 e-mailuri automate per clientă.</Text>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Trimite acum primul e-mail celor care n-au comandat</Text>
+                <Text as="p" tone="subdued">O singură dată: tuturor celor care au lăsat checkout-ul în ultimele zile, n-au comandat și n-au primit încă niciun e-mail — fiecare în limba checkout-ului ei. Apoi automatizarea continuă singură.</Text>
+                {(fetcher.data as any)?.blast && (
+                  <Banner tone="info">Vor primi e-mailul: <b>{(fetcher.data as any).blast.candidates}</b> ({Object.entries((fetcher.data as any).blast.byLang).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join(", ") || "—"}). Sărite: au comandat {(fetcher.data as any).blast.ordered}, fără acord {(fetcher.data as any).blast.noConsent}, au primit deja {(fetcher.data as any).blast.already}, dezabonate {(fetcher.data as any).blast.optedOut}.</Banner>
+                )}
+                <InlineStack gap="200">
+                  <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("dry") === "1"} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "1" }, { method: "post" })}>Verifică cine primește (7 zile)</Button>
+                  <Button variant="primary" disabled={!resend || !(fetcher.data as any)?.blast?.candidates} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "0" }, { method: "post" })}>Trimite acum</Button>
+                </InlineStack>
               </BlockStack>
             </Card>
 

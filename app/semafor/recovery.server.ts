@@ -414,6 +414,7 @@ export async function sendRecovery(i: SendInput) {
 
 async function pickTemplate(shopId: string, purpose: "auto1" | "auto2" | "auto3", locale: string) {
   return (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale }, orderBy: { updatedAt: "desc" } }))
+    ?? (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale: "en" }, orderBy: { updatedAt: "desc" } }))
     ?? (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale: "de" }, orderBy: { updatedAt: "desc" } }));
 }
 
@@ -548,6 +549,55 @@ export async function runAutomation(shop: { id: string; domain: string; settings
 }
 
 /** Every 5 minutes, for every installed shop with automation on. Started once per server process. */
+/**
+ * One-off "first e-mail" to everybody who left the checkout in the last `days` days, never ordered and never got
+ * a Semafor e-mail yet (each in the language of her checkout). dryRun = only count.
+ */
+export async function blastFirst(shop: { id: string; domain: string; settings: unknown }, opts: { days: number; dryRun: boolean }) {
+  const s = settingsOf(shop.settings).recovery;
+  const { admin } = await unauthenticated.admin(shop.domain);
+  await enrichFromShopify(admin as any, shop.id, opts.days).catch(() => 0);
+  const since = new Date(Date.now() - opts.days * DAY);
+  const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { deviceId: true, event: true, email: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
+  const devs = new Map<string, { email: string | null; first: Date; done: boolean }>();
+  const completed = new Set<string>();
+  for (const r of rows) {
+    const d = devs.get(r.deviceId) ?? { email: null, first: r.createdAt, done: false };
+    if (r.email) d.email = r.email;
+    if (r.event === "completed") { d.done = true; if (r.email) completed.add(r.email.toLowerCase()); }
+    devs.set(r.deviceId, d);
+  }
+  const res = { candidates: 0, sent: 0, ordered: 0, noConsent: 0, optedOut: 0, already: 0, failed: 0, byLang: {} as Record<string, number> };
+  const seen = new Set<string>();
+  for (const [deviceId, d] of devs) {
+    if (!d.email || d.done) continue;
+    const em = d.email.toLowerCase();
+    if (completed.has(em) || seen.has(em)) continue;
+    seen.add(em);
+    if (await isOptedOut(shop.id, em)) { res.optedOut++; continue; }
+    if (await db.emailSend.count({ where: { shopId: shop.id, email: { equals: d.email, mode: "insensitive" }, status: "sent" } })) { res.already++; continue; }
+    if (await orderedSince(admin as any, d.email, d.first)) { res.ordered++; continue; }
+    const ctx = await deviceContext(shop.id, deviceId);
+    if (!ctx) continue;
+    if (s.onlyConsent) {
+      const c = await consentOf(admin as any, d.email);
+      if (!(ctx.acceptsMarketing || c === "SUBSCRIBED")) { res.noConsent++; continue; }
+    }
+    const lang = localeOf(ctx);
+    res.candidates++;
+    res.byLang[lang] = (res.byLang[lang] || 0) + 1;
+    if (opts.dryRun) continue;
+    const tpl = await pickTemplate(shop.id, "auto1", lang);
+    if (!tpl) { res.failed++; continue; }
+    try {
+      await sendRecovery({ shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct: 0, validHours: 24, kind: "auto1", settings: s });
+      res.sent++;
+    } catch (e: any) { res.failed++; console.error("[semafor] blast", e?.message || e); }
+    await new Promise((r) => setTimeout(r, 700)); // stay well under the provider's rate limit
+  }
+  return res;
+}
+
 export function startRecoveryScheduler() {
   const g = globalThis as any;
   if (g.__semaforRecovery) return;
