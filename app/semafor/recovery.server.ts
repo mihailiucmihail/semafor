@@ -432,7 +432,7 @@ export async function sendRecovery(i: SendInput) {
   if (i.pct > 0 && (i.cartDiscount?.pct ?? 0) >= i.pct) i.pct = 0;
   let code = "", endsAt: Date | null = null;
   if (i.pct > 0) {
-    if (i.preview) { code = `MIA${i.pct}-XXXXX`; endsAt = new Date(Date.now() + i.validHours * 3_600_000); }
+    if (i.preview) { code = `GIFT${i.pct}-XXXXX`; endsAt = new Date(Date.now() + i.validHours * 3_600_000); }
     else {
       const hours = i.validUntil ? Math.max(3, (+i.validUntil - Date.now()) / 3_600_000) : i.validHours;
       ({ code, endsAt } = await createDiscount(i.admin, i.pct, hours, i.kind, !!i.settings.combineDiscounts));
