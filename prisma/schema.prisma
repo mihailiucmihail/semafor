@@ -163,6 +163,27 @@ model Session {
   refreshTokenExpires DateTime?
 }
 
+// Sessions of the public (App Store) Semafor app — kept apart from the original app's sessions
+model PublicSession {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
 // Every step a buyer submits in checkout (from the Semafor custom pixel), even when the checkout is then blocked.
 // Lets Semafor link the identities one device tries ("tries the husband's e-mail/phone").
 // Raw values stay in the merchant's own shop scope only; kept 120 days.

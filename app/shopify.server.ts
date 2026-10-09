@@ -16,7 +16,8 @@ const shopify = shopifyApp({
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   logger: { level: process.env.SEMAFOR_DEBUG ? LogSeverity.Debug : LogSeverity.Info },
-  sessionStorage: new PrismaSessionStorage(prisma) as any,
+  // SEMAFOR_SESSION_TABLE lets a second deployment (the public App Store app) keep its own sessions
+  sessionStorage: new PrismaSessionStorage(prisma, { tableName: (process.env.SEMAFOR_SESSION_TABLE as any) || "session" }) as any,
   distribution: AppDistribution.AppStore,
   future: {
     unstable_newEmbeddedAuthStrategy: true,

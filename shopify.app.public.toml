@@ -1,0 +1,37 @@
+# Semafor — public App Store app (Partner org MIHAILIUC GROUP SRL, app 433770004481). URL is set when its Railway service exists.
+client_id = "a1d407ad72929fc485d5f9a4ef9a42b1"
+name = "Semafor"
+handle = "semafor"
+application_url = "https://semafor-production.up.railway.app"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/webhooks/orders/create"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app_subscriptions/update" ]
+  uri = "/webhooks/app/subscriptions_update"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "/webhooks/compliance"
+
+[access_scopes]
+scopes = "read_orders,write_orders,read_customers,write_customers,write_pixels,read_customer_events,read_payment_customizations,write_payment_customizations,write_discounts,read_discounts"
+
+[auth]
+redirect_urls = [ "https://semafor-production.up.railway.app/auth/callback", "https://semafor-production.up.railway.app/auth/shopify/callback", "https://semafor-production.up.railway.app/api/auth/callback" ]
+
+[pos]
+embedded = false

@@ -681,7 +681,10 @@ export function startRecoveryScheduler() {
   g.__semaforRecovery = setInterval(async () => {
     try {
       const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true } })) as any[];
+      const { sessionStorage } = await import("../shopify.server");
       for (const sh of shops) {
+        // only shops installed in THIS app (two deployments share the database)
+        try { const ss = await (sessionStorage as any).findSessionsByShop(sh.domain); if (!ss?.some((x: any) => !x.isOnline)) continue; } catch { continue; }
         try { await runAutomation(sh); } catch (e: any) { console.error("[semafor] recovery", sh.domain, e?.message || e); }
       }
     } catch (e: any) { console.error("[semafor] recovery scheduler", e?.message || e); }
