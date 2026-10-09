@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst, unsubVars, UNSUB_PH } from "../semafor/recovery.server";
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
@@ -73,10 +73,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const brand = brandOf(s, me.name);
     const items = await sampleItems(admin as any, shop.id);
     const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
-    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: s.fromName || me.name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
+    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...unsubVars(tpl.locale, s.fromName || me.name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: s.fromName || me.name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
     try {
       const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
-      await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html, uurl, tpl.locale, s.fromName || me.name), fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
+      await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, s.fromName || me.name), fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       return { ok: true, msg: `E-mail de test trimis la ${to}` };
     } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
   }
@@ -111,7 +111,7 @@ function previewOf(t: any, brand: any, items: Item[], shopName: string, pcts: { 
   const src = isDesign(t.design) ? { subject: t.subject, html: buildEmail(t.design, t.copy || {}, brand) } : { subject: t.subject, html: t.html };
   const pb = productBlock(design, items, brand.accent);
   const pct = t.purpose === "auto3" ? pcts.p3 : pcts.p2;
-  return render(src, { ...SAMPLE, discount_pct: String(pct || 15), total: items[0]?.price || "", product_block: pb, items: pb, product_title: items[0]?.title || "", shop_name: shopName }, t.purpose === "auto2" || t.purpose === "auto3");
+  return render(src, { ...SAMPLE, discount_pct: String(pct || 15), total: items[0]?.price || "", product_block: pb, items: pb, product_title: items[0]?.title || "", shop_name: shopName, unsubscribe_url: "#", unsubscribe_label: "Dezabonare", unsubscribe_why: `Primești acest e-mail pentru că ai început o comandă la ${shopName}.` }, t.purpose === "auto2" || t.purpose === "auto3");
 }
 
 function copyFor(locale: string, purpose: string) {

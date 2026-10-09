@@ -148,6 +148,13 @@ export const UNSUB_LABEL: Record<string, { link: string; why: string }> = {
   en: { link: "Unsubscribe", why: "You're receiving this e-mail because you started an order at {{shop_name}}." },
 };
 
+/** Placeholder for the unsubscribe URL until the real (per-buyer) link is known. */
+export const UNSUB_PH = "https://unsubscribe.invalid/semafor";
+export function unsubVars(locale: string, shopName: string) {
+  const L = UNSUB_LABEL[locale] || UNSUB_LABEL.en;
+  return { unsubscribe_url: UNSUB_PH, unsubscribe_label: L.link, unsubscribe_why: L.why.replace("{{shop_name}}", shopName) };
+}
+
 export async function isOptedOut(shopId: string, email: string) {
   return !!(await db.emailOptOut.findUnique({ where: { shopId_email: { shopId, email: email.trim().toLowerCase() } } }));
 }
@@ -393,6 +400,7 @@ export async function sendRecovery(i: SendInput) {
   };
   const ident = await shopIdentity(i.admin);
   vars.shop_name = i.settings.fromName || ident.name;
+  Object.assign(vars, unsubVars(locale, vars.shop_name));
   const out = render(templateSource(tpl as any, brandOf(i.settings, ident.name)), vars, !!code);
   // greeting without a name: "Hallo ," → "Hallo,"
   out.html = out.html.replace(/(Hallo|Cześć|Bună),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună) ,/g, "$1,");
@@ -402,7 +410,7 @@ export async function sendRecovery(i: SendInput) {
     const sentToday = await db.emailSend.count({ where: { shopId: i.shopId, status: "sent", createdAt: { gt: new Date(Date.now() - DAY) } } });
     if (sentToday >= DAILY_LIMIT) throw new Error(`Limita zilnică de ${DAILY_LIMIT} e-mailuri a fost atinsă.`);
     const uurl = unsubUrl(i.shopId, ctx.email);
-    const html = withUnsubFooter(out.html, uurl, locale, vars.shop_name);
+    const html = withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, locale, vars.shop_name);
     const providerId = await sendMail({ to: ctx.email, subject: out.subject, html, fromName: i.settings.fromName || ident.name, fromEmail: await senderOf(i.shopDomain, i.settings), replyTo: i.settings.replyTo || ident.email || undefined, unsubscribeUrl: uurl });
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "sent", providerId } });
   } catch (e: any) {

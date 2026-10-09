@@ -120,7 +120,11 @@ ${existing}${disc}
 <p style="margin:22px 0;text-align:center">${btn}</p>
 ${c.note ? `<p style="margin:0 0 8px;color:${L.muted};font-size:13px">${txt(c.note)}</p>` : ""}
 </td></tr>
-<tr><td style="padding:18px 32px 26px;font-family:${SANS};color:${L.muted};font-size:11px;text-align:center;border-top:1px solid ${L.line}">{{shop_name}}</td></tr>
+<tr><td style="padding:20px 32px 26px;font-family:${SANS};color:${L.muted};font-size:12px;line-height:1.7;text-align:center;border-top:1px solid ${L.line}">
+<div style="letter-spacing:.08em">{{shop_name}}</div>
+<div style="margin-top:6px">{{unsubscribe_why}}</div>
+<div style="margin-top:6px"><a href="{{unsubscribe_url}}" style="color:${L.ink};text-decoration:underline">{{unsubscribe_label}}</a></div>
+</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
