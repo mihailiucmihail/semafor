@@ -64,21 +64,27 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
   if (intent === "test") {
     const to = String(fd.get("to") || "").trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: "Adresă de e-mail invalidă" };
-    const tpl = (await db.emailTemplate.findFirst({ where: { id: String(fd.get("templateId") || ""), shopId: shop.id } }))
-      || (await db.emailTemplate.findFirst({ where: { shopId: shop.id }, orderBy: { purpose: "asc" } }));
-    if (!tpl) return { ok: false, msg: "Nu există niciun șablon" };
-    const s = shop.settings.recovery;
-    const me = await shopIdentity(admin as any);
-    const brand = brandOf(s, me.name);
-    const items = await sampleItems(admin as any, shop.id);
-    const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
-    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...unsubVars(tpl.locale, s.fromName || me.name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: s.fromName || me.name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: "Adresă de e-mail invalidă", test: "Adresă de e-mail invalidă" };
     try {
+      const tpl = (await db.emailTemplate.findFirst({ where: { id: String(fd.get("templateId") || ""), shopId: shop.id } }))
+        || (await db.emailTemplate.findFirst({ where: { shopId: shop.id }, orderBy: { updatedAt: "desc" } }));
+      if (!tpl) return { ok: false, msg: "Nu există niciun șablon", test: "Nu există niciun șablon" };
+      const s = shop.settings.recovery;
+      const me = await shopIdentity(admin as any);
+      const brand = brandOf(s, me.name);
+      const items = await sampleItems(admin as any, shop.id);
+      const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
+      const name = s.fromName || me.name;
+      const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...unsubVars(tpl.locale, name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
       const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
-      await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, s.fromName || me.name), fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
-      return { ok: true, msg: `E-mail de test trimis la ${to}` };
-    } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
+      await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, name), fromName: name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
+      const m = `E-mail de test trimis la ${to} (${tpl.name})`;
+      return { ok: true, msg: m, test: m };
+    } catch (e: any) {
+      console.error("[semafor] test e-mail", e?.stack || e);
+      const m = "Eroare: " + String(e?.message || e).slice(0, 200);
+      return { ok: false, msg: m, test: m };
+    }
   }
   if (intent === "blast") {
     const days = Math.min(14, Math.max(1, Number(fd.get("days")) || 7));
@@ -251,6 +257,7 @@ export default function Emails() {
                     <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>Trimite test</Button>
                   </InlineStack>
                 )}
+                {(fetcher.data as any)?.test && <Banner tone={(fetcher.data as any).ok ? "success" : "critical"}>{(fetcher.data as any).test}</Banner>}
                 <Text as="p" variant="bodySm" tone="subdued">E-mailul de test folosește un produs real din magazin{items[0] ? ` (${items[0].title})` : ""}. Salvează aspectul înainte de test.</Text>
               </BlockStack>
             </Card>
