@@ -7,6 +7,8 @@ import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
 import { createEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
+import { useT, t } from "../i18n";
+import { shopLang } from "../i18n.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => { await authenticate.admin(request); return null; };
 
@@ -16,7 +18,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const csv = String((await request.formData()).get("csv") || "");
   const rows = parseCsv(csv);
-  if (rows.length < 2) return { ok: false, error: "CSV gol sau fără antet", imported: 0, skipped: [] as string[] };
+  if (rows.length < 2) return { ok: false, error: t(shopLang(shop, request), "import.emptyCsv"), imported: 0, skipped: [] as string[] };
   const head = rows[0].map((h) => h.trim().toLowerCase());
   const col = (names: string[]) => head.findIndex((h) => names.includes(h));
   const ci = { email: col(["email", "e-mail"]), phone: col(["phone", "telefon", "tel"]), first: col(["first_name", "firstname", "prenume"]), last: col(["last_name", "lastname", "nume"]), name: col(["name", "customer", "client"]), addr: col(["address", "address1", "adresa", "adresă"]), city: col(["city", "oras", "oraș"]), reason: col(["reason", "motiv"]), note: col(["note", "nota", "notă", "comment"]) };
@@ -56,31 +58,32 @@ export default function Import() {
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [csv, setCsv] = useState("");
-  useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(`Importate: ${fetcher.data.imported}`); }, [fetcher.state, fetcher.data, app]);
+  const tr = useT();
+  useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("import.imported", { n: fetcher.data.imported })); }, [fetcher.state, fetcher.data, app, tr]);
   const d = fetcher.data;
   return (
     <Page narrowWidth>
-      <TitleBar title="Import CSV" />
+      <TitleBar title={tr("import.title")} />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <Card>
               <BlockStack gap="300">
-                <Text as="p">Lipește conținutul unui CSV exportat din aplicația veche. Prima linie trebuie să fie antetul. Coloane recunoscute:</Text>
+                <Text as="p">{tr("import.intro")}</Text>
                 <List type="bullet">
                   <List.Item><code>email</code>, <code>phone</code> / <code>telefon</code></List.Item>
-                  <List.Item><code>first_name</code> + <code>last_name</code> sau <code>name</code></List.Item>
+                  <List.Item><code>first_name</code> + <code>last_name</code> {tr("import.or")} <code>name</code></List.Item>
                   <List.Item><code>address</code> / <code>adresa</code>, <code>city</code> / <code>oras</code></List.Item>
                   <List.Item><code>reason</code> / <code>motiv</code> (refuz_colet, chargeback, return_fraud, abuse, other), <code>note</code></List.Item>
                 </List>
                 <TextField label="CSV" value={csv} onChange={setCsv} multiline={12} autoComplete="off" monospaced placeholder={"email,phone,name,reason\nion@example.com,0743000000,Ion Popescu,refuz_colet"} />
-                <Button variant="primary" loading={fetcher.state !== "idle"} disabled={!csv.trim()} onClick={() => fetcher.submit({ csv }, { method: "post" })}>Importă</Button>
+                <Button variant="primary" loading={fetcher.state !== "idle"} disabled={!csv.trim()} onClick={() => fetcher.submit({ csv }, { method: "post" })}>{tr("import.button")}</Button>
               </BlockStack>
             </Card>
             {d && !d.ok && <Banner tone="critical">{(d as any).error}</Banner>}
             {d && d.ok && (
-              <Banner tone={d.skipped.length ? "warning" : "success"} title={`Importate: ${d.imported}`}>
-                {d.skipped.length ? <>Sărite ({d.skipped.length}, fără identificator valid): <List>{d.skipped.slice(0, 20).map((s, i) => <List.Item key={i}>{s}</List.Item>)}</List></> : null}
+              <Banner tone={d.skipped.length ? "warning" : "success"} title={tr("import.imported", { n: d.imported })}>
+                {d.skipped.length ? <>{tr("import.skipped", { n: d.skipped.length })}<List>{d.skipped.slice(0, 20).map((s, i) => <List.Item key={i}>{s}</List.Item>)}</List></> : null}
               </Banner>
             )}
           </BlockStack>

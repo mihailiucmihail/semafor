@@ -11,6 +11,8 @@ import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleIte
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
+import { useT, t, trMsg, type TKey } from "../i18n";
+import { shopLang } from "../i18n.server";
 
 const DAY = 86_400_000;
 
@@ -43,10 +45,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   requireFeature(shop, "recovery", redirect);
   const fd = await request.formData();
   const intent = String(fd.get("intent"));
+  const lang = shopLang(shop, request);
   if (intent === "settings") {
     const r = JSON.parse(String(fd.get("recovery")));
     await saveSettings(shop.id, { recovery: { ...shop.settings.recovery, ...r } }, (session as any).email || session.shop);
-    return { ok: true, msg: "Setări salvate" };
+    return { ok: true, msg: t(lang, "common.settingsSaved") };
   }
   if (intent === "save") {
     const design = String(fd.get("design") || "custom");
@@ -56,19 +59,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const id = String(fd.get("id") || "");
     if (id) await db.emailTemplate.updateMany({ where: { id, shopId: shop.id }, data });
     else await db.emailTemplate.create({ data: { ...data, shopId: shop.id } });
-    return { ok: true, msg: "Șablon salvat" };
+    return { ok: true, msg: t(lang, "emails.msg.templateSaved"), closeEdit: true };
   }
   if (intent === "delete") {
     await db.emailTemplate.deleteMany({ where: { id: String(fd.get("id")), shopId: shop.id } });
-    return { ok: true, msg: "Șablon șters" };
+    return { ok: true, msg: t(lang, "emails.msg.templateDeleted"), closeEdit: true };
   }
   if (intent === "test") {
     const to = String(fd.get("to") || "").trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: "Adresă de e-mail invalidă", test: "Adresă de e-mail invalidă" };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: t(lang, "emails.msg.invalidEmail"), test: t(lang, "emails.msg.invalidEmail") };
     try {
       const tpl = (await db.emailTemplate.findFirst({ where: { id: String(fd.get("templateId") || ""), shopId: shop.id } }))
         || (await db.emailTemplate.findFirst({ where: { shopId: shop.id }, orderBy: { updatedAt: "desc" } }));
-      if (!tpl) return { ok: false, msg: "Nu există niciun șablon", test: "Nu există niciun șablon" };
+      if (!tpl) return { ok: false, msg: t(lang, "emails.msg.noTemplate"), test: t(lang, "emails.msg.noTemplate") };
       const s = shop.settings.recovery;
       const me = await shopIdentity(admin as any);
       const brand = brandOf(s, me.name);
@@ -90,11 +93,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const out = render(templateSource(tpl as any, brand), { ...SAMPLE, recovery_url: link, discount_code: code, valid_until: until, ...unsubVars(tpl.locale, name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
       const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
       await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, name), fromName: name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
-      const m = `E-mail de test trimis la ${to} (${tpl.name})`;
+      const m = t(lang, "emails.msg.testSent", { to, name: tpl.name });
       return { ok: true, msg: m, test: m };
     } catch (e: any) {
       console.error("[semafor] test e-mail", e?.stack || e);
-      const m = "Eroare: " + String(e?.message || e).slice(0, 200);
+      const m = t(lang, "emails.msg.error", { e: trMsg(lang, String(e?.message || e).slice(0, 200)) });
       return { ok: false, msg: m, test: m };
     }
   }
@@ -103,25 +106,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const dry = fd.get("dry") === "1";
     if (dry) {
       const r = await blastFirst(shop as any, { days, dryRun: true });
-      return { ok: true, msg: `Vor primi e-mailul: ${r.candidates}`, blast: r };
+      return { ok: true, msg: t(lang, "emails.msg.blastCount", { n: r.candidates }), blast: r };
     }
     // real send runs in the background (it can take a few minutes)
     blastFirst(shop as any, { days, dryRun: false }).then((r) => console.log("[semafor] blast done", shop.domain, JSON.stringify(r))).catch((e) => console.error("[semafor] blast", e));
-    return { ok: true, msg: "Trimiterea a pornit — durează câteva minute", blast: null };
+    return { ok: true, msg: t(lang, "emails.msg.blastStarted"), blast: null };
   }
   if (intent === "reset") {
     const d = String(fd.get("design") || "elegant");
     await db.emailTemplate.createMany({ data: defaultTemplates(isDesign(d) ? d : "elegant").map((t) => ({ ...t, shopId: shop.id })) });
-    return { ok: true, msg: "Șabloanele standard au fost adăugate" };
+    return { ok: true, msg: t(lang, "emails.msg.resetDone") };
   }
   return { ok: false, msg: "?" };
 };
 
-const PURPOSE: Record<string, string> = { manual: "manual", auto1: "e-mail 1 · reamintire (după ~1 oră)", auto2: "e-mail 2 · stoc limitat + reducere (ziua 2)", auto3: "e-mail 3 · ultima șansă (ziua 3)" };
+const PURPOSES = ["manual", "auto1", "auto2", "auto3"];
 const SAMPLE: Record<string, string> = {
   first_name: "Ana", total: "", recovery_url: "#", discount_code: "SAVE10-AB12C", discount_pct: "10", valid_until: "12.10., 23:59", shop_name: "",
 };
-const DESIGN_NAME: Record<string, string> = { ...Object.fromEntries(DESIGNS.map((d) => [d.id, d.name])), custom: "HTML propriu" };
+const DESIGN_NAME: Record<string, string> = Object.fromEntries(DESIGNS.map((d) => [d.id, d.name]));
 
 /** Rendered e-mail (subject + html) for the editor preview and design thumbnails. */
 function previewOf(t: any, brand: any, items: Item[], shopName: string, pcts: { p2: number; p3: number } = { p2: 15, p3: 20 }) {
@@ -147,11 +150,14 @@ export default function Emails() {
   const [testTo, setTestTo] = useState("");
   const [testTpl, setTestTpl] = useState("");
   const [newDesign, setNewDesign] = useState("elegant");
+  const tr = useT();
+  const designName = (id: string) => DESIGN_NAME[id] || tr("emails.customHtml");
+  const purposeLabel = (p: string) => (PURPOSES.includes(p) ? tr(`emails.purpose.${p}` as TKey) : p);
   useEffect(() => {
     const d = fetcher.data as any;
     if (fetcher.state === "idle" && d?.msg) {
       app.toast.show(d.msg, { isError: d.ok === false });
-      if (d.ok && /Șablon/.test(d.msg)) setEdit(null);
+      if (d.ok && d.closeEdit) setEdit(null);
     }
   }, [fetcher.state, fetcher.data, app]);
   const num = (v: string, d: number) => (Number.isFinite(Number(v)) && v !== "" ? Number(v) : d);
@@ -179,110 +185,110 @@ export default function Emails() {
   }
   function newTemplate() {
     const { subject, copy } = copyFor("ro", "auto1");
-    setEdit({ id: "", name: "Șablon nou", locale: "ro", purpose: "auto1", subject, html: "", design: newDesign, copy });
+    setEdit({ id: "", name: tr("emails.newTpl"), locale: "ro", purpose: "auto1", subject, html: "", design: newDesign, copy });
   }
   const saveTemplate = () => fetcher.submit({ intent: "save", id: edit.id, name: edit.name, locale: edit.locale, purpose: edit.purpose, subject: edit.subject, html: edit.html || "", design: edit.design, copy: JSON.stringify(edit.copy || null) }, { method: "post" });
 
   return (
-    <Page title="E-mailuri pentru coșuri abandonate">
-      <TitleBar title="E-mailuri" />
+    <Page title={tr("emails.pageTitle")}>
+      <TitleBar title={tr("nav.emails")} />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <InlineGrid columns={{ xs: 2, md: 4 }} gap="300">
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">Trimise (30 zile)</Text><Text as="p" variant="heading2xl">{stats.sent}</Text><Text as="p" variant="bodySm" tone="subdued">{stats.people} clienți</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">Au comandat după e-mail</Text><Text as="p" variant="heading2xl" tone="success">{stats.recovered}</Text><Text as="p" variant="bodySm" tone="subdued">{stats.people ? Math.round((stats.recovered / stats.people) * 100) : 0}% din clienții contactați</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">Sărite</Text><Text as="p" variant="heading2xl">{stats.skipped}</Text><Text as="p" variant="bodySm" tone="subdued">au comandat singuri / fără acord</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">Erori</Text><Text as="p" variant="heading2xl" tone={stats.failed ? "critical" : undefined}>{stats.failed}</Text></BlockStack></Card>
+              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.sent30")}</Text><Text as="p" variant="heading2xl">{stats.sent}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.customers", { n: stats.people })}</Text></BlockStack></Card>
+              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.orderedAfter")}</Text><Text as="p" variant="heading2xl" tone="success">{stats.recovered}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.pctContacted", { p: stats.people ? Math.round((stats.recovered / stats.people) * 100) : 0 })}</Text></BlockStack></Card>
+              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.skipped")}</Text><Text as="p" variant="heading2xl">{stats.skipped}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.skippedHint")}</Text></BlockStack></Card>
+              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.errors")}</Text><Text as="p" variant="heading2xl" tone={stats.failed ? "critical" : undefined}>{stats.failed}</Text></BlockStack></Card>
             </InlineGrid>
 
             <Card>
               <BlockStack gap="300">
-                <InlineStack align="space-between"><Text as="h2" variant="headingMd">Automatizare</Text>{r.enabled ? <Badge tone="success">pornită</Badge> : <Badge>oprită</Badge>}</InlineStack>
+                <InlineStack align="space-between"><Text as="h2" variant="headingMd">{tr("emails.automation")}</Text>{r.enabled ? <Badge tone="success">{tr("emails.on")}</Badge> : <Badge>{tr("emails.off")}</Badge>}</InlineStack>
                 {resend
-                  ? <Banner tone="success">Trimiterea e inclusă în Semafor — nu trebuie să configurezi nimic. Expeditor: <b>{shownName || "numele magazinului"} &lt;{sender}&gt;</b>; răspunsurile clienților ajung la {r.replyTo || "e-mailul magazinului"}.</Banner>
-                  : <Banner tone="info">Trimiterea e-mailurilor se activează în curând. Poți pregăti deja setările și șabloanele.</Banner>}
+                  ? <Banner tone="success">{tr("emails.resendA")}<b>{shownName || tr("emails.shopNamePh")} &lt;{sender}&gt;</b>{tr("emails.resendB", { to: r.replyTo || tr("emails.shopEmail") })}</Banner>
+                  : <Banner tone="info">{tr("emails.soon")}</Banner>}
                 <FormLayout>
-                  <Checkbox label="Trimite automat e-mailuri clienților care au abandonat checkout-ul" checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
-                  <TextField label="Primul e-mail după (minute)" type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText="Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate. Noaptea (22–8, ora clientului) nu se trimite — clientul primește direct e-mailul de dimineață." />
+                  <Checkbox label={tr("emails.enable")} checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
+                  <TextField label={tr("emails.delay1")} type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText={tr("emails.delay1Help")} />
                   <Banner tone="info">
-                    <b>Cum funcționează:</b> 1) după ~1 oră — reamintire elegantă cu produsul din coș, fără reducere; 2) a doua zi — „culoarea se epuizează”: dacă în coș avea deja o reducere (ex. din pop-up), îi amintim de ea; dacă nu, îi dăm reducerea ta; 3) a treia zi — ultima șansă cu reducerea mare, valabilă doar în ziua aceea. Se oprește imediat ce clienta comandă.
+                    <b>{tr("emails.howTitle")}</b>{tr("emails.howBody")}
                   </Banner>
-                  <Checkbox label="Trimite e-mailul 2 (a doua zi)" checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
+                  <Checkbox label={tr("emails.second")} checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
                   <FormLayout.Group>
-                    <Select label="Când pleacă e-mailul 2" value={r.secondMode || "morning"} onChange={(v) => setR({ ...r, secondMode: v as any })} disabled={!r.second}
-                      options={[{ label: "A doua zi, la ora aleasă (ora clientei)", value: "morning" }, { label: "La un număr de ore după primul", value: "delay" }]} />
+                    <Select label={tr("emails.secondWhen")} value={r.secondMode || "morning"} onChange={(v) => setR({ ...r, secondMode: v as any })} disabled={!r.second}
+                      options={[{ label: tr("emails.secondMorning"), value: "morning" }, { label: tr("emails.secondDelay"), value: "delay" }]} />
                     {(r.secondMode || "morning") === "morning"
-                      ? <Select label="Ora e-mailului 2" value={String(r.morningHour ?? 10)} onChange={(v) => setR({ ...r, morningHour: Number(v) })} disabled={!r.second} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 10:00 — dimineața au cele mai multe deschideri și comenzi." />
-                      : <TextField label="Ore după primul e-mail" type="number" value={String(r.delay2Hours)} onChange={(v) => setR({ ...r, delay2Hours: num(v, 24) })} autoComplete="off" disabled={!r.second} helpText="Recomandat: 24." />}
+                      ? <Select label={tr("emails.hour2")} value={String(r.morningHour ?? 10)} onChange={(v) => setR({ ...r, morningHour: Number(v) })} disabled={!r.second} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText={tr("emails.hour2Help")} />
+                      : <TextField label={tr("emails.hoursAfter")} type="number" value={String(r.delay2Hours)} onChange={(v) => setR({ ...r, delay2Hours: num(v, 24) })} autoComplete="off" disabled={!r.second} helpText={tr("emails.hoursAfterHelp")} />}
                   </FormLayout.Group>
                   <FormLayout.Group>
-                    <Select label="Reducerea din e-mailul 2 (doar dacă în coș NU e deja o reducere)" value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : "fără", value: String(p) }))} helpText="De obicei aceeași ca în pop-up. Codul e personal, de unică folosință." />
-                    <Select label="Codul din e-mailul 2 e valabil" value={String(r.validHours2)} onChange={(v) => setR({ ...r, validHours2: Number(v) })} disabled={!r.second || !r.pct2} options={[{ label: "24 de ore", value: "24" }, { label: "48 de ore", value: "48" }, { label: "72 de ore", value: "72" }]} />
+                    <Select label={tr("emails.pct2")} value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : tr("emails.none"), value: String(p) }))} helpText={tr("emails.pct2Help")} />
+                    <Select label={tr("emails.valid2")} value={String(r.validHours2)} onChange={(v) => setR({ ...r, validHours2: Number(v) })} disabled={!r.second || !r.pct2} options={[{ label: tr("common.h24"), value: "24" }, { label: tr("common.h48"), value: "48" }, { label: tr("common.h72"), value: "72" }]} />
                   </FormLayout.Group>
-                  <Checkbox label="Trimite e-mailul 3 — ultima șansă (a treia zi)" checked={r.third} onChange={(v) => setR({ ...r, third: v })} disabled={!r.second} />
+                  <Checkbox label={tr("emails.third")} checked={r.third} onChange={(v) => setR({ ...r, third: v })} disabled={!r.second} />
                   <FormLayout.Group>
-                    <Select label="Ora e-mailului 3" value={String(r.thirdHour ?? 12)} onChange={(v) => setR({ ...r, thirdHour: Number(v) })} disabled={!r.second || !r.third} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 12:00 — pauza de prânz; clienta are tot restul zilei pentru oferta „doar azi”." />
-                    <Select label="Reducerea din e-mailul 3" value={String(r.pct3)} onChange={(v) => setR({ ...r, pct3: Number(v) })} disabled={!r.second || !r.third} options={[10, 15, 20, 25, 30].map((p) => ({ label: `${p}%`, value: String(p) }))} helpText="Valabilă doar în ziua aceea, până la 23:59 (ora clientei)." />
+                    <Select label={tr("emails.hour3")} value={String(r.thirdHour ?? 12)} onChange={(v) => setR({ ...r, thirdHour: Number(v) })} disabled={!r.second || !r.third} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText={tr("emails.hour3Help")} />
+                    <Select label={tr("emails.pct3")} value={String(r.pct3)} onChange={(v) => setR({ ...r, pct3: Number(v) })} disabled={!r.second || !r.third} options={[10, 15, 20, 25, 30].map((p) => ({ label: `${p}%`, value: String(p) }))} helpText={tr("emails.pct3Help")} />
                   </FormLayout.Group>
-                  <Checkbox label="Reducerea din e-mail se cumulează cu alte reduceri ale magazinului (ex. la 2–3 produse)" checked={!!r.combineDiscounts} onChange={(v) => setR({ ...r, combineDiscounts: v })}
-                    helpText="Nebifat (recomandat): nu se adună — Shopify aplică reducerea cea mai mare pentru clientă. Bifat: se adună (reducerea automată a magazinului trebuie și ea să permită combinarea)." />
-                  <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
+                  <Checkbox label={tr("emails.combine")} checked={!!r.combineDiscounts} onChange={(v) => setR({ ...r, combineDiscounts: v })}
+                    helpText={tr("emails.combineHelp")} />
+                  <Checkbox label={tr("emails.onlyConsent")} checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText={tr("emails.onlyConsentHelp")} />
                   <FormLayout.Group>
-                    <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder={shopName || "numele magazinului"} helpText="Gol = numele magazinului din Shopify." />
-                    <TextField label="Răspunsurile merg la" value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder="e-mailul magazinului" helpText="Gol = e-mailul de contact al magazinului." />
+                    <TextField label={tr("emails.fromName")} value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder={shopName || tr("emails.shopNamePh")} helpText={tr("emails.fromNameHelp")} />
+                    <TextField label={tr("emails.replyTo")} value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder={tr("emails.shopEmail")} helpText={tr("emails.replyToHelp")} />
                   </FormLayout.Group>
                 </FormLayout>
-                <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 3 e-mailuri automate per clientă.</Text>
+                <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>{tr("emails.saveAutomation")}</Button></InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">{tr("emails.langNote")}</Text>
               </BlockStack>
             </Card>
 
             <Card>
               <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">Trimite acum primul e-mail celor care n-au comandat</Text>
-                <Text as="p" tone="subdued">O singură dată: tuturor celor care au lăsat checkout-ul în ultimele zile, n-au comandat și n-au primit încă niciun e-mail — fiecare în limba checkout-ului ei. Apoi automatizarea continuă singură.</Text>
+                <Text as="h2" variant="headingMd">{tr("emails.blastHeading")}</Text>
+                <Text as="p" tone="subdued">{tr("emails.blastText")}</Text>
                 {(fetcher.data as any)?.blast && (
-                  <Banner tone="info">Vor primi e-mailul: <b>{(fetcher.data as any).blast.candidates}</b> ({Object.entries((fetcher.data as any).blast.byLang).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join(", ") || "—"}). Sărite: au comandat {(fetcher.data as any).blast.ordered}, fără acord {(fetcher.data as any).blast.noConsent}, au primit deja {(fetcher.data as any).blast.already}, dezabonate {(fetcher.data as any).blast.optedOut}.</Banner>
+                  <Banner tone="info">{tr("emails.blastWill")}<b>{(fetcher.data as any).blast.candidates}</b> ({Object.entries((fetcher.data as any).blast.byLang).map(([k, v]) => `${k.toUpperCase()}: ${v}`).join(", ") || "—"}{tr("emails.blastSkipped", { o: (fetcher.data as any).blast.ordered, c: (fetcher.data as any).blast.noConsent, a: (fetcher.data as any).blast.already, u: (fetcher.data as any).blast.optedOut })}</Banner>
                 )}
                 <InlineStack gap="200">
-                  <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("dry") === "1"} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "1" }, { method: "post" })}>Verifică cine primește (7 zile)</Button>
-                  <Button variant="primary" disabled={!resend || !(fetcher.data as any)?.blast?.candidates} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "0" }, { method: "post" })}>Trimite acum</Button>
+                  <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("dry") === "1"} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "1" }, { method: "post" })}>{tr("emails.blastCheck")}</Button>
+                  <Button variant="primary" disabled={!resend || !(fetcher.data as any)?.blast?.candidates} onClick={() => fetcher.submit({ intent: "blast", days: "7", dry: "0" }, { method: "post" })}>{tr("common.sendNow")}</Button>
                 </InlineStack>
               </BlockStack>
             </Card>
 
             <Card>
               <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">Aspectul e-mailurilor</Text>
-                <Text as="p" tone="subdued">Se aplică tuturor șabloanelor cu design. Poza, numele, varianta și prețul produsului din coș se pun automat în fiecare e-mail.</Text>
+                <Text as="h2" variant="headingMd">{tr("emails.lookHeading")}</Text>
+                <Text as="p" tone="subdued">{tr("emails.lookText")}</Text>
                 <FormLayout>
                   <FormLayout.Group>
-                    <TextField label="Numele afișat sus (logo text)" value={r.brandName} onChange={(v) => setR({ ...r, brandName: v })} autoComplete="off" placeholder={shopName} helpText="Gol = numele magazinului." />
-                    <TextField label="Text mic sub nume (opțional)" value={r.brandTagline} onChange={(v) => setR({ ...r, brandTagline: v })} autoComplete="off" placeholder="ex.: piele naturală" />
+                    <TextField label={tr("emails.brandName")} value={r.brandName} onChange={(v) => setR({ ...r, brandName: v })} autoComplete="off" placeholder={shopName} helpText={tr("emails.brandNameHelp")} />
+                    <TextField label={tr("emails.tagline")} value={r.brandTagline} onChange={(v) => setR({ ...r, brandTagline: v })} autoComplete="off" placeholder={tr("emails.taglinePh")} />
                   </FormLayout.Group>
                   <FormLayout.Group>
-                    <TextField label="Logo (link la imagine, opțional)" value={r.logoUrl} onChange={(v) => setR({ ...r, logoUrl: v.trim() })} autoComplete="off" placeholder="https://cdn.shopify.com/…/logo.png" helpText="Shopify → Conținut → Fișiere → încarcă logo-ul → copiază linkul. Gol = numele de mai sus, scris frumos." />
-                    <TextField label="Culoarea butonului / accent" value={r.accent} onChange={(v) => setR({ ...r, accent: v.trim() })} autoComplete="off" placeholder="#2a1a12" prefix={<span style={{ display: "inline-block", width: 14, height: 14, borderRadius: 3, background: /^#[0-9a-f]{3,8}$/i.test(r.accent) ? r.accent : "#ddd", border: "1px solid #ccc" }} />} helpText="Gol = culoarea designului." />
+                    <TextField label={tr("emails.logo")} value={r.logoUrl} onChange={(v) => setR({ ...r, logoUrl: v.trim() })} autoComplete="off" placeholder="https://cdn.shopify.com/…/logo.png" helpText={tr("emails.logoHelp")} />
+                    <TextField label={tr("emails.accent")} value={r.accent} onChange={(v) => setR({ ...r, accent: v.trim() })} autoComplete="off" placeholder="#2a1a12" prefix={<span style={{ display: "inline-block", width: 14, height: 14, borderRadius: 3, background: /^#[0-9a-f]{3,8}$/i.test(r.accent) ? r.accent : "#ddd", border: "1px solid #ccc" }} />} helpText={tr("emails.accentHelp")} />
                   </FormLayout.Group>
                 </FormLayout>
-                <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează aspectul</Button></InlineStack>
+                <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>{tr("emails.saveLook")}</Button></InlineStack>
                 {resend && (
                   <InlineStack gap="200" blockAlign="end" wrap>
-                    <Box minWidth="260px"><TextField label="Trimite un e-mail de test la" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="adresa@exemplu.ro" /></Box>
-                    <Box minWidth="240px"><Select label="Șablon" value={testTpl} onChange={setTestTpl} options={[{ label: "primul șablon", value: "" }, ...templates.map((t: any) => ({ label: `${t.name} · ${DESIGN_NAME[t.design] || "HTML propriu"}`, value: t.id }))]} /></Box>
-                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>Trimite test</Button>
+                    <Box minWidth="260px"><TextField label={tr("emails.testTo")} value={testTo} onChange={setTestTo} autoComplete="email" placeholder={tr("emails.testToPh")} /></Box>
+                    <Box minWidth="240px"><Select label={tr("common.template")} value={testTpl} onChange={setTestTpl} options={[{ label: tr("emails.firstTpl"), value: "" }, ...templates.map((t: any) => ({ label: `${t.name} · ${designName(t.design)}`, value: t.id }))]} /></Box>
+                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>{tr("common.sendTest")}</Button>
                   </InlineStack>
                 )}
                 {(fetcher.data as any)?.test && <Banner tone={(fetcher.data as any).ok ? "success" : "critical"}>{(fetcher.data as any).test}</Banner>}
-                <Text as="p" variant="bodySm" tone="subdued">E-mailul de test folosește un produs real din magazin{items[0] ? ` (${items[0].title})` : ""}. Salvează aspectul înainte de test.</Text>
+                <Text as="p" variant="bodySm" tone="subdued">{tr("emails.testNote", { p: items[0] ? ` (${items[0].title})` : "" })}</Text>
               </BlockStack>
             </Card>
 
             <Card>
               <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">Designuri</Text>
-                {!showDesigns && <InlineStack><Button onClick={() => setShowDesigns(true)}>Arată designurile</Button></InlineStack>}
+                <Text as="h2" variant="headingMd">{tr("emails.designs")}</Text>
+                {!showDesigns && <InlineStack><Button onClick={() => setShowDesigns(true)}>{tr("emails.showDesigns")}</Button></InlineStack>}
                 {showDesigns && <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
                   {DESIGNS.map((d, di) => {
                     return (
@@ -292,9 +298,9 @@ export default function Emails() {
                             <iframe title={d.name} loading="lazy" srcDoc={thumbs[di]} style={{ width: 600, height: 1000, border: 0, transform: "scale(.5)", transformOrigin: "0 0", pointerEvents: "none" }} />
                           </div>
                           <Text as="p" fontWeight="semibold">{d.name}</Text>
-                          <Text as="p" variant="bodySm" tone="subdued">{d.desc}</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">{tr(`emails.design.${d.id}` as TKey)}</Text>
                           <InlineStack gap="200">
-                            <Button size="slim" pressed={newDesign === d.id} onClick={() => setNewDesign(d.id)}>{newDesign === d.id ? "Ales" : "Alege"}</Button>
+                            <Button size="slim" pressed={newDesign === d.id} onClick={() => setNewDesign(d.id)}>{newDesign === d.id ? tr("emails.chosen") : tr("emails.choose")}</Button>
                           </InlineStack>
                         </BlockStack>
                       </Box>
@@ -302,24 +308,24 @@ export default function Emails() {
                   })}
                 </InlineGrid>}
                 <InlineStack gap="200">
-                  <Button variant="primary" onClick={() => fetcher.submit({ intent: "reset", design: newDesign }, { method: "post" })}>Creează șabloanele în designul „{DESIGN_NAME[newDesign]}”</Button>
+                  <Button variant="primary" onClick={() => fetcher.submit({ intent: "reset", design: newDesign }, { method: "post" })}>{tr("emails.createIn", { d: DESIGN_NAME[newDesign] })}</Button>
                 </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Se creează câte 3 șabloane (reamintire · stoc limitat + reducere · ultima șansă) în RO, DE, PL și EN. Automatizarea folosește cel mai recent șablon salvat pentru fiecare limbă — poți șterge apoi șabloanele vechi.</Text>
+                <Text as="p" variant="bodySm" tone="subdued">{tr("emails.createNote")}</Text>
               </BlockStack>
             </Card>
 
             <Card padding="0">
-              <Box padding="400"><InlineStack align="space-between" blockAlign="center"><Text as="h2" variant="headingMd">Șabloane</Text>
-                <Button variant="primary" onClick={newTemplate}>Șablon nou</Button></InlineStack></Box>
-              <IndexTable resourceName={{ singular: "șablon", plural: "șabloane" }} itemCount={templates.length} selectable={false} headings={[{ title: "Nume" }, { title: "Design" }, { title: "Limba" }, { title: "Folosit pentru" }, { title: "Subiect" }, { title: "" }]}>
+              <Box padding="400"><InlineStack align="space-between" blockAlign="center"><Text as="h2" variant="headingMd">{tr("emails.templates")}</Text>
+                <Button variant="primary" onClick={newTemplate}>{tr("emails.newTpl")}</Button></InlineStack></Box>
+              <IndexTable resourceName={{ singular: tr("emails.resTpl"), plural: tr("emails.resTpls") }} itemCount={templates.length} selectable={false} headings={[{ title: tr("common.name") }, { title: tr("emails.colDesign") }, { title: tr("emails.colLang") }, { title: tr("emails.colPurpose") }, { title: tr("common.subject") }, { title: "" }]}>
                 {templates.map((t: any, i: number) => (
                   <IndexTable.Row id={t.id} key={t.id} position={i}>
                     <IndexTable.Cell><Text as="span" fontWeight="semibold">{t.name}</Text></IndexTable.Cell>
-                    <IndexTable.Cell>{DESIGN_NAME[t.design] || "HTML propriu"}</IndexTable.Cell>
+                    <IndexTable.Cell>{designName(t.design)}</IndexTable.Cell>
                     <IndexTable.Cell>{t.locale.toUpperCase()}</IndexTable.Cell>
-                    <IndexTable.Cell>{PURPOSE[t.purpose] || t.purpose}</IndexTable.Cell>
+                    <IndexTable.Cell>{purposeLabel(t.purpose)}</IndexTable.Cell>
                     <IndexTable.Cell><Text as="span" variant="bodySm">{t.subject}</Text></IndexTable.Cell>
-                    <IndexTable.Cell><InlineStack gap="200"><Button size="slim" onClick={() => setEdit({ ...t, copy: t.copy || null })}>Editează</Button><Button size="slim" tone="critical" variant="plain" onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })}>Șterge</Button></InlineStack></IndexTable.Cell>
+                    <IndexTable.Cell><InlineStack gap="200"><Button size="slim" onClick={() => setEdit({ ...t, copy: t.copy || null })}>{tr("common.edit")}</Button><Button size="slim" tone="critical" variant="plain" onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })}>{tr("common.delete")}</Button></InlineStack></IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
               </IndexTable>
@@ -328,50 +334,50 @@ export default function Emails() {
             {edit && (
               <Card>
                 <BlockStack gap="300">
-                  <Text as="h2" variant="headingMd">{edit.id ? "Editează șablonul" : "Șablon nou"}</Text>
+                  <Text as="h2" variant="headingMd">{edit.id ? tr("emails.editTpl") : tr("emails.newTpl")}</Text>
                   <InlineGrid columns={{ xs: 1, lg: 2 }} gap="400">
                     <FormLayout>
                       <FormLayout.Group>
-                        <TextField label="Nume" value={edit.name} onChange={(v) => setEdit({ ...edit, name: v })} autoComplete="off" />
-                        <Select label="Design" value={edit.design || "custom"} onChange={(v) => setEdit({ ...edit, design: v, copy: edit.copy || copyFor(edit.locale, edit.purpose).copy })} options={[...DESIGNS.map((d) => ({ label: d.name, value: d.id })), { label: "HTML propriu (avansat)", value: "custom" }]} />
+                        <TextField label={tr("common.name")} value={edit.name} onChange={(v) => setEdit({ ...edit, name: v })} autoComplete="off" />
+                        <Select label={tr("emails.colDesign")} value={edit.design || "custom"} onChange={(v) => setEdit({ ...edit, design: v, copy: edit.copy || copyFor(edit.locale, edit.purpose).copy })} options={[...DESIGNS.map((d) => ({ label: d.name, value: d.id })), { label: tr("emails.customHtmlAdv"), value: "custom" }]} />
                       </FormLayout.Group>
                       <FormLayout.Group>
-                        <Select label="Limba" value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: "Română", value: "ro" }, { label: "Germană (DE/AT)", value: "de" }, { label: "Poloneză", value: "pl" }, { label: "Engleză", value: "en" }]} />
-                        <Select label="Folosit pentru" value={edit.purpose} onChange={(v) => setEdit({ ...edit, purpose: v })} options={Object.entries(PURPOSE).map(([value, label]) => ({ value, label }))} />
+                        <Select label={tr("emails.colLang")} value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: tr("emails.lang.ro"), value: "ro" }, { label: tr("emails.lang.de"), value: "de" }, { label: tr("emails.lang.pl"), value: "pl" }, { label: tr("emails.lang.en"), value: "en" }]} />
+                        <Select label={tr("emails.colPurpose")} value={edit.purpose} onChange={(v) => setEdit({ ...edit, purpose: v })} options={PURPOSES.map((value) => ({ value, label: purposeLabel(value) }))} />
                       </FormLayout.Group>
                       {isDesign(edit.design) && (
-                        <InlineStack><Button size="slim" variant="plain" onClick={() => { const c = copyFor(edit.locale, edit.purpose); setEdit({ ...edit, subject: c.subject, copy: c.copy }); }}>Pune textele standard pentru această limbă</Button></InlineStack>
+                        <InlineStack><Button size="slim" variant="plain" onClick={() => { const c = copyFor(edit.locale, edit.purpose); setEdit({ ...edit, subject: c.subject, copy: c.copy }); }}>{tr("emails.stdTexts")}</Button></InlineStack>
                       )}
-                      <TextField label="Subiect" value={edit.subject} onChange={(v) => setEdit({ ...edit, subject: v })} autoComplete="off" />
+                      <TextField label={tr("common.subject")} value={edit.subject} onChange={(v) => setEdit({ ...edit, subject: v })} autoComplete="off" />
                       {isDesign(edit.design) ? (
                         <>
-                          <TextField label="Salut" value={edit.copy?.greeting || ""} onChange={(v) => setCopy("greeting", v)} autoComplete="off" />
-                          <TextField label="Titlu" value={edit.copy?.heading || ""} onChange={(v) => setCopy("heading", v)} autoComplete="off" />
-                          <TextField label="Text" value={edit.copy?.text || ""} onChange={(v) => setCopy("text", v)} multiline={4} autoComplete="off" helpText="Sub text vine automat poza și numele produsului din coș." />
-                          {(edit.purpose === "auto2" || edit.purpose === "auto3") && <TextField label="Text la reducerea oferită" value={edit.copy?.discount || ""} onChange={(v) => setCopy("discount", v)} autoComplete="off" helpText="Apare când îi dăm un cod nou; codul personal se afișează dedesubt." />}
-                          {edit.purpose === "auto2" && <TextField label="Text dacă are deja reducere în coș" value={edit.copy?.existing || ""} onChange={(v) => setCopy("existing", v)} autoComplete="off" helpText="Apare în loc de codul nou, când clienta avea deja o reducere (ex. din pop-up). {{cart_discount_pct}} = procentul ei." />}
-                          <TextField label="Buton" value={edit.copy?.button || ""} onChange={(v) => setCopy("button", v)} autoComplete="off" />
-                          <TextField label="Notă mică (jos)" value={edit.copy?.note || ""} onChange={(v) => setCopy("note", v)} multiline={2} autoComplete="off" />
-                          <InlineStack><Button size="slim" variant="plain" onClick={() => setEdit({ ...edit, design: "custom", html: buildEmail(edit.design, edit.copy || {}, brand) })}>Transformă în HTML propriu (avansat)</Button></InlineStack>
+                          <TextField label={tr("emails.greeting")} value={edit.copy?.greeting || ""} onChange={(v) => setCopy("greeting", v)} autoComplete="off" />
+                          <TextField label={tr("emails.heading")} value={edit.copy?.heading || ""} onChange={(v) => setCopy("heading", v)} autoComplete="off" />
+                          <TextField label={tr("emails.text")} value={edit.copy?.text || ""} onChange={(v) => setCopy("text", v)} multiline={4} autoComplete="off" helpText={tr("emails.textHelp")} />
+                          {(edit.purpose === "auto2" || edit.purpose === "auto3") && <TextField label={tr("emails.discountText")} value={edit.copy?.discount || ""} onChange={(v) => setCopy("discount", v)} autoComplete="off" helpText={tr("emails.discountTextHelp")} />}
+                          {edit.purpose === "auto2" && <TextField label={tr("emails.existing")} value={edit.copy?.existing || ""} onChange={(v) => setCopy("existing", v)} autoComplete="off" helpText={tr("emails.existingHelp")} />}
+                          <TextField label={tr("emails.button")} value={edit.copy?.button || ""} onChange={(v) => setCopy("button", v)} autoComplete="off" />
+                          <TextField label={tr("emails.note")} value={edit.copy?.note || ""} onChange={(v) => setCopy("note", v)} multiline={2} autoComplete="off" />
+                          <InlineStack><Button size="slim" variant="plain" onClick={() => setEdit({ ...edit, design: "custom", html: buildEmail(edit.design, edit.copy || {}, brand) })}>{tr("emails.toCustom")}</Button></InlineStack>
                         </>
                       ) : (
                         <>
                           <BlockStack gap="100">
-                            <Text as="p">Conținut HTML — scrie aici sau încarcă un fișier .html:</Text>
+                            <Text as="p">{tr("emails.htmlContent")}</Text>
                             <input type="file" accept=".html,.htm,text/html" onChange={onFile} />
                           </BlockStack>
                           <TextField label="HTML" labelHidden value={edit.html} onChange={(v) => setEdit({ ...edit, html: v })} multiline={12} autoComplete="off" monospaced />
                         </>
                       )}
-                      <Text as="p" variant="bodySm" tone="subdued">Câmpuri: {"{{first_name}} {{product_title}} {{total}} {{discount_pct}} {{valid_until}} {{cart_discount_pct}} {{shop_name}}"}{!isDesign(edit.design) && <> · {"{{product_block}} {{items}} {{recovery_url}} {{discount_code}}"} · bloc doar cu reducere: {"{{#discount}} … {{/discount}}"}</>}</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">{tr("emails.fields")}{"{{first_name}} {{product_title}} {{total}} {{discount_pct}} {{valid_until}} {{cart_discount_pct}} {{shop_name}}"}{!isDesign(edit.design) && <> · {"{{product_block}} {{items}} {{recovery_url}} {{discount_code}}"} · {tr("emails.discountBlock")}{"{{#discount}} … {{/discount}}"}</>}</Text>
                       <InlineStack gap="200">
-                        <Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save"} onClick={saveTemplate}>Salvează șablonul</Button>
-                        <Button onClick={() => setEdit(null)}>Închide</Button>
+                        <Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save"} onClick={saveTemplate}>{tr("emails.saveTpl")}</Button>
+                        <Button onClick={() => setEdit(null)}>{tr("common.close")}</Button>
                       </InlineStack>
                     </FormLayout>
                     {preview && (
                       <BlockStack gap="100">
-                        <Text as="p" variant="bodySm" tone="subdued">Previzualizare cu un produs din magazin · Subiect: <b>{preview.subject}</b></Text>
+                        <Text as="p" variant="bodySm" tone="subdued">{tr("emails.previewNote")}<b>{preview.subject}</b></Text>
                         <Box borderColor="border" borderWidth="025" borderRadius="200"><iframe title="preview" srcDoc={preview.html} style={{ width: "100%", height: 760, border: 0 }} /></Box>
                       </BlockStack>
                     )}

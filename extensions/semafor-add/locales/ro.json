@@ -1,0 +1,22 @@
+{
+  "name": "Semafor: adaugă în lista neagră",
+  "lang": "ro",
+  "heading": "Semafor: adaugă în lista neagră",
+  "addedOne": "Clientul a fost adăugat. Comanda e acum marcată roșu.",
+  "addedMany": "{{n}} clienți adăugați.",
+  "selected": "{{n}} comenzi selectate. ",
+  "info": "Se salvează e-mailul, telefonul, numele și adresa din comandă. Clientul nu e anunțat.",
+  "reason": "Motiv",
+  "note": "Notă (opțional)",
+  "done": "Gata",
+  "adding": "Se adaugă…",
+  "add": "Adaugă în lista neagră",
+  "cancel": "Renunță",
+  "reasons": {
+    "refuz_colet": "Refuz colet",
+    "chargeback": "Chargeback",
+    "return_fraud": "Retur fraudulos",
+    "abuse": "Abuz / amenințări",
+    "other": "Altul"
+  }
+}

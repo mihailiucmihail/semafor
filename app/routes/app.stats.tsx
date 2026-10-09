@@ -10,6 +10,7 @@ import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
 import { normEmail, normPhone, normName } from "../../core/normalize";
+import { useT, useLang, dateLocale, type TKey } from "../i18n";
 
 const DAY = 86_400_000;
 
@@ -115,42 +116,45 @@ export default function Stats() {
   const { days, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
   const [, setSp] = useSearchParams();
   const total = orders.green + orders.yellow + orders.red;
+  const tr = useT();
+  const lang = useLang();
+  const loc = dateLocale(lang);
   return (
     <Page>
-      <TitleBar title="Statistici" />
+      <TitleBar title={tr("nav.stats")} />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <InlineStack align="space-between" blockAlign="center">
-              <Text as="p" tone="subdued">{since ? `Urmărire la checkout activă din ${new Date(since).toLocaleString("ro-RO")}` : "Încă nu a fost înregistrată nicio încercare la checkout."}</Text>
+              <Text as="p" tone="subdued">{since ? tr("stats.trackingSince", { date: new Date(since).toLocaleString(loc) }) : tr("stats.noAttemptsYet")}</Text>
               <Box minWidth="180px">
-                <Select label="Perioada" labelInline value={String(days)} onChange={(v) => setSp({ d: v })}
-                  options={[{ label: "Azi", value: "1" }, { label: "7 zile", value: "7" }, { label: "30 zile", value: "30" }, { label: "90 zile", value: "90" }]} />
+                <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => setSp({ d: v })}
+                  options={[{ label: tr("stats.today"), value: "1" }, { label: tr("stats.d7"), value: "7" }, { label: tr("stats.d30"), value: "30" }, { label: tr("stats.d90"), value: "90" }]} />
               </Box>
             </InlineStack>
 
-            <Text as="h2" variant="headingMd">Checkout</Text>
+            <Text as="h2" variant="headingMd">{tr("stats.checkout")}</Text>
             <InlineGrid columns={{ xs: 2, md: 3 }} gap="300">
-              <Kpi label="Clienți în checkout" value={kpi.devices} hint={`${kpi.completedDevices} au plasat comanda · ${kpi.attempts} pași în total`} />
-              <Kpi label="Clienți din lista neagră care au încercat" value={kpi.black} tone={kpi.black ? "critical" : undefined} hint="dispozitive care au introdus un e-mail, telefon sau adresă din listă" />
-              <Kpi label="…și au reușit totuși să comande" value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint="trecuți de blocare — verifică-i în Comenzi verificate" />
-              <Kpi label="Schimbă datele" value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint="3+ e-mailuri, telefoane sau nume pe același dispozitiv" />
+              <Kpi label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} />
+              <Kpi label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} />
+              <Kpi label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} />
+              <Kpi label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} />
             </InlineGrid>
 
-            <Text as="h2" variant="headingMd">Comenzi verificate</Text>
+            <Text as="h2" variant="headingMd">{tr("nav.checks")}</Text>
             <InlineGrid columns={{ xs: 3 }} gap="300">
-              <Kpi label="Verde" value={orders.green} tone="success" hint={total ? `${Math.round((orders.green / total) * 100)}%` : undefined} />
-              <Kpi label="Galben" value={orders.yellow} tone={orders.yellow ? "caution" : undefined} />
-              <Kpi label="Roșu" value={orders.red} tone={orders.red ? "critical" : undefined} />
+              <Kpi label={tr("level.green")} value={orders.green} tone="success" hint={total ? `${Math.round((orders.green / total) * 100)}%` : undefined} />
+              <Kpi label={tr("level.yellow")} value={orders.yellow} tone={orders.yellow ? "caution" : undefined} />
+              <Kpi label={tr("level.red")} value={orders.red} tone={orders.red ? "critical" : undefined} />
             </InlineGrid>
 
-            <Text as="h2" variant="headingMd">Dispozitive suspecte</Text>
+            <Text as="h2" variant="headingMd">{tr("stats.suspicious")}</Text>
             <Card padding="0">
               {suspicious.length === 0 ? (
-                <Box padding="400"><Text as="p" tone="subdued">Niciun dispozitiv suspect în această perioadă.</Text></Box>
+                <Box padding="400"><Text as="p" tone="subdued">{tr("stats.noSuspicious")}</Text></Box>
               ) : (
-                <IndexTable resourceName={{ singular: "dispozitiv", plural: "dispozitive" }} itemCount={suspicious.length} selectable={false}
-                  headings={[{ title: "Dispozitiv" }, { title: "Ce a încercat" }, { title: "Din lista neagră" }, { title: "Rezultat" }, { title: "Ultima dată" }]}>
+                <IndexTable resourceName={{ singular: tr("stats.resDevice"), plural: tr("stats.resDevices") }} itemCount={suspicious.length} selectable={false}
+                  headings={[{ title: tr("stats.colDevice") }, { title: tr("stats.colTried") }, { title: tr("stats.colBlack") }, { title: tr("common.result") }, { title: tr("stats.colLast") }]}>
                   {suspicious.map((s: any, i: number) => (
                     <IndexTable.Row id={s.id + i} key={s.id + i} position={i}>
                       <IndexTable.Cell><Text as="span" variant="bodySm">#{s.id}</Text></IndexTable.Cell>
@@ -159,30 +163,30 @@ export default function Stats() {
                           {[...s.emails, ...s.phones, ...s.names].slice(0, 8).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
                         </BlockStack>
                       </IndexTable.Cell>
-                      <IndexTable.Cell>{s.matched.length ? <Badge tone="critical">{s.matched.join(", ")}</Badge> : s.hopping ? <Badge tone="warning">schimbă datele</Badge> : "—"}</IndexTable.Cell>
-                      <IndexTable.Cell>{s.completed ? <Badge tone="critical">a comandat</Badge> : <Badge>nu a comandat</Badge>}</IndexTable.Cell>
-                      <IndexTable.Cell>{new Date(s.last).toLocaleString("ro-RO")}</IndexTable.Cell>
+                      <IndexTable.Cell>{s.matched.length ? <Badge tone="critical">{s.matched.join(", ")}</Badge> : s.hopping ? <Badge tone="warning">{tr("stats.hopping")}</Badge> : "—"}</IndexTable.Cell>
+                      <IndexTable.Cell>{s.completed ? <Badge tone="critical">{tr("common.ordered")}</Badge> : <Badge>{tr("stats.notOrdered")}</Badge>}</IndexTable.Cell>
+                      <IndexTable.Cell>{new Date(s.last).toLocaleString(loc)}</IndexTable.Cell>
                     </IndexTable.Row>
                   ))}
                 </IndexTable>
               )}
             </Card>
-            <Text as="h2" variant="headingMd">Toate încercările de comandă</Text>
+            <Text as="h2" variant="headingMd">{tr("stats.allAttempts")}</Text>
             <Card padding="0">
               {devices.length === 0 ? (
-                <Box padding="400"><Text as="p" tone="subdued">Nicio încercare în această perioadă.</Text></Box>
+                <Box padding="400"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
               ) : (
-                <IndexTable resourceName={{ singular: "client", plural: "clienți" }} itemCount={devices.length} selectable={false}
-                  headings={[{ title: "Client" }, { title: "Contact" }, { title: "Până unde a ajuns" }, { title: "E-mailuri" }, { title: "Rezultat" }, { title: "Când" }]}>
+                <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={devices.length} selectable={false}
+                  headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("stats.colReached") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]}>
                   {devices.map((d: any, i: number) => {
-                    const step = d.completed ? "a plătit / a plasat comanda" : d.events.includes("payment") ? "a trimis plata (comanda nu s-a creat)" : d.events.includes("shipping") ? "a plecat la plată" : d.events.includes("address") ? "a plecat la livrare" : d.events.includes("contact") ? "a plecat la adresă" : "a plecat la e-mail";
+                    const step = tr(`stats.step.${d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : "started"}` as TKey);
                     return (
                       <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
                         <IndexTable.Cell>
                           <BlockStack gap="050">
                             <Link url={`/app/client/${d.dev}`} removeUnderline><Text as="span" fontWeight="semibold">{d.names[0] || d.emails[0] || "—"}</Text></Link>
                             {d.city && <Text as="span" variant="bodySm" tone="subdued">{d.city}</Text>}
-                            {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution">alte nume: {d.names.slice(1).join(", ")}</Text>}
+                            {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution">{tr("stats.otherNames", { list: d.names.slice(1).join(", ") })}</Text>}
                           </BlockStack>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
@@ -190,29 +194,29 @@ export default function Stats() {
                             {[...d.emails, ...d.phones].slice(0, 6).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
                           </BlockStack>
                         </IndexTable.Cell>
-                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Link url={`/app/client/${d.dev}`}>{d.steps} {d.steps === 1 ? "pas" : "pași"} — vezi pașii →</Link></BlockStack></IndexTable.Cell>
+                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Link url={`/app/client/${d.dev}`}>{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Link></BlockStack></IndexTable.Cell>
                         <IndexTable.Cell>
                           {d.mail ? (
                             <BlockStack gap="050">
-                              <InlineStack gap="100"><Badge tone="info">{`✉ ${d.mail.count} ${d.mail.count === 1 ? "e-mail" : "e-mailuri"}`}</Badge></InlineStack>
-                              <Text as="span" variant="bodySm" tone="subdued">{d.mail.kinds.map((k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : "manual")).join(" · ")} · ultimul {new Date(d.mail.last).toLocaleString("ro-RO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</Text>
-                              {d.mail.orderedAfter ? <Badge tone="success">a comandat după e-mail</Badge> : d.mail.back ? <Badge tone="attention">a revenit după e-mail</Badge> : null}
+                              <InlineStack gap="100"><Badge tone="info">{tr(d.mail.count === 1 ? "stats.mailOne" : "stats.mailMany", { n: d.mail.count })}</Badge></InlineStack>
+                              <Text as="span" variant="bodySm" tone="subdued">{d.mail.kinds.map((k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : tr("common.manual"))).join(" · ")} · {tr("stats.mailLast", { date: new Date(d.mail.last).toLocaleString(loc, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) })}</Text>
+                              {d.mail.orderedAfter ? <Badge tone="success">{tr("stats.orderedAfter")}</Badge> : d.mail.back ? <Badge tone="attention">{tr("stats.cameBack")}</Badge> : null}
                             </BlockStack>
                           ) : <Text as="span" tone="subdued">—</Text>}
                         </IndexTable.Cell>
                         <IndexTable.Cell>
                           {d.orderId
-                            ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || "Comanda"}</a>
-                            : d.matched.length ? <Badge tone="critical">din lista neagră — fără comandă</Badge> : <Badge>a abandonat</Badge>}
+                            ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || tr("stats.order")}</a>
+                            : d.matched.length ? <Badge tone="critical">{tr("stats.blackNoOrder")}</Badge> : <Badge>{tr("stats.abandoned")}</Badge>}
                         </IndexTable.Cell>
-                        <IndexTable.Cell>{new Date(d.last).toLocaleString("ro-RO")}</IndexTable.Cell>
+                        <IndexTable.Cell>{new Date(d.last).toLocaleString(loc)}</IndexTable.Cell>
                       </IndexTable.Row>
                     );
                   })}
                 </IndexTable>
               )}
             </Card>
-            {kpi.attempts === 0 && <Banner tone="info">Statisticile apar pe măsură ce clienții trec prin checkout.</Banner>}
+            {kpi.attempts === 0 && <Banner tone="info">{tr("stats.appear")}</Banner>}
           </BlockStack>
         </Layout.Section>
       </Layout>

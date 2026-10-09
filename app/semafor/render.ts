@@ -37,3 +37,12 @@ export function stoppedAt(events: string[]): string {
   return "a plecat imediat după ce a deschis checkout-ul";
 }
 
+/** Same decision as stoppedAt(), as a step id — the admin UI translates it (app/i18n.ts, "stopped.*"). */
+export function stoppedStep(events: string[]): "completed" | "payment" | "shipping" | "address" | "contact" | "started" {
+  if (events.includes("completed")) return "completed";
+  if (events.includes("payment")) return "payment";
+  if (events.includes("shipping")) return "shipping";
+  if (events.includes("address")) return "address";
+  if (events.includes("contact")) return "contact";
+  return "started";
+}

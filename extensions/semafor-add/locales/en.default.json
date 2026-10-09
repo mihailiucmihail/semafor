@@ -1,0 +1,22 @@
+{
+  "name": "Semafor: add to blacklist",
+  "lang": "en",
+  "heading": "Semafor: add to blacklist",
+  "addedOne": "Customer added. The order is now flagged red.",
+  "addedMany": "{{n}} customers added.",
+  "selected": "{{n}} orders selected. ",
+  "info": "The email, phone, name, and address from the order are saved. The customer isn't notified.",
+  "reason": "Reason",
+  "note": "Note (optional)",
+  "done": "Done",
+  "adding": "Adding…",
+  "add": "Add to blacklist",
+  "cancel": "Cancel",
+  "reasons": {
+    "refuz_colet": "Refused COD parcel",
+    "chargeback": "Chargeback",
+    "return_fraud": "Return fraud",
+    "abuse": "Abuse / threats",
+    "other": "Other"
+  }
+}

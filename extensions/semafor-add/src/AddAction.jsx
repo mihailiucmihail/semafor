@@ -1,6 +1,6 @@
 import { render } from "preact";
 import { useState } from "preact/hooks";
-import { REASONS, api } from "./shared.js";
+import { REASONS, api, tr, lang } from "./shared.js";
 
 export default async () => { render(<Action />, document.body); };
 
@@ -17,7 +17,7 @@ function Action() {
     let n = 0;
     for (const orderId of ids) {
       try {
-        await api("/api/order-block", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, reason, note }) });
+        await api("/api/order-block", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, reason, note, lang: lang() }) });
         n++;
       } catch (e) { setErr(String(e.message || e)); }
     }
@@ -25,22 +25,22 @@ function Action() {
   }
 
   return (
-    <s-admin-action heading="Semafor: adaugă în lista neagră">
+    <s-admin-action heading={tr("heading")}>
       <s-stack gap="base">
-        {done > 0 && <s-banner tone="success">{done === 1 ? "Clientul a fost adăugat. Comanda e acum marcată roșu." : `${done} clienți adăugați.`}</s-banner>}
+        {done > 0 && <s-banner tone="success">{done === 1 ? tr("addedOne") : tr("addedMany", { n: done })}</s-banner>}
         {err && <s-banner tone="critical">{err}</s-banner>}
         <s-text color="subdued">
-          {ids.length > 1 ? `${ids.length} comenzi selectate. ` : ""}Se salvează e-mailul, telefonul, numele și adresa din comandă. Clientul nu e anunțat.
+          {ids.length > 1 ? tr("selected", { n: ids.length }) : ""}{tr("info")}
         </s-text>
-        <s-select label="Motiv" value={reason} onChange={(e) => setReason(e.currentTarget.value)}>
-          {REASONS.map(([v, l]) => <s-option key={v} value={v}>{l}</s-option>)}
+        <s-select label={tr("reason")} value={reason} onChange={(e) => setReason(e.currentTarget.value)}>
+          {REASONS.map((v) => <s-option key={v} value={v}>{tr(`reasons.${v}`)}</s-option>)}
         </s-select>
-        <s-text-field label="Notă (opțional)" value={note} onInput={(e) => setNote(e.currentTarget.value)} />
+        <s-text-field label={tr("note")} value={note} onInput={(e) => setNote(e.currentTarget.value)} />
       </s-stack>
       <s-button slot="primary-action" variant="primary" onClick={done ? () => shopify.close() : add} disabled={busy}>
-        {done ? "Gata" : busy ? "Se adaugă…" : "Adaugă în lista neagră"}
+        {done ? tr("done") : busy ? tr("adding") : tr("add")}
       </s-button>
-      <s-button slot="secondary-actions" onClick={() => shopify.close()}>Renunță</s-button>
+      <s-button slot="secondary-actions" onClick={() => shopify.close()}>{tr("cancel")}</s-button>
     </s-admin-action>
   );
 }

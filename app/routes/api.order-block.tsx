@@ -6,6 +6,11 @@ import { checkOrder } from "../semafor/check-order.server";
 import { fetchOrder } from "../semafor/backfill.server";
 import { createEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
+import { trMsg, type Lang } from "../i18n";
+
+/** The admin extensions send their UI language ("en" / "ro"); without it the texts stay as stored (Romanian). */
+const langOf = (v: unknown): Lang => (v === "en" ? "en" : "ro");
+const localized = (r: any, lang: Lang) => ({ ...r, matches: Array.isArray(r.matches) ? r.matches.map((m: any) => ({ ...m, normalized: m.kind === "device" || m.kind === "order" ? trMsg(lang, m.normalized) : m.normalized, reason: trMsg(lang, m.reason) })) : r.matches });
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 
@@ -30,17 +35,21 @@ async function status(admin: any, shop: any, orderId: string, recheck = false) {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session, cors } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
-  const orderId = new URL(request.url).searchParams.get("orderId") || "";
-  if (!orderId) return cors(json({ error: "orderId lipsă" }, 400));
-  try { return cors(json(await status(admin, shop, orderId))); }
-  catch (e: any) { return cors(json({ error: String(e?.message || e) }, 500)); }
+  const sp = new URL(request.url).searchParams;
+  const orderId = sp.get("orderId") || "";
+  const lang = langOf(sp.get("lang"));
+  if (!orderId) return cors(json({ error: trMsg(lang, "orderId lipsă") }, 400));
+  try { return cors(json(localized(await status(admin, shop, orderId), lang))); }
+  catch (e: any) { return cors(json({ error: trMsg(lang, String(e?.message || e)) }, 500)); }
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, session, cors } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  let lang: Lang = "ro";
   try {
     const b = await request.json();
+    lang = langOf(b.lang);
     const orderId = String(b.orderId || "");
     const reason: Reason = (REASONS as string[]).includes(b.reason) ? b.reason : "other";
     const o: any = await fetchOrder(admin, orderId);
@@ -55,8 +64,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
     await pushCheckoutMetafield(admin, shop.id);
-    return cors(json(await status(admin, shop, orderId, true)));
+    return cors(json(localized(await status(admin, shop, orderId, true), lang)));
   } catch (e: any) {
-    return cors(json({ error: String(e?.message || e) }, 500));
+    return cors(json({ error: trMsg(lang, String(e?.message || e)) }, 500));
   }
 };

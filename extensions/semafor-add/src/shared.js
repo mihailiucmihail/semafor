@@ -1,17 +1,11 @@
 export const APP = "https://semafor-production.up.railway.app";
-export const TITLE = {
-  green: "Verde — clientul nu e în lista neagră",
-  yellow: "Galben — atenție, verifică înainte de expediere",
-  red: "Roșu — client din lista neagră",
-};
-export const KIND = { email: "e-mail", phone: "telefon", name: "nume", address: "adresă", name_address: "nume + adresă", device: "dispozitiv" };
-export const REASONS = [
-  ["refuz_colet", "Refuz colet"],
-  ["chargeback", "Chargeback"],
-  ["return_fraud", "Retur fraudulos"],
-  ["abuse", "Abuz / amenințări"],
-  ["other", "Altul"],
-];
+// Texts: locales/en.default.json + locales/ro.json (shopify.i18n.translate).
+export const LEVELS = ["green", "yellow", "red"];
+export const KINDS = ["email", "phone", "name", "address", "name_address", "device"];
+export const REASONS = ["refuz_colet", "chargeback", "return_fraud", "abuse", "other"];
+export const tr = (key, vars) => shopify.i18n.translate(key, vars);
+/** "en" / "ro" — sent to the Semafor backend so stored texts come back in the same language. */
+export const lang = () => tr("lang");
 export async function api(path, init) {
   const r = await fetch(path, init);
   const j = await r.json();

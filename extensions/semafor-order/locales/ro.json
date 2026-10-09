@@ -1,0 +1,20 @@
+{
+  "lang": "ro",
+  "checking": "Se verifică",
+  "title": {
+    "green": "Verde — clientul nu e în lista neagră",
+    "yellow": "Galben — atenție, verifică înainte de expediere",
+    "red": "Roșu — client din lista neagră"
+  },
+  "kind": {
+    "email": "e-mail",
+    "phone": "telefon",
+    "name": "nume",
+    "address": "adresă",
+    "name_address": "nume + adresă",
+    "device": "dispozitiv"
+  },
+  "network": "Raportat de {{n}} magazin(e) din rețea",
+  "inList": "Clientul este în lista neagră.",
+  "howToAdd": "Ca să-l adaugi în lista neagră: „Mai multe acțiuni” → „Semafor: adaugă în lista neagră”."
+}

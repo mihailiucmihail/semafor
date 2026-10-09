@@ -1,0 +1,20 @@
+{
+  "lang": "en",
+  "checking": "Checking",
+  "title": {
+    "green": "Green — customer isn't on the blacklist",
+    "yellow": "Yellow — caution, check before shipping",
+    "red": "Red — blacklisted customer"
+  },
+  "kind": {
+    "email": "email",
+    "phone": "phone",
+    "name": "name",
+    "address": "address",
+    "name_address": "name + address",
+    "device": "device"
+  },
+  "network": "Reported by {{n}} store(s) in the network",
+  "inList": "This customer is on the blacklist.",
+  "howToAdd": "To add them to the blacklist: “More actions” → “Semafor: add to blacklist”."
+}
