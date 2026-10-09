@@ -1,7 +1,7 @@
 # Semafor — public App Store app (Partner org MIHAILIUC GROUP SRL, app 433770004481). URL is set when its Railway service exists.
 client_id = "a1d407ad72929fc485d5f9a4ef9a42b1"
 name = "Semafor"
-handle = "semafor"
+handle = "semafor-app"
 application_url = "https://semafor-copy-production.up.railway.app"
 embedded = true
 
