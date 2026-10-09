@@ -255,7 +255,19 @@ export function productVars(design: string | null | undefined, items: Item[], br
 }
 
 /** One real product of the shop, for test e-mails and previews. */
-export async function sampleItems(admin: Admin): Promise<Item[]> {
+export async function sampleItems(admin: Admin, shopId?: string): Promise<Item[]> {
+  // 1) the latest real cart seen by the pixel (no extra permissions needed)
+  if (shopId) {
+    try {
+      const rows = (await db.checkoutAttempt.findMany({ where: { shopId }, orderBy: { createdAt: "desc" }, take: 300, select: { items: true, currency: true, locale: true } })) as any[];
+      const row = rows.find((r) => Array.isArray(r.items) && r.items.some((i: any) => i?.image));
+      if (row) {
+        const it = (row.items as any[]).find((i) => i?.image);
+        return [{ title: it.title, qty: 1, image: it.image, variant: it.variant ?? null, price: typeof it.price === "number" ? money(it.price / (Number(it.qty) || 1), row.currency, (row.locale || "ro").slice(0, 2)) : null }];
+      }
+    } catch (e) { console.error("[semafor] sampleItems db", e); }
+  }
+  // 2) the catalogue (only when the app has read_products)
   try {
     const d = await gql(admin, `query{ products(first:10, sortKey:UPDATED_AT, reverse:true, query:"status:active") { nodes { title totalInventory featuredMedia { preview { image { url } } } variants(first:1){ nodes { title price } } } } shop { currencyCode } }`);
     const nodes: any[] = d?.products?.nodes ?? [];

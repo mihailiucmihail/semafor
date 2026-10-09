@@ -33,7 +33,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     resend: mailReady(),
     sender: await senderOf(session.shop, shop.settings.recovery),
     shopName: (await shopIdentity(admin as any)).name,
-    sample: await sampleItems(admin as any),
+    sample: await sampleItems(admin as any, shop.id),
   };
 };
 
@@ -71,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const s = shop.settings.recovery;
     const me = await shopIdentity(admin as any);
     const brand = brandOf(s, me.name);
-    const items = await sampleItems(admin as any);
+    const items = await sampleItems(admin as any, shop.id);
     const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...productVars(tpl.design, items, brand), shop_name: s.fromName || me.name }, tpl.purpose === "auto2");
     try {
       await sendMail({ to, subject: "[TEST] " + out.subject, html: out.html, fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
