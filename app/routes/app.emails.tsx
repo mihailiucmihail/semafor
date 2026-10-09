@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid } from "@shopify/polaris";
@@ -123,10 +123,19 @@ export default function Emails() {
     }
   }, [fetcher.state, fetcher.data, app]);
   const num = (v: string, d: number) => (Number.isFinite(Number(v)) && v !== "" ? Number(v) : d);
-  const brand = { name: r.brandName || shopName, tagline: r.brandTagline, logoUrl: r.logoUrl, accent: r.accent };
+  // previews update ~0.6 s after the merchant stops typing (iframes are heavy)
+  const [look, setLook] = useState({ brandName: r.brandName, brandTagline: r.brandTagline, logoUrl: r.logoUrl, accent: r.accent, fromName: r.fromName });
+  useEffect(() => {
+    const t = setTimeout(() => setLook({ brandName: r.brandName, brandTagline: r.brandTagline, logoUrl: r.logoUrl, accent: r.accent, fromName: r.fromName }), 600);
+    return () => clearTimeout(t);
+  }, [r.brandName, r.brandTagline, r.logoUrl, r.accent, r.fromName]);
+  const brand = useMemo(() => ({ name: look.brandName || shopName, tagline: look.brandTagline, logoUrl: look.logoUrl, accent: look.accent }), [look, shopName]);
   const items = sample as Item[];
-  const shownName = r.fromName || shopName;
-  const preview = edit ? previewOf(edit, brand, items, shownName) : null;
+  const shownName = look.fromName || shopName;
+  const [editLive, setEditLive] = useState<any>(null);
+  useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
+  const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName) : null), [editLive, brand, items, shownName]);
+  const thumbs = useMemo(() => DESIGNS.map((d) => previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName).html), [brand, items, shownName]);
   const setCopy = (k: string, v: string) => setEdit((x: any) => ({ ...x, copy: { ...(x.copy || {}), [k]: v } }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -215,13 +224,12 @@ export default function Emails() {
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">Designuri</Text>
                 <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
-                  {DESIGNS.map((d) => {
-                    const pv = previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName);
+                  {DESIGNS.map((d, di) => {
                     return (
                       <Box key={d.id} borderColor={newDesign === d.id ? "border-emphasis" : "border"} borderWidth={newDesign === d.id ? "050" : "025"} borderRadius="200" padding="200">
                         <BlockStack gap="200">
                           <div style={{ height: 300, overflow: "hidden", borderRadius: 6, position: "relative" }}>
-                            <iframe title={d.name} srcDoc={pv.html} style={{ width: 600, height: 1000, border: 0, transform: "scale(.5)", transformOrigin: "0 0", pointerEvents: "none" }} />
+                            <iframe title={d.name} loading="lazy" srcDoc={thumbs[di]} style={{ width: 600, height: 1000, border: 0, transform: "scale(.5)", transformOrigin: "0 0", pointerEvents: "none" }} />
                           </div>
                           <Text as="p" fontWeight="semibold">{d.name}</Text>
                           <Text as="p" variant="bodySm" tone="subdued">{d.desc}</Text>
