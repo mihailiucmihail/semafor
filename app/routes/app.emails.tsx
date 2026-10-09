@@ -77,7 +77,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const name = s.fromName || me.name;
       // a real link: the shop, the product already in the cart and (for e-mails 2 and 3) a real one-time code applied
       const dom: any = await (await (admin as any).graphql(`query{ shop{ primaryDomain{ url } } }`)).json().catch(() => null);
-      const base = dom?.data?.shop?.primaryDomain?.url || `https://${session.shop}`;
+      // the site of the template's language (mihailiuc.ro for RO, .de for DE…), learned from real checkouts
+      const seen = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id, locale: { startsWith: tpl.locale }, host: { not: null } }, orderBy: { createdAt: "desc" }, select: { host: true } })) as any;
+      const base = seen?.host ? `https://${String(seen.host).replace(/^https?:\/\//, "")}` : dom?.data?.shop?.primaryDomain?.url || `https://${session.shop}`;
       let link = cartPermalink(base, items as any);
       let code = SAMPLE.discount_code, until = SAMPLE.valid_until;
       if ((tpl.purpose === "auto2" || tpl.purpose === "auto3") && pct) {
