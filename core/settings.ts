@@ -21,8 +21,12 @@ export interface RecoverySettings {
   /** "morning": the second e-mail goes the next morning at morningHour, buyer's local time (default). */
   secondMode: 'morning' | 'delay';
   morningHour: number;       // local hour for the morning e-mail (10 = 10:00–13:59)
-  pct2: number;              // discount in the second e-mail (0 = none)
+  pct2: number;              // discount in the 2nd e-mail when the cart has NO discount yet (0 = none)
   validHours2: number;       // how long that code is valid
+  /** Third e-mail ("last chance") on the 3rd day, with a bigger one-day discount. */
+  third: boolean;
+  thirdHour: number;         // local hour for the 3rd e-mail
+  pct3: number;              // discount in the 3rd e-mail, valid until the end of that day
   onlyConsent: boolean;      // automatic e-mails only to buyers with e-mail marketing consent
   fromName: string;
   fromEmail: string;         // optional own address; used only if its domain is verified in Semafor's Resend account
@@ -35,7 +39,7 @@ export interface RecoverySettings {
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
-  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 10, validHours2: 24,
+  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 15, validHours2: 24, third: true, thirdHour: 12, pct3: 20,
   onlyConsent: true, fromName: '', fromEmail: '', replyTo: '', brandName: '', brandTagline: '', logoUrl: '', accent: '',
 };
 

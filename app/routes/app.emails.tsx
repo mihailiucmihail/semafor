@@ -72,7 +72,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const me = await shopIdentity(admin as any);
     const brand = brandOf(s, me.name);
     const items = await sampleItems(admin as any, shop.id);
-    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...productVars(tpl.design, items, brand), shop_name: s.fromName || me.name }, tpl.purpose === "auto2");
+    const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
+    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: s.fromName || me.name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
     try {
       await sendMail({ to, subject: "[TEST] " + out.subject, html: out.html, fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       return { ok: true, msg: `E-mail de test trimis la ${to}` };
@@ -86,23 +87,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return { ok: false, msg: "?" };
 };
 
-const PURPOSE: Record<string, string> = { manual: "manual", auto1: "automat · primul e-mail", auto2: "automat · al doilea (cu reducere)" };
+const PURPOSE: Record<string, string> = { manual: "manual", auto1: "e-mail 1 · reamintire (după ~1 oră)", auto2: "e-mail 2 · stoc limitat + reducere (ziua 2)", auto3: "e-mail 3 · ultima șansă (ziua 3)" };
 const SAMPLE: Record<string, string> = {
   first_name: "Ana", total: "", recovery_url: "#", discount_code: "SAVE10-AB12C", discount_pct: "10", valid_until: "12.10., 23:59", shop_name: "",
 };
 const DESIGN_NAME: Record<string, string> = { ...Object.fromEntries(DESIGNS.map((d) => [d.id, d.name])), custom: "HTML propriu" };
 
 /** Rendered e-mail (subject + html) for the editor preview and design thumbnails. */
-function previewOf(t: any, brand: any, items: Item[], shopName: string) {
+function previewOf(t: any, brand: any, items: Item[], shopName: string, pcts: { p2: number; p3: number } = { p2: 15, p3: 20 }) {
   const design = isDesign(t.design) ? t.design : "elegant";
   const src = isDesign(t.design) ? { subject: t.subject, html: buildEmail(t.design, t.copy || {}, brand) } : { subject: t.subject, html: t.html };
   const pb = productBlock(design, items, brand.accent);
-  return render(src, { ...SAMPLE, total: items[0]?.price || "", product_block: pb, items: pb, product_title: items[0]?.title || "", shop_name: shopName }, t.purpose === "auto2");
+  const pct = t.purpose === "auto3" ? pcts.p3 : pcts.p2;
+  return render(src, { ...SAMPLE, discount_pct: String(pct || 15), total: items[0]?.price || "", product_block: pb, items: pb, product_title: items[0]?.title || "", shop_name: shopName }, t.purpose === "auto2" || t.purpose === "auto3");
 }
 
 function copyFor(locale: string, purpose: string) {
   const d = DEFAULT_COPY[locale] || DEFAULT_COPY.en;
-  const { subject, ...copy } = purpose === "auto2" ? d.auto2 : d.auto1;
+  const { subject, ...copy } = purpose === "auto3" ? d.auto3 : purpose === "auto2" ? d.auto2 : d.auto1;
   return { subject, copy };
 }
 
@@ -134,7 +136,7 @@ export default function Emails() {
   const shownName = look.fromName || shopName;
   const [editLive, setEditLive] = useState<any>(null);
   useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
-  const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName) : null), [editLive, brand, items, shownName]);
+  const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName, { p2: r.pct2, p3: r.pct3 }) : null), [editLive, brand, items, shownName, r.pct2, r.pct3]);
   const thumbs = useMemo(() => DESIGNS.map((d) => previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName).html), [brand, items, shownName]);
   const setCopy = (k: string, v: string) => setEdit((x: any) => ({ ...x, copy: { ...(x.copy || {}), [k]: v } }));
 
@@ -170,18 +172,25 @@ export default function Emails() {
                 <FormLayout>
                   <Checkbox label="Trimite automat e-mailuri clienților care au abandonat checkout-ul" checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
                   <TextField label="Primul e-mail după (minute)" type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText="Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate. Noaptea (22–8, ora clientului) nu se trimite — clientul primește direct e-mailul de dimineață." />
-                  <Checkbox label="Trimite și al doilea e-mail" checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
+                  <Banner tone="info">
+                    <b>Cum funcționează:</b> 1) după ~1 oră — reamintire elegantă cu produsul din coș, fără reducere; 2) a doua zi — „culoarea se epuizează”: dacă în coș avea deja o reducere (ex. din pop-up), îi amintim de ea; dacă nu, îi dăm reducerea ta; 3) a treia zi — ultima șansă cu reducerea mare, valabilă doar în ziua aceea. Se oprește imediat ce clienta comandă.
+                  </Banner>
+                  <Checkbox label="Trimite e-mailul 2 (a doua zi)" checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
                   <FormLayout.Group>
-                    <Select label="Când pleacă al doilea e-mail" value={r.secondMode || "morning"} onChange={(v) => setR({ ...r, secondMode: v as any })} disabled={!r.second}
-                      options={[{ label: "A doua zi dimineață (ora locală a clientului)", value: "morning" }, { label: "La un număr de ore după primul", value: "delay" }]}
-                      helpText="Dimineața: toți cei care au lăsat checkout-ul ieri (sau acum 2–3 zile) și n-au comandat — inclusiv cei care n-au primit primul e-mail." />
+                    <Select label="Când pleacă e-mailul 2" value={r.secondMode || "morning"} onChange={(v) => setR({ ...r, secondMode: v as any })} disabled={!r.second}
+                      options={[{ label: "A doua zi, la ora aleasă (ora clientei)", value: "morning" }, { label: "La un număr de ore după primul", value: "delay" }]} />
                     {(r.secondMode || "morning") === "morning"
-                      ? <Select label="Ora de trimitere" value={String(r.morningHour ?? 10)} onChange={(v) => setR({ ...r, morningHour: Number(v) })} disabled={!r.second} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 10:00 — după drumul la serviciu, cu timp de comandat în pauză." />
+                      ? <Select label="Ora e-mailului 2" value={String(r.morningHour ?? 10)} onChange={(v) => setR({ ...r, morningHour: Number(v) })} disabled={!r.second} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 10:00 — dimineața au cele mai multe deschideri și comenzi." />
                       : <TextField label="Ore după primul e-mail" type="number" value={String(r.delay2Hours)} onChange={(v) => setR({ ...r, delay2Hours: num(v, 24) })} autoComplete="off" disabled={!r.second} helpText="Recomandat: 24." />}
                   </FormLayout.Group>
                   <FormLayout.Group>
-                    <Select label="Reducere în al doilea e-mail" helpText="Codul e personal, de unică folosință." value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : "fără", value: String(p) }))} />
-                    <Select label="Codul e valabil" value={String(r.validHours2)} onChange={(v) => setR({ ...r, validHours2: Number(v) })} disabled={!r.second || !r.pct2} options={[{ label: "24 de ore", value: "24" }, { label: "48 de ore", value: "48" }, { label: "72 de ore", value: "72" }]} />
+                    <Select label="Reducerea din e-mailul 2 (doar dacă în coș NU e deja o reducere)" value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : "fără", value: String(p) }))} helpText="De obicei aceeași ca în pop-up. Codul e personal, de unică folosință." />
+                    <Select label="Codul din e-mailul 2 e valabil" value={String(r.validHours2)} onChange={(v) => setR({ ...r, validHours2: Number(v) })} disabled={!r.second || !r.pct2} options={[{ label: "24 de ore", value: "24" }, { label: "48 de ore", value: "48" }, { label: "72 de ore", value: "72" }]} />
+                  </FormLayout.Group>
+                  <Checkbox label="Trimite e-mailul 3 — ultima șansă (a treia zi)" checked={r.third} onChange={(v) => setR({ ...r, third: v })} disabled={!r.second} />
+                  <FormLayout.Group>
+                    <Select label="Ora e-mailului 3" value={String(r.thirdHour ?? 12)} onChange={(v) => setR({ ...r, thirdHour: Number(v) })} disabled={!r.second || !r.third} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 12:00 — pauza de prânz; clienta are tot restul zilei pentru oferta „doar azi”." />
+                    <Select label="Reducerea din e-mailul 3" value={String(r.pct3)} onChange={(v) => setR({ ...r, pct3: Number(v) })} disabled={!r.second || !r.third} options={[10, 15, 20, 25, 30].map((p) => ({ label: `${p}%`, value: String(p) }))} helpText="Valabilă doar în ziua aceea, până la 23:59 (ora clientei)." />
                   </FormLayout.Group>
                   <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
                   <FormLayout.Group>
@@ -190,7 +199,7 @@ export default function Emails() {
                   </FormLayout.Group>
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 2 e-mailuri automate per client în 7 zile.</Text>
+                <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 3 e-mailuri automate per clientă.</Text>
               </BlockStack>
             </Card>
 
@@ -288,7 +297,8 @@ export default function Emails() {
                           <TextField label="Salut" value={edit.copy?.greeting || ""} onChange={(v) => setCopy("greeting", v)} autoComplete="off" />
                           <TextField label="Titlu" value={edit.copy?.heading || ""} onChange={(v) => setCopy("heading", v)} autoComplete="off" />
                           <TextField label="Text" value={edit.copy?.text || ""} onChange={(v) => setCopy("text", v)} multiline={4} autoComplete="off" helpText="Sub text vine automat poza și numele produsului din coș." />
-                          {edit.purpose === "auto2" && <TextField label="Text la reducere" value={edit.copy?.discount || ""} onChange={(v) => setCopy("discount", v)} autoComplete="off" helpText="Apare doar când e-mailul are cod de reducere; codul se afișează dedesubt." />}
+                          {(edit.purpose === "auto2" || edit.purpose === "auto3") && <TextField label="Text la reducerea oferită" value={edit.copy?.discount || ""} onChange={(v) => setCopy("discount", v)} autoComplete="off" helpText="Apare când îi dăm un cod nou; codul personal se afișează dedesubt." />}
+                          {edit.purpose === "auto2" && <TextField label="Text dacă are deja reducere în coș" value={edit.copy?.existing || ""} onChange={(v) => setCopy("existing", v)} autoComplete="off" helpText="Apare în loc de codul nou, când clienta avea deja o reducere (ex. din pop-up). {{cart_discount_pct}} = procentul ei." />}
                           <TextField label="Buton" value={edit.copy?.button || ""} onChange={(v) => setCopy("button", v)} autoComplete="off" />
                           <TextField label="Notă mică (jos)" value={edit.copy?.note || ""} onChange={(v) => setCopy("note", v)} multiline={2} autoComplete="off" />
                           <InlineStack><Button size="slim" variant="plain" onClick={() => setEdit({ ...edit, design: "custom", html: buildEmail(edit.design, edit.copy || {}, brand) })}>Transformă în HTML propriu (avansat)</Button></InlineStack>
@@ -302,7 +312,7 @@ export default function Emails() {
                           <TextField label="HTML" labelHidden value={edit.html} onChange={(v) => setEdit({ ...edit, html: v })} multiline={12} autoComplete="off" monospaced />
                         </>
                       )}
-                      <Text as="p" variant="bodySm" tone="subdued">Câmpuri: {"{{first_name}} {{product_title}} {{total}} {{discount_pct}} {{valid_until}} {{shop_name}}"}{!isDesign(edit.design) && <> · {"{{product_block}} {{items}} {{recovery_url}} {{discount_code}}"} · bloc doar cu reducere: {"{{#discount}} … {{/discount}}"}</>}</Text>
+                      <Text as="p" variant="bodySm" tone="subdued">Câmpuri: {"{{first_name}} {{product_title}} {{total}} {{discount_pct}} {{valid_until}} {{cart_discount_pct}} {{shop_name}}"}{!isDesign(edit.design) && <> · {"{{product_block}} {{items}} {{recovery_url}} {{discount_code}}"} · bloc doar cu reducere: {"{{#discount}} … {{/discount}}"}</>}</Text>
                       <InlineStack gap="200">
                         <Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save"} onClick={saveTemplate}>Salvează șablonul</Button>
                         <Button onClick={() => setEdit(null)}>Închide</Button>

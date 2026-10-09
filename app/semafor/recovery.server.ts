@@ -40,6 +40,8 @@ export async function deviceContext(shopId: string, deviceId: string) {
     currency: (withItems?.currency ?? last("currency")) as string | null, total: (withItems?.total ?? last("total")) as number | null,
     items: (withItems?.items ?? []) as { title: string; qty: number; image?: string | null; variant?: string | null; price?: number | string | null }[],
     acceptsMarketing: last("acceptsMarketing") as boolean | null,
+    cartDiscountCode: last("discountCode") as string | null,
+    cartDiscountPct: last("discountPct") as number | null,
     checkoutToken: last("checkoutToken") as string | null,
     completed: events.includes("completed"),
     firstAt: steps[0].createdAt as Date, lastAt: steps[steps.length - 1].createdAt as Date,
@@ -145,7 +147,7 @@ export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: stri
 
 /** One-time percentage code valid for `hours`, for everything in the store. */
 export async function createDiscount(admin: Admin, pct: number, hours: number, label: string) {
-  const code = `MIA${pct}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const code = `GIFT${pct}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
   const endsAt = new Date(Date.now() + hours * 3_600_000);
   const d = await gql(admin, `mutation($d: DiscountCodeBasicInput!){ discountCodeBasicCreate(basicCodeDiscount:$d){ codeDiscountNode{ id } userErrors{ field message } } }`, {
     d: {
@@ -234,6 +236,21 @@ export async function sendMail(m: { to: string; subject: string; html: string; f
   return String(j?.id || "");
 }
 
+/** Discount already applied in the buyer's checkout (pop-up code …): Shopify's abandoned checkout first, else what the pixel saw. */
+export async function cartDiscountOf(admin: Admin, ctx: Pick<DeviceCtx, "email" | "cartDiscountCode" | "cartDiscountPct">): Promise<{ code: string | null; pct: number | null }> {
+  if (ctx.email) {
+    try {
+      const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ discountCodes totalDiscountSet{ shopMoney{ amount } } subtotalPriceSet{ shopMoney{ amount } } } } }`, { q: `email:${JSON.stringify(ctx.email)}` });
+      const n = d?.abandonedCheckouts?.nodes?.[0];
+      const off = Number(n?.totalDiscountSet?.shopMoney?.amount || 0);
+      const sub = Number(n?.subtotalPriceSet?.shopMoney?.amount || 0);
+      const code = (n?.discountCodes ?? [])[0] ?? null;
+      if (off > 0 || code) return { code: code || ctx.cartDiscountCode || null, pct: ctx.cartDiscountPct ?? (sub > 0 && off > 0 ? Math.round((off / (sub + off)) * 100) : null) };
+    } catch { /* fall back to the pixel */ }
+  }
+  return { code: ctx.cartDiscountCode ?? null, pct: ctx.cartDiscountPct ?? null };
+}
+
 /** Brand used by the designed templates. */
 export function brandOf(s: Pick<RecoverySettings, "brandName" | "brandTagline" | "logoUrl" | "accent">, shopName: string): Brand {
   return { name: s.brandName || shopName, tagline: s.brandTagline || "", logoUrl: s.logoUrl || "", accent: s.accent || "" };
@@ -278,7 +295,9 @@ export async function sampleItems(admin: Admin, shopId?: string): Promise<Item[]
   } catch { return []; }
 }
 
-export type SendInput = { shopId: string; shopDomain: string; admin: Admin; deviceId: string; templateId: string; pct: number; validHours: number; kind: "manual" | "auto1" | "auto2"; preview?: boolean; settings: RecoverySettings };
+export type SendInput = { shopId: string; shopDomain: string; admin: Admin; deviceId: string; templateId: string; pct: number; validHours: number; kind: "manual" | "auto1" | "auto2" | "auto3"; preview?: boolean; settings: RecoverySettings;
+  /** Code valid until this moment instead of validHours (3rd e-mail: end of the buyer's day). */ validUntil?: Date;
+  /** Discount already in the cart (decided by the caller). */ cartDiscount?: { code: string | null; pct: number | null } };
 
 /** Build (and unless preview, send) one recovery e-mail. Returns the rendered e-mail. */
 export async function sendRecovery(i: SendInput) {
@@ -291,7 +310,10 @@ export async function sendRecovery(i: SendInput) {
   let code = "", endsAt: Date | null = null;
   if (i.pct > 0) {
     if (i.preview) { code = `MIA${i.pct}-XXXXX`; endsAt = new Date(Date.now() + i.validHours * 3_600_000); }
-    else ({ code, endsAt } = await createDiscount(i.admin, i.pct, i.validHours, i.kind));
+    else {
+      const hours = i.validUntil ? Math.max(3, (+i.validUntil - Date.now()) / 3_600_000) : i.validHours;
+      ({ code, endsAt } = await createDiscount(i.admin, i.pct, hours, i.kind));
+    }
   }
   let url = i.preview ? `https://${ctx.host || i.shopDomain}/cart` : await recoveryUrl(i.admin, ctx, i.shopDomain);
   if (code) {
@@ -307,6 +329,8 @@ export async function sendRecovery(i: SendInput) {
     discount_pct: i.pct ? String(i.pct) : "",
     valid_until: endsAt ? endsAt.toLocaleString(dateFmt, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: locale === "ro" ? "Europe/Bucharest" : locale === "pl" ? "Europe/Warsaw" : "Europe/Berlin" }) : "",
     shop_name: "",
+    cart_discount_pct: !code && i.cartDiscount?.pct ? String(Math.round(i.cartDiscount.pct)) : "",
+    cart_discount_code: !code && i.cartDiscount?.code ? i.cartDiscount.code : "",
   };
   const ident = await shopIdentity(i.admin);
   vars.shop_name = i.settings.fromName || ident.name;
@@ -327,7 +351,7 @@ export async function sendRecovery(i: SendInput) {
   return { ...out, to: ctx.email, code, url };
 }
 
-async function pickTemplate(shopId: string, purpose: "auto1" | "auto2", locale: string) {
+async function pickTemplate(shopId: string, purpose: "auto1" | "auto2" | "auto3", locale: string) {
   return (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale }, orderBy: { updatedAt: "desc" } }))
     ?? (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale: "de" }, orderBy: { updatedAt: "desc" } }));
 }
@@ -341,6 +365,16 @@ export function tzOf(x: { country?: string | null; locale?: string | null; host?
   if (l === "de" || (x.host || "").endsWith(".de")) return "Europe/Berlin";
   if (l === "pl" || (x.host || "").endsWith(".pl")) return "Europe/Warsaw";
   return "Europe/Bucharest";
+}
+/** Whole days between two local calendar days (YYYY-MM-DD). */
+export function dayDiff(a: string, b: string) {
+  return Math.round((Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / DAY);
+}
+/** 23:59 of today in the buyer's time zone. */
+export function endOfLocalDay(now: Date, tz: string) {
+  const { hour } = localParts(now, tz);
+  const mins = Number(new Intl.DateTimeFormat("en-GB", { timeZone: tz, minute: "2-digit" }).format(now)) || 0;
+  return new Date(+now + ((23 - hour) * 60 + (59 - mins)) * 60_000);
 }
 /** Local calendar day (YYYY-MM-DD) and hour of a moment in a time zone. */
 export function localParts(d: Date, tz: string) {
@@ -392,22 +426,33 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     const tz = tzOf(d);
     const loc = localParts(now, tz);
     const age = +now - +d.last;
-    let kind: "auto1" | "auto2" | null = null;
+    let kind: "auto1" | "auto2" | "auto3" | null = null;
+    const abandonDay = localParts(d.last, tz).day;
+    const daysSince = dayDiff(abandonDay, loc.day); // 0 = same local day, 1 = next day …
+    const restedSinceLast = !lastSent || +now - +lastSent.createdAt >= 6 * 3_600_000;
 
-    if (!has("auto1") && !has("manual") && !has("auto2")) {
+    // 1st: ~1 hour after leaving the checkout, not at night — plain reminder, no discount
+    if (!has("auto1") && !has("manual") && !has("auto2") && !has("auto3")) {
       const night = loc.hour < 8 || loc.hour >= 22;
       if (age >= s.delay1Min * 60_000 && age < 12 * 3_600_000 && !night && failed("auto1") < 3) kind = "auto1";
     }
-    if (!kind && s.second && !has("auto2")) {
+    // 2nd: next day at the chosen local hour — urgency + (cart discount reminder | our discount)
+    if (!kind && s.second && !has("auto2") && !has("auto3")) {
       if (morningMode) {
-        const abandonedEarlierDay = localParts(d.last, tz).day < loc.day;
         const inWindow = loc.hour >= mh && loc.hour < mh + 4;
-        const restedSinceLast = !lastSent || +now - +lastSent.createdAt >= 6 * 3_600_000;
-        if (abandonedEarlierDay && inWindow && age < 3 * DAY && restedSinceLast && failed("auto2") < 3) kind = "auto2";
+        if (daysSince >= 1 && daysSince <= 2 && inWindow && restedSinceLast && failed("auto2") < 3) kind = "auto2";
       } else if (has("auto1")) {
         const first = prev.find((p) => p.kind === "auto1" && p.status === "sent");
         if (first && +now - +first.createdAt >= s.delay2Hours * 3_600_000 && failed("auto2") < 3) kind = "auto2";
       }
+    }
+    // 3rd: the day after the 2nd e-mail — last chance, bigger discount valid only today
+    if (!kind && s.third && has("auto2") && !has("auto3")) {
+      const second = prev.filter((p) => p.kind === "auto2" && p.status === "sent").pop();
+      const h3 = Math.min(21, Math.max(6, Number(s.thirdHour) || 12));
+      const inWindow = loc.hour >= h3 && loc.hour < h3 + 4;
+      const nextDayAfterSecond = second && dayDiff(localParts(second.createdAt, tz).day, loc.day) >= 1;
+      if (nextDayAfterSecond && daysSince <= 4 && inWindow && restedSinceLast && failed("auto3") < 3) kind = "auto3";
     }
     if (!kind) continue;
     if (await orderedSince(admin as any, d.email, d.first)) { await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "a comandat între timp" } }); continue; }
@@ -423,8 +468,17 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     if (!ctx) continue;
     const tpl = await pickTemplate(shop.id, kind, localeOf(ctx));
     if (!tpl) continue;
+    const cart = kind === "auto1" ? { code: null, pct: null } : await cartDiscountOf(admin as any, ctx);
+    const hasCartDiscount = !!(cart.code || cart.pct);
+    // 2nd: if the cart already has a discount we only remind about it; otherwise we give ours (pct2)
+    // 3rd: always the final, bigger discount (pct3), valid until the end of the buyer's day
+    const pct = kind === "auto2" ? (hasCartDiscount ? 0 : s.pct2) : kind === "auto3" ? s.pct3 : 0;
     try {
-      await sendRecovery({ shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct: kind === "auto2" ? s.pct2 : 0, validHours: s.validHours2, kind, settings: s });
+      await sendRecovery({
+        shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct, validHours: s.validHours2, kind, settings: s,
+        cartDiscount: hasCartDiscount ? cart : undefined,
+        validUntil: kind === "auto3" ? endOfLocalDay(now, tz) : undefined,
+      });
       sent++;
     } catch (e: any) { console.error("[semafor] recovery send failed", e?.message || e); }
   }

@@ -11,7 +11,7 @@ export const DESIGNS: Array<{ id: DesignId; name: string; desc: string }> = [
 ];
 export const isDesign = (d: unknown): d is DesignId => d === "elegant" || d === "minimal" || d === "modern";
 
-export type Copy = { greeting: string; heading: string; text: string; button: string; note: string; discount?: string };
+export type Copy = { greeting: string; heading: string; text: string; button: string; note: string; discount?: string; /** shown when the cart already had a discount */ existing?: string };
 export type Brand = { name: string; tagline?: string; logoUrl?: string; accent?: string };
 export type Item = { title: string; qty: number; image?: string | null; variant?: string | null; price?: string | null };
 
@@ -91,6 +91,9 @@ export function buildEmail(d: DesignId, c: Copy, b: Brand) {
   const disc = c.discount
     ? `{{#discount}}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0"><tr><td style="padding:16px;background:${L.discBg};border:1px dashed ${L.discBorder};border-radius:${d === "modern" ? "10px" : "0"};text-align:center;font-family:${SANS};font-size:14px;color:${L.ink}">${txt(c.discount)}<div style="margin-top:8px;font-family:${d === "elegant" ? SERIF : SANS};font-size:24px;font-weight:${d === "elegant" ? "400" : "700"};letter-spacing:.14em;color:${L.accent}">{{discount_code}}</div></td></tr></table>{{/discount}}`
     : "";
+  const existing = c.existing
+    ? `{{#cart_discount}}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0"><tr><td style="padding:14px 16px;background:${L.discBg};border:1px solid ${L.discBorder};border-radius:${d === "modern" ? "10px" : "0"};text-align:center;font-family:${SANS};font-size:14px;color:${L.ink}">${txt(c.existing)}</td></tr></table>{{/cart_discount}}`
+    : "";
   const align = d === "minimal" ? "left" : "center";
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head>
 <body style="margin:0;padding:0;background:${L.page}">
@@ -105,7 +108,7 @@ ${c.greeting ? `<p style="margin:0 0 6px;font-size:15px;color:${L.muted}">${txt(
 </td></tr>
 <tr><td style="padding:0 ${d === "modern" ? "28px" : "32px"}">{{product_block}}</td></tr>
 <tr><td style="padding:6px ${d === "modern" ? "28px" : "32px"} 4px;font-family:${L.body};color:${L.ink};font-size:15px;line-height:1.6;text-align:${align}">
-${disc}
+${existing}${disc}
 <p style="margin:22px 0;text-align:center">${btn}</p>
 ${c.note ? `<p style="margin:0 0 8px;color:${L.muted};font-size:13px">${txt(c.note)}</p>` : ""}
 </td></tr>
@@ -113,22 +116,27 @@ ${c.note ? `<p style="margin:0 0 8px;color:${L.muted};font-size:13px">${txt(c.no
 </table></td></tr></table></body></html>`;
 }
 
-/** Default texts per language and purpose (no product or brand names — those come from the shop). */
-export const DEFAULT_COPY: Record<string, { auto1: Copy & { subject: string }; auto2: Copy & { subject: string } }> = {
+/** Default texts per language and purpose (no brand names — those come from the shop; the product title is filled in). */
+type C = Copy & { subject: string };
+export const DEFAULT_COPY: Record<string, { auto1: C; auto2: C; auto3: C }> = {
   ro: {
-    auto1: { subject: "Ai uitat ceva în coș?", greeting: "Bună {{first_name}},", heading: "Coșul tău te așteaptă", text: "Nu ai finalizat comanda. Ți-am păstrat produsele alese — cu un clic ajungi înapoi la plată.", button: "Finalizează comanda", note: "Ai întrebări despre produs sau livrare? Răspunde la acest e-mail — te ajutăm cu drag." },
-    auto2: { subject: "Doar pentru tine: {{discount_pct}}% reducere", greeting: "Bună {{first_name}},", heading: "Un mic cadou pentru tine", text: "Produsele tale sunt încă în coș. Ca să-ți fie mai ușor să te decizi, îți oferim o reducere personală — se aplică automat la plată.", button: "Folosește reducerea", note: "Codul e de unică folosință și e valabil până la {{valid_until}}.", discount: "<b>{{discount_pct}}% reducere</b> · valabil până la {{valid_until}}" },
+    auto1: { subject: "Ți-am păstrat alegerea", greeting: "Bună {{first_name}},", heading: "Te așteaptă în coș", text: "Ai fost la un pas. Produsul ales te așteaptă exact cum l-ai lăsat — cu un singur clic revii la comandă.", button: "Revino la comandă", note: "Ai o întrebare despre culoare, mărime sau livrare? Răspunde direct la acest e-mail — îți scriem personal." },
+    auto2: { subject: "{{product_title}} se epuizează repede", greeting: "Bună {{first_name}},", heading: "Una dintre cele mai căutate culori", text: "{{product_title}} este printre preferatele clientelor noastre în aceste zile, iar stocul scade repede. Când se epuizează, revenirea în stoc durează destul de mult — nu am vrea să rămâi fără ea.", existing: "Vestea bună: reducerea ta de {{cart_discount_pct}}% este încă activă în coș.", discount: "Și ca să-ți fie mai ușor: <b>{{discount_pct}}% reducere</b>, doar pentru tine · valabilă până la {{valid_until}}", button: "Finalizează comanda", note: "Reducerea se aplică automat când apeși butonul." },
+    auto3: { subject: "Ultima șansă: {{discount_pct}}% reducere, doar azi", greeting: "Bună {{first_name}},", heading: "O ultimă ofertă, doar pentru azi", text: "Multe cliente au profitat deja de reducerea de {{discount_pct}}% și și-au comandat-o. {{product_title}} se termină foarte repede, iar până revine în stoc poate trece destul de mult timp. Dacă îți place, acum e momentul.", discount: "<b>{{discount_pct}}% reducere</b> · valabilă doar azi, până la {{valid_until}}", button: "Comandă cu {{discount_pct}}% reducere", note: "La miezul nopții codul expiră." },
   },
   de: {
-    auto1: { subject: "Hast du etwas vergessen?", greeting: "Hallo {{first_name}},", heading: "Dein Warenkorb wartet auf dich", text: "Du hast deine Bestellung noch nicht abgeschlossen. Wir haben deine Auswahl für dich gespeichert – mit einem Klick bist du wieder an der Kasse.", button: "Bestellung abschließen", note: "Fragen zum Produkt oder zur Lieferung? Antworte einfach auf diese E-Mail – wir helfen gern." },
-    auto2: { subject: "Nur für dich: {{discount_pct}} % Rabatt", greeting: "Hallo {{first_name}},", heading: "Ein kleines Geschenk für dich", text: "Deine Auswahl liegt noch im Warenkorb. Damit dir die Entscheidung leichter fällt, bekommst du einen persönlichen Rabatt – er wird an der Kasse automatisch abgezogen.", button: "Rabatt einlösen", note: "Der Code gilt einmalig und nur bis {{valid_until}}.", discount: "<b>{{discount_pct}} % Rabatt</b> · gültig bis {{valid_until}}" },
+    auto1: { subject: "Wir haben deine Auswahl für dich reserviert", greeting: "Hallo {{first_name}},", heading: "Sie wartet in deinem Warenkorb", text: "Du warst nur einen Schritt entfernt. Deine Auswahl liegt genau so im Warenkorb, wie du sie verlassen hast – mit einem Klick bist du zurück an der Kasse.", button: "Zurück zur Bestellung", note: "Fragen zu Farbe, Größe oder Lieferung? Antworte einfach auf diese E-Mail – wir melden uns persönlich." },
+    auto2: { subject: "{{product_title}} ist schnell vergriffen", greeting: "Hallo {{first_name}},", heading: "Eine unserer gefragtesten Farben", text: "{{product_title}} gehört gerade zu den Lieblingen unserer Kundinnen, und der Bestand schrumpft schnell. Ist sie ausverkauft, dauert es eine ganze Weile, bis sie wieder da ist – wir möchten nicht, dass du sie verpasst.", existing: "Die gute Nachricht: Dein Rabatt von {{cart_discount_pct}} % ist in deinem Warenkorb noch aktiv.", discount: "Und damit dir die Entscheidung leichter fällt: <b>{{discount_pct}} % Rabatt</b>, nur für dich · gültig bis {{valid_until}}", button: "Bestellung abschließen", note: "Der Rabatt wird mit einem Klick auf den Button automatisch angewendet." },
+    auto3: { subject: "Letzte Chance: {{discount_pct}} % Rabatt, nur heute", greeting: "Hallo {{first_name}},", heading: "Ein letztes Angebot – nur heute", text: "Viele Kundinnen haben die {{discount_pct}} % bereits genutzt und bestellt. {{product_title}} ist sehr schnell vergriffen, und bis sie wieder auf Lager ist, kann einige Zeit vergehen. Wenn sie dir gefällt, ist jetzt der Moment.", discount: "<b>{{discount_pct}} % Rabatt</b> · nur heute gültig, bis {{valid_until}}", button: "Mit {{discount_pct}} % bestellen", note: "Um Mitternacht läuft der Code ab." },
   },
   pl: {
-    auto1: { subject: "Czy czegoś nie zapomniałaś?", greeting: "Cześć {{first_name}},", heading: "Twój koszyk na Ciebie czeka", text: "Twoje zamówienie nie zostało jeszcze sfinalizowane. Zapisaliśmy wybrane produkty — jednym kliknięciem wrócisz do kasy.", button: "Dokończ zamówienie", note: "Masz pytania o produkt lub dostawę? Po prostu odpisz na tę wiadomość — chętnie pomożemy." },
-    auto2: { subject: "Tylko dla Ciebie: {{discount_pct}}% rabatu", greeting: "Cześć {{first_name}},", heading: "Mały prezent dla Ciebie", text: "Twoje produkty wciąż czekają w koszyku. Żeby ułatwić Ci decyzję, mamy dla Ciebie osobisty rabat — zostanie naliczony automatycznie w kasie.", button: "Odbierz rabat", note: "Kod jest jednorazowy i ważny do {{valid_until}}.", discount: "<b>{{discount_pct}}% rabatu</b> · ważny do {{valid_until}}" },
+    auto1: { subject: "Zachowaliśmy Twój wybór", greeting: "Cześć {{first_name}},", heading: "Czeka na Ciebie w koszyku", text: "Byłaś o krok. Twój wybór czeka w koszyku dokładnie tak, jak go zostawiłaś — jednym kliknięciem wrócisz do zamówienia.", button: "Wróć do zamówienia", note: "Masz pytanie o kolor, rozmiar lub dostawę? Odpisz na tę wiadomość — odpowiemy osobiście." },
+    auto2: { subject: "{{product_title}} szybko się wyprzedaje", greeting: "Cześć {{first_name}},", heading: "Jeden z najchętniej wybieranych kolorów", text: "{{product_title}} to teraz jeden z ulubieńców naszych klientek, a zapas szybko maleje. Gdy się wyprzeda, powrót do sprzedaży trwa dość długo — nie chcemy, żeby Cię ominął.", existing: "Dobra wiadomość: Twój rabat {{cart_discount_pct}}% jest wciąż aktywny w koszyku.", discount: "A żeby ułatwić Ci decyzję: <b>{{discount_pct}}% rabatu</b> tylko dla Ciebie · ważny do {{valid_until}}", button: "Dokończ zamówienie", note: "Rabat zostanie naliczony automatycznie po kliknięciu przycisku." },
+    auto3: { subject: "Ostatnia szansa: {{discount_pct}}% rabatu, tylko dziś", greeting: "Cześć {{first_name}},", heading: "Ostatnia oferta — tylko dziś", text: "Wiele klientek skorzystało już z rabatu {{discount_pct}}% i złożyło zamówienie. {{product_title}} wyprzedaje się bardzo szybko, a na ponowną dostawę trzeba będzie poczekać dłuższy czas. Jeśli Ci się podoba, to właściwy moment.", discount: "<b>{{discount_pct}}% rabatu</b> · ważny tylko dziś, do {{valid_until}}", button: "Zamów z rabatem {{discount_pct}}%", note: "O północy kod wygasa." },
   },
   en: {
-    auto1: { subject: "Did you forget something?", greeting: "Hi {{first_name}},", heading: "Your cart is waiting", text: "You haven't finished your order yet. We saved your picks for you — one click takes you back to checkout.", button: "Complete my order", note: "Questions about the product or delivery? Just reply to this e-mail — we're happy to help." },
-    auto2: { subject: "Just for you: {{discount_pct}}% off", greeting: "Hi {{first_name}},", heading: "A little gift for you", text: "Your picks are still in your cart. To make the decision easier, here's a personal discount — it's applied automatically at checkout.", button: "Use my discount", note: "The code can be used once and is valid until {{valid_until}}.", discount: "<b>{{discount_pct}}% off</b> · valid until {{valid_until}}" },
+    auto1: { subject: "We saved your pick for you", greeting: "Hi {{first_name}},", heading: "It's waiting in your cart", text: "You were one step away. Your pick is in your cart exactly as you left it — one click takes you back to checkout.", button: "Back to my order", note: "A question about colour, size or delivery? Just reply to this e-mail — we'll answer personally." },
+    auto2: { subject: "{{product_title}} is selling fast", greeting: "Hi {{first_name}},", heading: "One of our most wanted colours", text: "{{product_title}} is one of our customers' favourites right now and stock is going fast. Once it sells out, it takes quite a while to come back — we'd hate for you to miss it.", existing: "Good news: your {{cart_discount_pct}}% discount is still active in your cart.", discount: "And to make it easier: <b>{{discount_pct}}% off</b>, just for you · valid until {{valid_until}}", button: "Complete my order", note: "The discount is applied automatically when you tap the button." },
+    auto3: { subject: "Last chance: {{discount_pct}}% off, today only", greeting: "Hi {{first_name}},", heading: "One last offer — today only", text: "Many customers have already used the {{discount_pct}}% and placed their order. {{product_title}} sells out very fast, and it can take quite some time before it's back in stock. If you love it, now is the moment.", discount: "<b>{{discount_pct}}% off</b> · today only, until {{valid_until}}", button: "Order with {{discount_pct}}% off", note: "The code expires at midnight." },
   },
 };

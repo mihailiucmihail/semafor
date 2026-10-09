@@ -7,10 +7,14 @@ const RAW = new Set(["items", "product_block"]);
 export function render(tpl: { subject: string; html: string }, v: Record<string, string>, hasDiscount: boolean) {
   const fill = (s: string, html: boolean) => s
     .replace(/\{\{#discount\}\}([\s\S]*?)\{\{\/discount\}\}/g, (_, inner) => (hasDiscount ? inner : ""))
+    // shown only when the cart already had a discount (and we did not create a new one)
+    .replace(/\{\{#cart_discount\}\}([\s\S]*?)\{\{\/cart_discount\}\}/g, (_, inner) => (!hasDiscount && (v.cart_discount_pct || v.cart_discount_code) ? inner : ""))
+    .replace(/\{\{\^cart_discount\}\}([\s\S]*?)\{\{\/cart_discount\}\}/g, (_, inner) => (!hasDiscount && (v.cart_discount_pct || v.cart_discount_code) ? "" : inner))
     .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => (RAW.has(k) ? (html ? v[k] ?? "" : "") : html ? esc(v[k] ?? "") : (v[k] ?? "")))
     .replace(/\{\{[^}]*\}\}/g, "")
     // greeting without a name: "Hallo ," → "Hallo,"
-    .replace(/(\p{L}) +,/gu, "$1,");
+    .replace(/(\p{L}) +,/gu, "$1,")
+    .replace(/ ?\(\s*\)/g, "").replace(/(de|von|z|of) +%/g, "");
   return { subject: fill(tpl.subject, false).replace(/\s+/g, " ").trim(), html: fill(tpl.html, true) };
 }
 

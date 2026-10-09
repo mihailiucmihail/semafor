@@ -7,10 +7,11 @@ const LANG: Record<string, string> = { ro: "RO", de: "DE", pl: "PL", en: "EN" };
 export function defaultTemplates(design: DesignId = "elegant") {
   const out: { name: string; locale: string; purpose: string; subject: string; html: string; design: string; copy: any }[] = [];
   for (const [locale, t] of Object.entries(DEFAULT_COPY)) {
-    const { subject: s1, ...c1 } = t.auto1;
-    const { subject: s2, ...c2 } = t.auto2;
-    out.push({ name: `${LANG[locale]} · Reamintire`, locale, purpose: "auto1", subject: s1, html: "", design, copy: c1 });
-    out.push({ name: `${LANG[locale]} · Cu reducere`, locale, purpose: "auto2", subject: s2, html: "", design, copy: c2 });
+    const names: Record<string, string> = { auto1: "1 · Reamintire", auto2: "2 · Stoc limitat + reducere", auto3: "3 · Ultima șansă" };
+    for (const k of ["auto1", "auto2", "auto3"] as const) {
+      const { subject, ...copy } = t[k];
+      out.push({ name: `${LANG[locale]} · ${names[k]}`, locale, purpose: k, subject, html: "", design, copy });
+    }
   }
   return out;
 }

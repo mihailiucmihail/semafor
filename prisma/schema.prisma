@@ -190,6 +190,8 @@ model CheckoutAttempt {
   total         Float?
   items         Json?                           // [{ title, qty, image }]
   acceptsMarketing Boolean?                     // buyer ticked the e-mail marketing box in checkout
+  discountCode  String?                         // discount already applied in the checkout (e.g. from a pop-up)
+  discountPct   Float?                          // its size in % of the subtotal
   createdAt     DateTime @default(now())
 
   @@index([shopId, deviceId])

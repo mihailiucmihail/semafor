@@ -48,6 +48,19 @@ register(({ analytics, browser, init, settings }) => {
       variant: (l && l.variant && l.variant.title) || null,
       price: Number((l && l.finalLinePrice && l.finalLinePrice.amount) || (l && l.variant && l.variant.price && l.variant.price.amount * ((l && l.quantity) || 1)) || 0) || null,
     }));
+    // discount already in the checkout (pop-up code, automatic discount …)
+    let discountCode = null, discountPct = null;
+    try {
+      const apps = c.discountApplications || [];
+      const app = apps.find((d) => d && d.value && d.value.percentage != null) || apps[0];
+      if (app) {
+        discountCode = app.title || null;
+        if (app.value && app.value.percentage != null) discountPct = Number(app.value.percentage);
+      }
+      const sub = Number((c.subtotalPrice && c.subtotalPrice.amount) || 0);
+      const off = Number((c.discountsAmount && c.discountsAmount.amount) || 0);
+      if (discountPct == null && sub > 0 && off > 0) discountPct = Math.round((off / (sub + off)) * 100);
+    } catch (e) { /* ignore */ }
     const body = {
       shop: SHOP, event: stage, deviceId: await deviceId(), fingerprint: await fingerprint(ctx),
       checkoutToken: c.token || null,
@@ -60,6 +73,7 @@ register(({ analytics, browser, init, settings }) => {
       currency: c.currencyCode || (c.totalPrice && c.totalPrice.currencyCode) || null,
       total: (c.totalPrice && c.totalPrice.amount) || null,
       items,
+      discountCode, discountPct,
       acceptsMarketing: typeof c.buyerAcceptsEmailMarketing === "boolean" ? c.buyerAcceptsEmailMarketing : null,
     };
     try { fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body), keepalive: true }); } catch (e) {}
