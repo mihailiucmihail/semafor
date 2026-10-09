@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
-import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery } from "../semafor/recovery.server";
+import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery, mailReady } from "../semafor/recovery.server";
 import { STEP_LABEL, stoppedAt } from "../semafor/render";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -27,7 +27,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     dev,
     ctx: { ...ctx, steps: ctx.steps.map((s: any) => ({ event: s.event, at: s.createdAt, email: s.email, phone: s.phone, name: [s.firstName, s.lastName].filter(Boolean).join(" "), city: s.city })) },
     locale: localeOf(ctx), consent, templates, sends,
-    ready: { resend: !!process.env.RESEND_API_KEY, from: !!r.fromEmail },
+    ready: { resend: mailReady() || (!!process.env.RESEND_API_KEY && !!r.fromEmail), from: true },
   };
 };
 
@@ -119,7 +119,7 @@ export default function Client() {
                   <Banner tone="info">Clientul nu a introdus un e-mail — nu i se poate scrie.</Banner>
                 ) : (
                   <BlockStack gap="300">
-                    {(!ready.resend || !ready.from) && <Banner tone="warning">Trimiterea nu e configurată: {!ready.resend ? "lipsește cheia Resend (RESEND_API_KEY în Railway)" : ""}{!ready.resend && !ready.from ? "; " : ""}{!ready.from ? "completează expeditorul în E-mailuri → Setări" : ""}. Previzualizarea funcționează.</Banner>}
+                    {!ready.resend && <Banner tone="info">Trimiterea e-mailurilor se activează în curând. Previzualizarea funcționează.</Banner>}
                     {!(ctx.acceptsMarketing || consent === "SUBSCRIBED") && <Banner tone="warning">Clientul nu a bifat abonarea la e-mailuri. În UE (mai ales Germania) un e-mail de reamintire fără acord poate fi considerat publicitate nesolicitată — trimiți pe răspunderea ta.</Banner>}
                     <Text as="p">Către: <b>{ctx.email}</b></Text>
                     <Select label="Șablon" value={tpl} onChange={setTpl} options={sorted.map((t: any) => ({ label: `${t.name}`, value: t.id }))} />

@@ -25,13 +25,13 @@ export interface RecoverySettings {
   validHours2: number;       // how long that code is valid
   onlyConsent: boolean;      // automatic e-mails only to buyers with e-mail marketing consent
   fromName: string;
-  fromEmail: string;         // must be on a domain verified in Resend
+  fromEmail: string;         // optional own address; used only if its domain is verified in Semafor's Resend account
   replyTo: string;
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
   enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 10, validHours2: 24,
-  onlyConsent: true, fromName: 'MIA by MIHAILIUC', fromEmail: '', replyTo: '',
+  onlyConsent: true, fromName: '', fromEmail: '', replyTo: '',
 };
 
 export const DEFAULT_SETTINGS: ShopSettings = {

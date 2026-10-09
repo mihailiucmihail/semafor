@@ -171,14 +171,62 @@ function itemsHtml(items: DeviceCtx["items"]) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 4px;border-top:1px solid #eee3d6">${items.map((i) => `<tr><td width="72" style="padding:10px 0;border-bottom:1px solid #eee3d6">${i.image ? `<img src="${esc(i.image)}" width="60" height="60" alt="" style="display:block;object-fit:cover;border:0">` : ""}</td><td style="padding:10px 0 10px 12px;border-bottom:1px solid #eee3d6;font-family:Arial,sans-serif;font-size:14px;color:#2a1a12">${esc(i.title)}${i.qty > 1 ? ` × ${i.qty}` : ""}</td></tr>`).join("")}</table>`;
 }
 
+/**
+ * Sending goes through Semafor's own Resend account — merchants set up nothing.
+ *  - default sender: "<Shop name> <<shop-handle>@SEMAFOR_MAIL_DOMAIN>", replies go to the shop's e-mail;
+ *  - a merchant may use an own address only when its domain is verified in Semafor's Resend account.
+ */
+export const MAIL_DOMAIN = (process.env.SEMAFOR_MAIL_DOMAIN || "").trim().toLowerCase();
+export const DAILY_LIMIT = Number(process.env.SEMAFOR_DAILY_LIMIT) || 300;
+export function mailReady() { return !!process.env.RESEND_API_KEY && !!MAIL_DOMAIN; }
+
+let verifiedCache: { at: number; domains: Set<string> } | null = null;
+/** Domains verified in Semafor's Resend account (cached 10 min). */
+export async function verifiedDomains(): Promise<Set<string>> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return new Set();
+  if (verifiedCache && Date.now() - verifiedCache.at < 600_000) return verifiedCache.domains;
+  try {
+    const r = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${key}` } });
+    const j: any = await r.json();
+    const set = new Set<string>(((j?.data ?? []) as any[]).filter((d) => d.status === "verified").map((d) => String(d.name).toLowerCase()));
+    verifiedCache = { at: Date.now(), domains: set };
+    return set;
+  } catch { return verifiedCache?.domains ?? new Set(); }
+}
+
+function shopSlug(shopDomain: string) {
+  return shopDomain.replace(/\.myshopify\.com$/, "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || "shop";
+}
+
+/** The From address actually used for a shop. */
+export async function senderOf(shopDomain: string, s: Pick<RecoverySettings, "fromEmail">) {
+  const own = (s.fromEmail || "").trim().toLowerCase();
+  if (own && own.includes("@")) {
+    const dom = own.split("@")[1];
+    const ok = await verifiedDomains();
+    if ([...ok].some((d) => dom === d || dom.endsWith("." + d))) return own;
+  }
+  return MAIL_DOMAIN ? `${shopSlug(shopDomain)}@${MAIL_DOMAIN}` : "";
+}
+
+/** Shop name + contact e-mail (default sender name and reply-to). */
+export async function shopIdentity(admin: Admin) {
+  try {
+    const d = await gql(admin, `query{ shop{ name contactEmail email } }`);
+    return { name: d?.shop?.name as string || "", email: (d?.shop?.contactEmail || d?.shop?.email || "") as string };
+  } catch { return { name: "", email: "" }; }
+}
+
 export async function sendMail(m: { to: string; subject: string; html: string; fromName: string; fromEmail: string; replyTo?: string }) {
   const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("Lipsește RESEND_API_KEY în Railway (contul Resend pentru trimiterea e-mailurilor).");
-  if (!m.fromEmail) throw new Error("Completează adresa expeditorului în E-mailuri → Setări.");
+  if (!key) throw new Error("Trimiterea e-mailurilor nu este încă activă (configurare Semafor).");
+  if (!m.fromEmail) throw new Error("Trimiterea e-mailurilor nu este încă activă (domeniul de trimitere Semafor).");
+  const name = (m.fromName || "").replace(/[<>"]/g, "").trim();
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: `${m.fromName} <${m.fromEmail}>`, to: [m.to], subject: m.subject, html: m.html, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
+    body: JSON.stringify({ from: name ? `${name} <${m.fromEmail}>` : m.fromEmail, to: [m.to], subject: m.subject, html: m.html, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
   });
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Resend ${r.status}: ${j?.message || JSON.stringify(j).slice(0, 200)}`);
@@ -213,15 +261,19 @@ export async function sendRecovery(i: SendInput) {
     discount_code: code,
     discount_pct: i.pct ? String(i.pct) : "",
     valid_until: endsAt ? endsAt.toLocaleString(dateFmt, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: locale === "ro" ? "Europe/Bucharest" : locale === "pl" ? "Europe/Warsaw" : "Europe/Berlin" }) : "",
-    shop_name: "MIA by MIHAILIUC",
+    shop_name: "",
   };
+  const ident = await shopIdentity(i.admin);
+  vars.shop_name = i.settings.fromName || ident.name;
   const out = render(tpl, vars, !!code);
   // greeting without a name: "Hallo ," → "Hallo,"
   out.html = out.html.replace(/(Hallo|Cześć|Bună),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună) ,/g, "$1,");
   if (i.preview) return { ...out, to: ctx.email, code, url };
 
   try {
-    const providerId = await sendMail({ to: ctx.email, subject: out.subject, html: out.html, fromName: i.settings.fromName, fromEmail: i.settings.fromEmail, replyTo: i.settings.replyTo || undefined });
+    const sentToday = await db.emailSend.count({ where: { shopId: i.shopId, status: "sent", createdAt: { gt: new Date(Date.now() - DAY) } } });
+    if (sentToday >= DAILY_LIMIT) throw new Error(`Limita zilnică de ${DAILY_LIMIT} e-mailuri a fost atinsă.`);
+    const providerId = await sendMail({ to: ctx.email, subject: out.subject, html: out.html, fromName: i.settings.fromName || ident.name, fromEmail: await senderOf(i.shopDomain, i.settings), replyTo: i.settings.replyTo || ident.email || undefined });
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "sent", providerId } });
   } catch (e: any) {
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "failed", error: String(e?.message || e).slice(0, 500) } });
@@ -262,7 +314,7 @@ export function localParts(d: Date, tz: string) {
 export async function runAutomation(shop: { id: string; domain: string; settings: unknown; plan?: string | null }) {
   if (!can(planOf(shop), "recovery")) return { sent: 0 };
   const s = settingsOf(shop.settings).recovery;
-  if (!s.enabled || !process.env.RESEND_API_KEY || !s.fromEmail) return { sent: 0 };
+  if (!s.enabled || !process.env.RESEND_API_KEY || !(MAIL_DOMAIN || s.fromEmail)) return { sent: 0 };
   const { admin } = await unauthenticated.admin(shop.domain);
   await enrichFromShopify(admin as any, shop.id).catch((e) => console.error("[semafor] enrich", e?.message || e));
   const since = new Date(Date.now() - 7 * DAY);

@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf } from "../semafor/recovery.server";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
 
@@ -29,7 +29,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return {
     recovery: shop.settings.recovery, templates,
     stats: { sent: sent.length, people: emails.length, recovered, skipped: sends.filter((s) => s.status === "skipped").length, failed: sends.filter((s) => s.status === "failed").length },
-    resend: !!process.env.RESEND_API_KEY,
+    resend: mailReady(),
+    sender: await senderOf(session.shop, shop.settings.recovery),
   };
 };
 
@@ -69,7 +70,7 @@ const SAMPLE = {
 };
 
 export default function Emails() {
-  const { recovery, templates, stats, resend } = useLoaderData<typeof loader>();
+  const { recovery, templates, stats, resend, sender } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
@@ -99,7 +100,9 @@ export default function Emails() {
             <Card>
               <BlockStack gap="300">
                 <InlineStack align="space-between"><Text as="h2" variant="headingMd">Automatizare</Text>{r.enabled ? <Badge tone="success">pornită</Badge> : <Badge>oprită</Badge>}</InlineStack>
-                {!resend && <Banner tone="warning">Pentru trimitere e nevoie de un cont Resend (resend.com): verifici domeniul expeditorului (ex. mihailiuc.de) și pui cheia API în Railway ca RESEND_API_KEY.</Banner>}
+                {resend
+                  ? <Banner tone="success">Trimiterea e inclusă în Semafor — nu trebuie să configurezi nimic. Expeditor: <b>{r.fromName || "numele magazinului"} &lt;{sender}&gt;</b>; răspunsurile clienților ajung la {r.replyTo || "e-mailul magazinului"}.</Banner>
+                  : <Banner tone="info">Trimiterea e-mailurilor se activează în curând. Poți pregăti deja setările și șabloanele.</Banner>}
                 <FormLayout>
                   <Checkbox label="Trimite automat e-mailuri clienților care au abandonat checkout-ul" checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
                   <TextField label="Primul e-mail după (minute)" type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText="Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate. Noaptea (22–8, ora clientului) nu se trimite — clientul primește direct e-mailul de dimineață." />
@@ -118,9 +121,8 @@ export default function Emails() {
                   </FormLayout.Group>
                   <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
                   <FormLayout.Group>
-                    <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" />
-                    <TextField label="E-mail expeditor" value={r.fromEmail} onChange={(v) => setR({ ...r, fromEmail: v })} autoComplete="off" placeholder="hallo@mihailiuc.de" helpText="Pe un domeniu verificat în Resend." />
-                    <TextField label="Răspunsurile merg la" value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder="info@mihailiuc.co" />
+                    <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder="numele magazinului" helpText="Gol = numele magazinului din Shopify." />
+                    <TextField label="Răspunsurile merg la" value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder="e-mailul magazinului" helpText="Gol = e-mailul de contact al magazinului." />
                   </FormLayout.Group>
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
