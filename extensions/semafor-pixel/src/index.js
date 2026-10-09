@@ -45,6 +45,8 @@ register(({ analytics, browser, init, settings }) => {
       title: (l && l.title) || (l && l.variant && l.variant.product && l.variant.product.title) || "",
       qty: (l && l.quantity) || 1,
       image: (l && l.variant && l.variant.image && l.variant.image.src) || null,
+      variant: (l && l.variant && l.variant.title) || null,
+      price: Number((l && l.finalLinePrice && l.finalLinePrice.amount) || (l && l.variant && l.variant.price && l.variant.price.amount * ((l && l.quantity) || 1)) || 0) || null,
     }));
     const body = {
       shop: SHOP, event: stage, deviceId: await deviceId(), fingerprint: await fingerprint(ctx),

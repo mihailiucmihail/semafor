@@ -7,14 +7,15 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars } from "../semafor/recovery.server";
+import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
 
 const DAY = 86_400_000;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session, redirect } = await authenticate.admin(request);
+  const { session, redirect, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "recovery", redirect);
   await ensureTemplates(shop.id);
@@ -31,6 +32,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     stats: { sent: sent.length, people: emails.length, recovered, skipped: sends.filter((s) => s.status === "skipped").length, failed: sends.filter((s) => s.status === "failed").length },
     resend: mailReady(),
     sender: await senderOf(session.shop, shop.settings.recovery),
+    shopName: (await shopIdentity(admin as any)).name,
+    sample: await sampleItems(admin as any),
   };
 };
 
@@ -46,7 +49,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { ok: true, msg: "Setări salvate" };
   }
   if (intent === "save") {
-    const data = { name: String(fd.get("name") || "Șablon"), locale: String(fd.get("locale") || "de"), purpose: String(fd.get("purpose") || "manual"), subject: String(fd.get("subject") || ""), html: String(fd.get("html") || "") };
+    const design = String(fd.get("design") || "custom");
+    let copy: any = null;
+    try { copy = JSON.parse(String(fd.get("copy") || "null")); } catch { copy = null; }
+    const data = { name: String(fd.get("name") || "Șablon"), locale: String(fd.get("locale") || "de"), purpose: String(fd.get("purpose") || "manual"), subject: String(fd.get("subject") || ""), html: isDesign(design) ? "" : String(fd.get("html") || ""), design: isDesign(design) ? design : "custom", copy: isDesign(design) ? copy : null };
     const id = String(fd.get("id") || "");
     if (id) await db.emailTemplate.updateMany({ where: { id, shopId: shop.id }, data });
     else await db.emailTemplate.create({ data: { ...data, shopId: shop.id } });
@@ -64,40 +70,74 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!tpl) return { ok: false, msg: "Nu există niciun șablon" };
     const s = shop.settings.recovery;
     const me = await shopIdentity(admin as any);
-    const out = render({ subject: tpl.subject, html: tpl.html }, { ...SAMPLE, shop_name: me.name || SAMPLE.shop_name }, true);
+    const brand = brandOf(s, me.name);
+    const items = await sampleItems(admin as any);
+    const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...productVars(tpl.design, items, brand), shop_name: s.fromName || me.name }, tpl.purpose === "auto2");
     try {
       await sendMail({ to, subject: "[TEST] " + out.subject, html: out.html, fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       return { ok: true, msg: `E-mail de test trimis la ${to}` };
     } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
   }
   if (intent === "reset") {
-    await db.emailTemplate.createMany({ data: defaultTemplates().map((t) => ({ ...t, name: t.name + " (nou)", shopId: shop.id })) });
+    const d = String(fd.get("design") || "elegant");
+    await db.emailTemplate.createMany({ data: defaultTemplates(isDesign(d) ? d : "elegant").map((t) => ({ ...t, shopId: shop.id })) });
     return { ok: true, msg: "Șabloanele standard au fost adăugate" };
   }
   return { ok: false, msg: "?" };
 };
 
 const PURPOSE: Record<string, string> = { manual: "manual", auto1: "automat · primul e-mail", auto2: "automat · al doilea (cu reducere)" };
-const SAMPLE = {
-  first_name: "Jasmin", total: "93,95 €", recovery_url: "#", discount_code: "MIA20-AB12C", discount_pct: "20", valid_until: "08.10., 23:59", shop_name: "MIA by MIHAILIUC",
-  items: `<table role="presentation" width="100%" style="border-top:1px solid #eee3d6"><tr><td style="padding:10px 0;border-bottom:1px solid #eee3d6;font-family:Arial;font-size:14px">MIA DUNKLE SCHOKOLADE</td></tr></table>`,
+const SAMPLE: Record<string, string> = {
+  first_name: "Ana", total: "", recovery_url: "#", discount_code: "SAVE10-AB12C", discount_pct: "10", valid_until: "12.10., 23:59", shop_name: "",
 };
+const DESIGN_NAME: Record<string, string> = { ...Object.fromEntries(DESIGNS.map((d) => [d.id, d.name])), custom: "HTML propriu" };
+
+/** Rendered e-mail (subject + html) for the editor preview and design thumbnails. */
+function previewOf(t: any, brand: any, items: Item[], shopName: string) {
+  const design = isDesign(t.design) ? t.design : "elegant";
+  const src = isDesign(t.design) ? { subject: t.subject, html: buildEmail(t.design, t.copy || {}, brand) } : { subject: t.subject, html: t.html };
+  const pb = productBlock(design, items, brand.accent);
+  return render(src, { ...SAMPLE, total: items[0]?.price || "", product_block: pb, items: pb, product_title: items[0]?.title || "", shop_name: shopName }, t.purpose === "auto2");
+}
+
+function copyFor(locale: string, purpose: string) {
+  const d = DEFAULT_COPY[locale] || DEFAULT_COPY.en;
+  const { subject, ...copy } = purpose === "auto2" ? d.auto2 : d.auto1;
+  return { subject, copy };
+}
 
 export default function Emails() {
-  const { recovery, templates, stats, resend, sender } = useLoaderData<typeof loader>();
+  const { recovery, templates, stats, resend, sender, shopName, sample } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
   const [edit, setEdit] = useState<any | null>(null);
   const [testTo, setTestTo] = useState("");
-  useEffect(() => { if (fetcher.state === "idle" && (fetcher.data as any)?.msg) { app.toast.show((fetcher.data as any).msg); const m = String((fetcher.data as any).msg); if (m !== "Setări salvate" && !m.includes("test") && (fetcher.data as any).ok) setEdit(null); } }, [fetcher.state, fetcher.data, app]);
+  const [testTpl, setTestTpl] = useState("");
+  const [newDesign, setNewDesign] = useState("elegant");
+  useEffect(() => {
+    const d = fetcher.data as any;
+    if (fetcher.state === "idle" && d?.msg) {
+      app.toast.show(d.msg, { isError: d.ok === false });
+      if (d.ok && /Șablon/.test(d.msg)) setEdit(null);
+    }
+  }, [fetcher.state, fetcher.data, app]);
   const num = (v: string, d: number) => (Number.isFinite(Number(v)) && v !== "" ? Number(v) : d);
-  const preview = edit ? render({ subject: edit.subject, html: edit.html }, SAMPLE, true) : null;
+  const brand = { name: r.brandName || shopName, tagline: r.brandTagline, logoUrl: r.logoUrl, accent: r.accent };
+  const items = sample as Item[];
+  const shownName = r.fromName || shopName;
+  const preview = edit ? previewOf(edit, brand, items, shownName) : null;
+  const setCopy = (k: string, v: string) => setEdit((x: any) => ({ ...x, copy: { ...(x.copy || {}), [k]: v } }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if (!f) return;
-    const rd = new FileReader(); rd.onload = () => setEdit((x: any) => ({ ...x, html: String(rd.result || "") })); rd.readAsText(f);
+    const rd = new FileReader(); rd.onload = () => setEdit((x: any) => ({ ...x, design: "custom", html: String(rd.result || "") })); rd.readAsText(f);
   }
+  function newTemplate() {
+    const { subject, copy } = copyFor("ro", "auto1");
+    setEdit({ id: "", name: "Șablon nou", locale: "ro", purpose: "auto1", subject, html: "", design: newDesign, copy });
+  }
+  const saveTemplate = () => fetcher.submit({ intent: "save", id: edit.id, name: edit.name, locale: edit.locale, purpose: edit.purpose, subject: edit.subject, html: edit.html || "", design: edit.design, copy: JSON.stringify(edit.copy || null) }, { method: "post" });
 
   return (
     <Page title="E-mailuri pentru coșuri abandonate">
@@ -116,7 +156,7 @@ export default function Emails() {
               <BlockStack gap="300">
                 <InlineStack align="space-between"><Text as="h2" variant="headingMd">Automatizare</Text>{r.enabled ? <Badge tone="success">pornită</Badge> : <Badge>oprită</Badge>}</InlineStack>
                 {resend
-                  ? <Banner tone="success">Trimiterea e inclusă în Semafor — nu trebuie să configurezi nimic. Expeditor: <b>{r.fromName || "numele magazinului"} &lt;{sender}&gt;</b>; răspunsurile clienților ajung la {r.replyTo || "e-mailul magazinului"}.</Banner>
+                  ? <Banner tone="success">Trimiterea e inclusă în Semafor — nu trebuie să configurezi nimic. Expeditor: <b>{shownName || "numele magazinului"} &lt;{sender}&gt;</b>; răspunsurile clienților ajung la {r.replyTo || "e-mailul magazinului"}.</Banner>
                   : <Banner tone="info">Trimiterea e-mailurilor se activează în curând. Poți pregăti deja setările și șabloanele.</Banner>}
                 <FormLayout>
                   <Checkbox label="Trimite automat e-mailuri clienților care au abandonat checkout-ul" checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
@@ -136,35 +176,82 @@ export default function Emails() {
                   </FormLayout.Group>
                   <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
                   <FormLayout.Group>
-                    <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder="numele magazinului" helpText="Gol = numele magazinului din Shopify." />
+                    <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder={shopName || "numele magazinului"} helpText="Gol = numele magazinului din Shopify." />
                     <TextField label="Răspunsurile merg la" value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder="e-mailul magazinului" helpText="Gol = e-mailul de contact al magazinului." />
                   </FormLayout.Group>
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 2 e-mailuri automate per client în 7 zile.</Text>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Aspectul e-mailurilor</Text>
+                <Text as="p" tone="subdued">Se aplică tuturor șabloanelor cu design. Poza, numele, varianta și prețul produsului din coș se pun automat în fiecare e-mail.</Text>
+                <FormLayout>
+                  <FormLayout.Group>
+                    <TextField label="Numele afișat sus (logo text)" value={r.brandName} onChange={(v) => setR({ ...r, brandName: v })} autoComplete="off" placeholder={shopName} helpText="Gol = numele magazinului." />
+                    <TextField label="Text mic sub nume (opțional)" value={r.brandTagline} onChange={(v) => setR({ ...r, brandTagline: v })} autoComplete="off" placeholder="ex.: piele naturală" />
+                  </FormLayout.Group>
+                  <FormLayout.Group>
+                    <TextField label="Logo (link la imagine, opțional)" value={r.logoUrl} onChange={(v) => setR({ ...r, logoUrl: v.trim() })} autoComplete="off" placeholder="https://cdn.shopify.com/…/logo.png" helpText="Shopify → Conținut → Fișiere → încarcă logo-ul → copiază linkul. Gol = numele de mai sus, scris frumos." />
+                    <TextField label="Culoarea butonului / accent" value={r.accent} onChange={(v) => setR({ ...r, accent: v.trim() })} autoComplete="off" placeholder="#2a1a12" prefix={<span style={{ display: "inline-block", width: 14, height: 14, borderRadius: 3, background: /^#[0-9a-f]{3,8}$/i.test(r.accent) ? r.accent : "#ddd", border: "1px solid #ccc" }} />} helpText="Gol = culoarea designului." />
+                  </FormLayout.Group>
+                </FormLayout>
+                <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează aspectul</Button></InlineStack>
                 {resend && (
-                  <InlineStack gap="200" blockAlign="end">
-                    <Box minWidth="280px"><TextField label="Trimite un e-mail de test la" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="adresa@exemplu.ro" /></Box>
-                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo }, { method: "post" })}>Trimite test</Button>
+                  <InlineStack gap="200" blockAlign="end" wrap>
+                    <Box minWidth="260px"><TextField label="Trimite un e-mail de test la" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="adresa@exemplu.ro" /></Box>
+                    <Box minWidth="240px"><Select label="Șablon" value={testTpl} onChange={setTestTpl} options={[{ label: "primul șablon", value: "" }, ...templates.map((t: any) => ({ label: t.name, value: t.id }))]} /></Box>
+                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>Trimite test</Button>
                   </InlineStack>
                 )}
-                <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 2 e-mailuri automate per client în 7 zile.</Text>
+                <Text as="p" variant="bodySm" tone="subdued">E-mailul de test folosește un produs real din magazin{items[0] ? ` (${items[0].title})` : ""}. Salvează aspectul înainte de test.</Text>
+              </BlockStack>
+            </Card>
+
+            <Card>
+              <BlockStack gap="300">
+                <Text as="h2" variant="headingMd">Designuri</Text>
+                <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
+                  {DESIGNS.map((d) => {
+                    const pv = previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName);
+                    return (
+                      <Box key={d.id} borderColor={newDesign === d.id ? "border-emphasis" : "border"} borderWidth={newDesign === d.id ? "050" : "025"} borderRadius="200" padding="200">
+                        <BlockStack gap="200">
+                          <div style={{ height: 300, overflow: "hidden", borderRadius: 6, position: "relative" }}>
+                            <iframe title={d.name} srcDoc={pv.html} style={{ width: 600, height: 1000, border: 0, transform: "scale(.5)", transformOrigin: "0 0", pointerEvents: "none" }} />
+                          </div>
+                          <Text as="p" fontWeight="semibold">{d.name}</Text>
+                          <Text as="p" variant="bodySm" tone="subdued">{d.desc}</Text>
+                          <InlineStack gap="200">
+                            <Button size="slim" pressed={newDesign === d.id} onClick={() => setNewDesign(d.id)}>{newDesign === d.id ? "Ales" : "Alege"}</Button>
+                          </InlineStack>
+                        </BlockStack>
+                      </Box>
+                    );
+                  })}
+                </InlineGrid>
+                <InlineStack gap="200">
+                  <Button variant="primary" onClick={() => fetcher.submit({ intent: "reset", design: newDesign }, { method: "post" })}>Creează șabloanele în designul „{DESIGN_NAME[newDesign]}”</Button>
+                </InlineStack>
+                <Text as="p" variant="bodySm" tone="subdued">Se creează câte 2 șabloane (reamintire + cu reducere) în RO, DE, PL și EN. Automatizarea folosește cel mai recent șablon salvat pentru fiecare limbă — poți șterge apoi șabloanele vechi.</Text>
               </BlockStack>
             </Card>
 
             <Card padding="0">
               <Box padding="400"><InlineStack align="space-between" blockAlign="center"><Text as="h2" variant="headingMd">Șabloane</Text>
-                <InlineStack gap="200">
-                  <Button onClick={() => fetcher.submit({ intent: "reset" }, { method: "post" })}>Adaugă șabloanele standard</Button>
-                  <Button variant="primary" onClick={() => setEdit({ id: "", name: "Șablon nou", locale: "de", purpose: "manual", subject: "", html: "" })}>Șablon nou</Button>
-                </InlineStack></InlineStack></Box>
-              <IndexTable resourceName={{ singular: "șablon", plural: "șabloane" }} itemCount={templates.length} selectable={false} headings={[{ title: "Nume" }, { title: "Limba" }, { title: "Folosit pentru" }, { title: "Subiect" }, { title: "" }]}>
+                <Button variant="primary" onClick={newTemplate}>Șablon nou</Button></InlineStack></Box>
+              <IndexTable resourceName={{ singular: "șablon", plural: "șabloane" }} itemCount={templates.length} selectable={false} headings={[{ title: "Nume" }, { title: "Design" }, { title: "Limba" }, { title: "Folosit pentru" }, { title: "Subiect" }, { title: "" }]}>
                 {templates.map((t: any, i: number) => (
                   <IndexTable.Row id={t.id} key={t.id} position={i}>
                     <IndexTable.Cell><Text as="span" fontWeight="semibold">{t.name}</Text></IndexTable.Cell>
+                    <IndexTable.Cell>{DESIGN_NAME[t.design] || "HTML propriu"}</IndexTable.Cell>
                     <IndexTable.Cell>{t.locale.toUpperCase()}</IndexTable.Cell>
                     <IndexTable.Cell>{PURPOSE[t.purpose] || t.purpose}</IndexTable.Cell>
                     <IndexTable.Cell><Text as="span" variant="bodySm">{t.subject}</Text></IndexTable.Cell>
-                    <IndexTable.Cell><InlineStack gap="200"><Button size="slim" onClick={() => setEdit({ ...t })}>Editează</Button><Button size="slim" tone="critical" variant="plain" onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })}>Șterge</Button></InlineStack></IndexTable.Cell>
+                    <IndexTable.Cell><InlineStack gap="200"><Button size="slim" onClick={() => setEdit({ ...t, copy: t.copy || null })}>Editează</Button><Button size="slim" tone="critical" variant="plain" onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })}>Șterge</Button></InlineStack></IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
               </IndexTable>
@@ -174,30 +261,52 @@ export default function Emails() {
               <Card>
                 <BlockStack gap="300">
                   <Text as="h2" variant="headingMd">{edit.id ? "Editează șablonul" : "Șablon nou"}</Text>
-                  <FormLayout>
-                    <FormLayout.Group>
-                      <TextField label="Nume" value={edit.name} onChange={(v) => setEdit({ ...edit, name: v })} autoComplete="off" />
-                      <Select label="Limba" value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: "Germană (DE/AT)", value: "de" }, { label: "Poloneză", value: "pl" }, { label: "Română", value: "ro" }, { label: "Engleză", value: "en" }]} />
-                      <Select label="Folosit pentru" value={edit.purpose} onChange={(v) => setEdit({ ...edit, purpose: v })} options={Object.entries(PURPOSE).map(([value, label]) => ({ value, label }))} />
-                    </FormLayout.Group>
-                    <TextField label="Subiect" value={edit.subject} onChange={(v) => setEdit({ ...edit, subject: v })} autoComplete="off" />
-                    <BlockStack gap="100">
-                      <Text as="p">Conținut HTML — scrie aici sau încarcă un fișier .html:</Text>
-                      <input type="file" accept=".html,.htm,text/html" onChange={onFile} />
-                    </BlockStack>
-                    <TextField label="HTML" labelHidden value={edit.html} onChange={(v) => setEdit({ ...edit, html: v })} multiline={12} autoComplete="off" monospaced />
-                    <Text as="p" variant="bodySm" tone="subdued">Câmpuri: {"{{first_name}} {{items}} {{total}} {{recovery_url}} {{discount_code}} {{discount_pct}} {{valid_until}} {{shop_name}}"} · bloc doar cu reducere: {"{{#discount}} … {{/discount}}"}</Text>
-                  </FormLayout>
-                  <InlineStack gap="200">
-                    <Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save"} onClick={() => fetcher.submit({ intent: "save", ...edit }, { method: "post" })}>Salvează șablonul</Button>
-                    <Button onClick={() => setEdit(null)}>Închide</Button>
-                  </InlineStack>
-                  {preview && (
-                    <BlockStack gap="100">
-                      <Text as="p" variant="bodySm" tone="subdued">Previzualizare (date de exemplu) · Subiect: <b>{preview.subject}</b></Text>
-                      <Box borderColor="border" borderWidth="025" borderRadius="200"><iframe title="preview" srcDoc={preview.html} style={{ width: "100%", height: 620, border: 0 }} /></Box>
-                    </BlockStack>
-                  )}
+                  <InlineGrid columns={{ xs: 1, lg: 2 }} gap="400">
+                    <FormLayout>
+                      <FormLayout.Group>
+                        <TextField label="Nume" value={edit.name} onChange={(v) => setEdit({ ...edit, name: v })} autoComplete="off" />
+                        <Select label="Design" value={edit.design || "custom"} onChange={(v) => setEdit({ ...edit, design: v, copy: edit.copy || copyFor(edit.locale, edit.purpose).copy })} options={[...DESIGNS.map((d) => ({ label: d.name, value: d.id })), { label: "HTML propriu (avansat)", value: "custom" }]} />
+                      </FormLayout.Group>
+                      <FormLayout.Group>
+                        <Select label="Limba" value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: "Română", value: "ro" }, { label: "Germană (DE/AT)", value: "de" }, { label: "Poloneză", value: "pl" }, { label: "Engleză", value: "en" }]} />
+                        <Select label="Folosit pentru" value={edit.purpose} onChange={(v) => setEdit({ ...edit, purpose: v })} options={Object.entries(PURPOSE).map(([value, label]) => ({ value, label }))} />
+                      </FormLayout.Group>
+                      {isDesign(edit.design) && (
+                        <InlineStack><Button size="slim" variant="plain" onClick={() => { const c = copyFor(edit.locale, edit.purpose); setEdit({ ...edit, subject: c.subject, copy: c.copy }); }}>Pune textele standard pentru această limbă</Button></InlineStack>
+                      )}
+                      <TextField label="Subiect" value={edit.subject} onChange={(v) => setEdit({ ...edit, subject: v })} autoComplete="off" />
+                      {isDesign(edit.design) ? (
+                        <>
+                          <TextField label="Salut" value={edit.copy?.greeting || ""} onChange={(v) => setCopy("greeting", v)} autoComplete="off" />
+                          <TextField label="Titlu" value={edit.copy?.heading || ""} onChange={(v) => setCopy("heading", v)} autoComplete="off" />
+                          <TextField label="Text" value={edit.copy?.text || ""} onChange={(v) => setCopy("text", v)} multiline={4} autoComplete="off" helpText="Sub text vine automat poza și numele produsului din coș." />
+                          {edit.purpose === "auto2" && <TextField label="Text la reducere" value={edit.copy?.discount || ""} onChange={(v) => setCopy("discount", v)} autoComplete="off" helpText="Apare doar când e-mailul are cod de reducere; codul se afișează dedesubt." />}
+                          <TextField label="Buton" value={edit.copy?.button || ""} onChange={(v) => setCopy("button", v)} autoComplete="off" />
+                          <TextField label="Notă mică (jos)" value={edit.copy?.note || ""} onChange={(v) => setCopy("note", v)} multiline={2} autoComplete="off" />
+                          <InlineStack><Button size="slim" variant="plain" onClick={() => setEdit({ ...edit, design: "custom", html: buildEmail(edit.design, edit.copy || {}, brand) })}>Transformă în HTML propriu (avansat)</Button></InlineStack>
+                        </>
+                      ) : (
+                        <>
+                          <BlockStack gap="100">
+                            <Text as="p">Conținut HTML — scrie aici sau încarcă un fișier .html:</Text>
+                            <input type="file" accept=".html,.htm,text/html" onChange={onFile} />
+                          </BlockStack>
+                          <TextField label="HTML" labelHidden value={edit.html} onChange={(v) => setEdit({ ...edit, html: v })} multiline={12} autoComplete="off" monospaced />
+                        </>
+                      )}
+                      <Text as="p" variant="bodySm" tone="subdued">Câmpuri: {"{{first_name}} {{product_title}} {{total}} {{discount_pct}} {{valid_until}} {{shop_name}}"}{!isDesign(edit.design) && <> · {"{{product_block}} {{items}} {{recovery_url}} {{discount_code}}"} · bloc doar cu reducere: {"{{#discount}} … {{/discount}}"}</>}</Text>
+                      <InlineStack gap="200">
+                        <Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "save"} onClick={saveTemplate}>Salvează șablonul</Button>
+                        <Button onClick={() => setEdit(null)}>Închide</Button>
+                      </InlineStack>
+                    </FormLayout>
+                    {preview && (
+                      <BlockStack gap="100">
+                        <Text as="p" variant="bodySm" tone="subdued">Previzualizare cu un produs din magazin · Subiect: <b>{preview.subject}</b></Text>
+                        <Box borderColor="border" borderWidth="025" borderRadius="200"><iframe title="preview" srcDoc={preview.html} style={{ width: "100%", height: 760, border: 0 }} /></Box>
+                      </BlockStack>
+                    )}
+                  </InlineGrid>
                 </BlockStack>
               </Card>
             )}

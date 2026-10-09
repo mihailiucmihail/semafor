@@ -208,7 +208,9 @@ model EmailTemplate {
   locale    String                                // de | pl | ro | en …
   purpose   String   @default("manual")           // manual | auto1 (first reminder) | auto2 (second, with discount)
   subject   String
-  html      String
+  html      String                                // used when design = "custom"
+  design    String   @default("custom")           // elegant | minimal | modern | custom (own HTML)
+  copy      Json?                                 // texts for a design: greeting, heading, text, button, note, discount
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

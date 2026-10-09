@@ -13,6 +13,7 @@ import { unauthenticated } from "../shopify.server";
 import { settingsOf, type RecoverySettings } from "../../core/settings";
 import { defaultTemplates } from "./recovery-templates";
 import { render, esc, STEP_LABEL, stoppedAt, STEP_ORDER } from "./render";
+import { buildEmail, productBlock, isDesign, type Brand, type Copy, type Item } from "./designs";
 export { render, STEP_LABEL, stoppedAt, STEP_ORDER };
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
@@ -37,7 +38,7 @@ export async function deviceContext(shopId: string, deviceId: string) {
     firstName: last("firstName") as string | null, lastName: last("lastName") as string | null, city: last("city") as string | null,
     host: last("host") as string | null, locale: (last("locale") as string | null) || null, country: last("country") as string | null,
     currency: (withItems?.currency ?? last("currency")) as string | null, total: (withItems?.total ?? last("total")) as number | null,
-    items: (withItems?.items ?? []) as { title: string; qty: number; image?: string | null }[],
+    items: (withItems?.items ?? []) as { title: string; qty: number; image?: string | null; variant?: string | null; price?: number | string | null }[],
     acceptsMarketing: last("acceptsMarketing") as boolean | null,
     checkoutToken: last("checkoutToken") as string | null,
     completed: events.includes("completed"),
@@ -168,7 +169,7 @@ function money(v: number | null, cur: string | null, locale: string) {
 
 function itemsHtml(items: DeviceCtx["items"]) {
   if (!items.length) return "";
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 4px;border-top:1px solid #eee3d6">${items.map((i) => `<tr><td width="72" style="padding:10px 0;border-bottom:1px solid #eee3d6">${i.image ? `<img src="${esc(i.image)}" width="60" height="60" alt="" style="display:block;object-fit:cover;border:0">` : ""}</td><td style="padding:10px 0 10px 12px;border-bottom:1px solid #eee3d6;font-family:Arial,sans-serif;font-size:14px;color:#2a1a12">${esc(i.title)}${i.qty > 1 ? ` × ${i.qty}` : ""}</td></tr>`).join("")}</table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 4px;border-top:1px solid #eee3d6">${items.map((i) => `<tr><td width="72" style="padding:10px 0;border-bottom:1px solid #eee3d6">${i.image ? `<img src="${esc(i.image)}" width="60" height="60" alt="" style="display:block;object-fit:cover;border:0">` : ""}</td><td style="padding:10px 0 10px 12px;border-bottom:1px solid #eee3d6;font-family:Arial,sans-serif;font-size:14px;color:#2a1a12">${esc(i.title)}${i.qty > 1 ? ` × ${i.qty}` : ""}${i.price ? ` · ${esc(String(i.price))}` : ""}</td></tr>`).join("")}</table>`;
 }
 
 /**
@@ -233,6 +234,38 @@ export async function sendMail(m: { to: string; subject: string; html: string; f
   return String(j?.id || "");
 }
 
+/** Brand used by the designed templates. */
+export function brandOf(s: Pick<RecoverySettings, "brandName" | "brandTagline" | "logoUrl" | "accent">, shopName: string): Brand {
+  return { name: s.brandName || shopName, tagline: s.brandTagline || "", logoUrl: s.logoUrl || "", accent: s.accent || "" };
+}
+
+/** Subject + HTML of a template (designed templates are built from design + texts + brand). */
+export function templateSource(tpl: { subject: string; html: string; design?: string | null; copy?: unknown }, brand: Brand) {
+  if (isDesign(tpl.design)) return { subject: tpl.subject, html: buildEmail(tpl.design, (tpl.copy ?? {}) as Copy, brand) };
+  return { subject: tpl.subject, html: tpl.html };
+}
+
+/** Variables describing the buyer's products. */
+export function productVars(design: string | null | undefined, items: Item[], brand: Brand) {
+  return {
+    items: itemsHtml(items as any),
+    product_block: productBlock(isDesign(design) ? design : "elegant", items, brand.accent),
+    product_title: items[0]?.title || "",
+  };
+}
+
+/** One real product of the shop, for test e-mails and previews. */
+export async function sampleItems(admin: Admin): Promise<Item[]> {
+  try {
+    const d = await gql(admin, `query{ products(first:10, sortKey:UPDATED_AT, reverse:true, query:"status:active") { nodes { title totalInventory featuredMedia { preview { image { url } } } variants(first:1){ nodes { title price } } } } shop { currencyCode } }`);
+    const nodes: any[] = d?.products?.nodes ?? [];
+    const p = nodes.find((n) => n.featuredMedia?.preview?.image?.url && n.totalInventory > 0) || nodes.find((n) => n.featuredMedia?.preview?.image?.url);
+    if (!p) return [];
+    const v = p.variants?.nodes?.[0];
+    return [{ title: p.title, qty: 1, image: p.featuredMedia.preview.image.url, variant: v?.title ?? null, price: v?.price ? money(Number(v.price), d?.shop?.currencyCode, "ro") : null }];
+  } catch { return []; }
+}
+
 export type SendInput = { shopId: string; shopDomain: string; admin: Admin; deviceId: string; templateId: string; pct: number; validHours: number; kind: "manual" | "auto1" | "auto2"; preview?: boolean; settings: RecoverySettings };
 
 /** Build (and unless preview, send) one recovery e-mail. Returns the rendered e-mail. */
@@ -255,7 +288,7 @@ export async function sendRecovery(i: SendInput) {
   const dateFmt = locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : "de-DE";
   const vars: Record<string, string> = {
     first_name: ctx.firstName || (locale === "de" ? "" : locale === "pl" ? "" : ""),
-    items: itemsHtml(ctx.items),
+    ...productVars(tpl.design, ctx.items.map((it) => ({ ...it, price: typeof it.price === "number" ? money(it.price, ctx.currency, locale) : it.price ?? null })), brandOf(i.settings, "")),
     total: money(ctx.total, ctx.currency, locale),
     recovery_url: url,
     discount_code: code,
@@ -265,7 +298,7 @@ export async function sendRecovery(i: SendInput) {
   };
   const ident = await shopIdentity(i.admin);
   vars.shop_name = i.settings.fromName || ident.name;
-  const out = render(tpl, vars, !!code);
+  const out = render(templateSource(tpl as any, brandOf(i.settings, ident.name)), vars, !!code);
   // greeting without a name: "Hallo ," → "Hallo,"
   out.html = out.html.replace(/(Hallo|Cześć|Bună),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună) ,/g, "$1,");
   if (i.preview) return { ...out, to: ctx.email, code, url };

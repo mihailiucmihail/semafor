@@ -27,11 +27,16 @@ export interface RecoverySettings {
   fromName: string;
   fromEmail: string;         // optional own address; used only if its domain is verified in Semafor's Resend account
   replyTo: string;
+  /** Look of the designed e-mails (empty = automatic: shop name as text logo, design's own colour). */
+  brandName: string;
+  brandTagline: string;
+  logoUrl: string;
+  accent: string;
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
   enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 10, validHours2: 24,
-  onlyConsent: true, fromName: '', fromEmail: '', replyTo: '',
+  onlyConsent: true, fromName: '', fromEmail: '', replyTo: '', brandName: '', brandTagline: '', logoUrl: '', accent: '',
 };
 
 export const DEFAULT_SETTINGS: ShopSettings = {

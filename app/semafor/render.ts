@@ -1,11 +1,16 @@
 // Shared (server + browser): fills {{placeholders}} in a recovery e-mail template.
 export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 
+/** Values inserted as HTML (built by Semafor itself, already escaped). */
+const RAW = new Set(["items", "product_block"]);
+
 export function render(tpl: { subject: string; html: string }, v: Record<string, string>, hasDiscount: boolean) {
   const fill = (s: string, html: boolean) => s
     .replace(/\{\{#discount\}\}([\s\S]*?)\{\{\/discount\}\}/g, (_, inner) => (hasDiscount ? inner : ""))
-    .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => (k === "items" ? (html ? v.items ?? "" : "") : html ? esc(v[k] ?? "") : (v[k] ?? "")))
-    .replace(/\{\{[^}]*\}\}/g, "");
+    .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => (RAW.has(k) ? (html ? v[k] ?? "" : "") : html ? esc(v[k] ?? "") : (v[k] ?? "")))
+    .replace(/\{\{[^}]*\}\}/g, "")
+    // greeting without a name: "Hallo ," → "Hallo,"
+    .replace(/(\p{L}) +,/gu, "$1,");
   return { subject: fill(tpl.subject, false).replace(/\s+/g, " ").trim(), html: fill(tpl.html, true) };
 }
 
