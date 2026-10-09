@@ -253,7 +253,7 @@ export default function Emails() {
                 <InlineStack gap="200">
                   <Button variant="primary" onClick={() => fetcher.submit({ intent: "reset", design: newDesign }, { method: "post" })}>Creează șabloanele în designul „{DESIGN_NAME[newDesign]}”</Button>
                 </InlineStack>
-                <Text as="p" variant="bodySm" tone="subdued">Se creează câte 2 șabloane (reamintire + cu reducere) în RO, DE, PL și EN. Automatizarea folosește cel mai recent șablon salvat pentru fiecare limbă — poți șterge apoi șabloanele vechi.</Text>
+                <Text as="p" variant="bodySm" tone="subdued">Se creează câte 3 șabloane (reamintire · stoc limitat + reducere · ultima șansă) în RO, DE, PL și EN. Automatizarea folosește cel mai recent șablon salvat pentru fiecare limbă — poți șterge apoi șabloanele vechi.</Text>
               </BlockStack>
             </Card>
 
