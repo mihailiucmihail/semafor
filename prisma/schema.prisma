@@ -241,3 +241,13 @@ model EmailSend {
   @@index([shopId, email])
   @@index([shopId, createdAt])
 }
+
+/** Buyers who clicked "unsubscribe" in a Semafor e-mail: Semafor never writes to them again (per shop). */
+model EmailOptOut {
+  id        String   @id @default(cuid())
+  shopId    String
+  email     String                                 // lower-case
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, email])
+}

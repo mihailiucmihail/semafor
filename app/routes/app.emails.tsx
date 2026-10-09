@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter } from "../semafor/recovery.server";
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
@@ -75,7 +75,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
     const out = render(templateSource(tpl as any, brand), { ...SAMPLE, discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: s.fromName || me.name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
     try {
-      await sendMail({ to, subject: "[TEST] " + out.subject, html: out.html, fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
+      const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
+      await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html, uurl, tpl.locale, s.fromName || me.name), fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       return { ok: true, msg: `E-mail de test trimis la ${to}` };
     } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
   }

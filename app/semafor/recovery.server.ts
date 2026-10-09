@@ -13,6 +13,8 @@ import { unauthenticated } from "../shopify.server";
 import { settingsOf, type RecoverySettings } from "../../core/settings";
 import { defaultTemplates } from "./recovery-templates";
 import { render, esc, STEP_LABEL, stoppedAt, STEP_ORDER } from "./render";
+import { createHmac } from "node:crypto";
+import { SECRET } from "./shop.server";
 import { buildEmail, productBlock, isDesign, type Brand, type Copy, type Item } from "./designs";
 export { render, STEP_LABEL, stoppedAt, STEP_ORDER };
 
@@ -122,6 +124,60 @@ export async function consentOf(admin: Admin, email: string): Promise<string | n
   } catch { return null; }
 }
 
+/** Signed unsubscribe link for one buyer of one shop. */
+export function unsubToken(shopId: string, email: string) {
+  const e = email.trim().toLowerCase();
+  const sig = createHmac("sha256", SECRET).update(`unsub:${shopId}:${e}`).digest("base64url").slice(0, 22);
+  return Buffer.from(JSON.stringify([shopId, e, sig])).toString("base64url");
+}
+export function readUnsubToken(t: string): { shopId: string; email: string } | null {
+  try {
+    const [shopId, email, sig] = JSON.parse(Buffer.from(t, "base64url").toString("utf8"));
+    const ok = createHmac("sha256", SECRET).update(`unsub:${shopId}:${email}`).digest("base64url").slice(0, 22);
+    return ok === sig ? { shopId, email } : null;
+  } catch { return null; }
+}
+export function unsubUrl(shopId: string, email: string) {
+  const base = (process.env.SHOPIFY_APP_URL || "").replace(/\/$/, "");
+  return `${base}/unsub?t=${unsubToken(shopId, email)}`;
+}
+export const UNSUB_LABEL: Record<string, { link: string; why: string }> = {
+  ro: { link: "Dezabonare", why: "Primești acest e-mail pentru că ai început o comandă la {{shop_name}}." },
+  de: { link: "Abmelden", why: "Du erhältst diese E-Mail, weil du eine Bestellung bei {{shop_name}} begonnen hast." },
+  pl: { link: "Wypisz się", why: "Otrzymujesz tę wiadomość, ponieważ rozpoczęłaś zamówienie w {{shop_name}}." },
+  en: { link: "Unsubscribe", why: "You're receiving this e-mail because you started an order at {{shop_name}}." },
+};
+
+export async function isOptedOut(shopId: string, email: string) {
+  return !!(await db.emailOptOut.findUnique({ where: { shopId_email: { shopId, email: email.trim().toLowerCase() } } }));
+}
+
+/** Unsubscribe: stop Semafor e-mails and set the buyer's e-mail marketing consent to UNSUBSCRIBED in Shopify. */
+export async function unsubscribe(admin: Admin | null, shopId: string, email: string) {
+  const e = email.trim().toLowerCase();
+  await db.emailOptOut.upsert({ where: { shopId_email: { shopId, email: e } }, create: { shopId, email: e }, update: {} });
+  if (!admin) return { shopify: false };
+  try {
+    const d = await gql(admin, `query($q:String!){ customers(first:1, query:$q){ nodes{ id } } }`, { q: `email:${JSON.stringify(e)}` });
+    const id = d?.customers?.nodes?.[0]?.id;
+    if (!id) return { shopify: false }; // no customer in Shopify → Shopify never e-mails her anyway
+    const r = await gql(admin, `mutation($input: CustomerEmailMarketingConsentUpdateInput!){ customerEmailMarketingConsentUpdate(input:$input){ customer{ id } userErrors{ field message } } }`,
+      { input: { customerId: id, emailMarketingConsent: { marketingState: "UNSUBSCRIBED", consentUpdatedAt: new Date().toISOString() } } });
+    const errs = r?.customerEmailMarketingConsentUpdate?.userErrors ?? [];
+    if (errs.length) console.error("[semafor] unsub shopify", errs);
+    return { shopify: !errs.length };
+  } catch (err: any) { console.error("[semafor] unsub", err?.message || err); return { shopify: false }; }
+}
+
+/** Footer with the unsubscribe link, added to every e-mail (also to own-HTML templates that lack it). */
+export function withUnsubFooter(html: string, url: string, locale: string, shopName: string) {
+  const L = UNSUB_LABEL[locale] || UNSUB_LABEL.en;
+  const esc2 = (x: string) => esc(x);
+  if (html.includes("{{unsubscribe_url}}") || html.includes(url)) return html;
+  const foot = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:14px 16px 28px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#9a9087">${esc2(L.why.replace("{{shop_name}}", shopName))}<br><a href="${esc2(url)}" style="color:#9a9087;text-decoration:underline">${esc2(L.link)}</a></td></tr></table>`;
+  return /<\/body>/i.test(html) ? html.replace(/<\/body>/i, foot + "</body>") : html + foot;
+}
+
 /** True when this e-mail already has an order placed after `since`. */
 export async function orderedSince(admin: Admin, email: string, since: Date): Promise<boolean> {
   try {
@@ -221,7 +277,7 @@ export async function shopIdentity(admin: Admin) {
   } catch { return { name: "", email: "" }; }
 }
 
-export async function sendMail(m: { to: string; subject: string; html: string; fromName: string; fromEmail: string; replyTo?: string }) {
+export async function sendMail(m: { to: string; subject: string; html: string; fromName: string; fromEmail: string; replyTo?: string; unsubscribeUrl?: string }) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error("Trimiterea e-mailurilor nu este încă activă (configurare Semafor).");
   if (!m.fromEmail) throw new Error("Trimiterea e-mailurilor nu este încă activă (domeniul de trimitere Semafor).");
@@ -229,7 +285,9 @@ export async function sendMail(m: { to: string; subject: string; html: string; f
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: name ? `${name} <${m.fromEmail}>` : m.fromEmail, to: [m.to], subject: m.subject, html: m.html, ...(m.replyTo ? { reply_to: m.replyTo } : {}) }),
+    body: JSON.stringify({ from: name ? `${name} <${m.fromEmail}>` : m.fromEmail, to: [m.to], subject: m.subject, html: m.html, ...(m.replyTo ? { reply_to: m.replyTo } : {}),
+      // one-click unsubscribe (Gmail / Yahoo bulk-sender rules, RFC 8058)
+      ...(m.unsubscribeUrl ? { headers: { "List-Unsubscribe": `<${m.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}) }),
   });
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(`Resend ${r.status}: ${j?.message || JSON.stringify(j).slice(0, 200)}`);
@@ -304,6 +362,7 @@ export async function sendRecovery(i: SendInput) {
   const ctx = await deviceContext(i.shopId, i.deviceId);
   if (!ctx) throw new Error("Client necunoscut");
   if (!ctx.email) throw new Error("Clientul nu a introdus un e-mail.");
+  if (!i.preview && await isOptedOut(i.shopId, ctx.email)) throw new Error("Clienta s-a dezabonat de la e-mailuri.");
   const tpl = await db.emailTemplate.findFirst({ where: { id: i.templateId, shopId: i.shopId } });
   if (!tpl) throw new Error("Șablonul nu există.");
   const locale = tpl.locale || localeOf(ctx);
@@ -342,7 +401,9 @@ export async function sendRecovery(i: SendInput) {
   try {
     const sentToday = await db.emailSend.count({ where: { shopId: i.shopId, status: "sent", createdAt: { gt: new Date(Date.now() - DAY) } } });
     if (sentToday >= DAILY_LIMIT) throw new Error(`Limita zilnică de ${DAILY_LIMIT} e-mailuri a fost atinsă.`);
-    const providerId = await sendMail({ to: ctx.email, subject: out.subject, html: out.html, fromName: i.settings.fromName || ident.name, fromEmail: await senderOf(i.shopDomain, i.settings), replyTo: i.settings.replyTo || ident.email || undefined });
+    const uurl = unsubUrl(i.shopId, ctx.email);
+    const html = withUnsubFooter(out.html, uurl, locale, vars.shop_name);
+    const providerId = await sendMail({ to: ctx.email, subject: out.subject, html, fromName: i.settings.fromName || ident.name, fromEmail: await senderOf(i.shopDomain, i.settings), replyTo: i.settings.replyTo || ident.email || undefined, unsubscribeUrl: uurl });
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "sent", providerId } });
   } catch (e: any) {
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "failed", error: String(e?.message || e).slice(0, 500) } });
@@ -418,6 +479,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     const em = d.email.toLowerCase();
     if (seen.has(em)) continue; // one buyer on several devices → one e-mail
     seen.add(em);
+    if (await isOptedOut(shop.id, em)) continue;
     const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since } }, orderBy: { createdAt: "asc" } })) as any[];
     if (prev.some((p) => p.status === "skipped" && p.error === "a comandat între timp")) continue;
     const has = (k: string) => prev.some((p) => p.kind === k && p.status === "sent");
