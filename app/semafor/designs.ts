@@ -13,7 +13,7 @@ export const isDesign = (d: unknown): d is DesignId => d === "elegant" || d === 
 
 export type Copy = { greeting: string; heading: string; text: string; button: string; note: string; discount?: string; /** shown when the cart already had a discount */ existing?: string };
 export type Brand = { name: string; tagline?: string; logoUrl?: string; accent?: string };
-export type Item = { title: string; qty: number; image?: string | null; variant?: string | null; variantId?: string | null; price?: string | null };
+export type Item = { title: string; qty: number; image?: string | null; variant?: string | null; variantId?: string | null; price?: string | null; /** full price before the discount, shown struck through */ oldPrice?: string | null };
 
 type Look = {
   page: string; card: string; border: string; ink: string; muted: string; accent: string; line: string;
@@ -69,13 +69,13 @@ export function productBlock(d: DesignId, items: Item[], accent?: string) {
   const hero = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 6px">
 ${img ? `<tr><td style="padding:0">${img}</td></tr>` : ""}
 <tr><td style="padding:14px 0 4px;${d === "minimal" ? "" : "text-align:center;"}font-family:${L.head};font-size:${d === "elegant" ? "20px" : "17px"};${d === "elegant" ? "letter-spacing:.04em;" : "font-weight:600;"}color:${L.ink}">${esc(first.title)}</td></tr>
-${meta(first) || first.price ? `<tr><td style="padding:0 0 4px;${d === "minimal" ? "" : "text-align:center;"}font-family:${SANS};font-size:13px;color:${L.muted}">${[meta(first), first.price ? `<span style="color:${L.ink};font-weight:600">${esc(first.price)}</span>` : ""].filter(Boolean).join(" &nbsp;·&nbsp; ")}</td></tr>` : ""}
+${meta(first) || first.price ? `<tr><td style="padding:0 0 4px;${d === "minimal" ? "" : "text-align:center;"}font-family:${SANS};font-size:13px;color:${L.muted}">${[meta(first), first.price ? `${first.oldPrice ? `<s style="color:${L.muted};font-weight:400">${esc(first.oldPrice)}</s>&nbsp; ` : ""}<span style="color:${L.ink};font-weight:600">${esc(first.price)}</span>` : ""].filter(Boolean).join(" &nbsp;·&nbsp; ")}</td></tr>` : ""}
 </table>`;
   const rows = rest.length
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:10px 0 4px;border-top:1px solid ${L.line}">${rest.map((i) => `<tr>
 <td width="68" style="padding:10px 0;border-bottom:1px solid ${L.line}">${i.image ? `<img src="${esc(sized(i.image, 160))}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;border:0">` : ""}</td>
 <td style="padding:10px 0 10px 10px;border-bottom:1px solid ${L.line};font-family:${SANS};font-size:14px;color:${L.ink}">${esc(i.title)}${meta(i) ? `<div style="font-size:12px;color:${L.muted}">${meta(i)}</div>` : ""}</td>
-<td align="right" style="padding:10px 0;border-bottom:1px solid ${L.line};font-family:${SANS};font-size:14px;color:${L.ink};white-space:nowrap">${i.price ? esc(i.price) : ""}</td></tr>`).join("")}</table>`
+<td align="right" style="padding:10px 0;border-bottom:1px solid ${L.line};font-family:${SANS};font-size:14px;color:${L.ink};white-space:nowrap">${i.oldPrice ? `<s style="color:${L.muted}">${esc(i.oldPrice)}</s><br>` : ""}${i.price ? esc(i.price) : ""}</td></tr>`).join("")}</table>`
     : "";
   return hero + rows;
 }

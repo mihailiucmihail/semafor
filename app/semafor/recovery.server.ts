@@ -15,7 +15,7 @@ import { defaultTemplates } from "./recovery-templates";
 import { render, esc, STEP_LABEL, stoppedAt, STEP_ORDER } from "./render";
 import { createHmac } from "node:crypto";
 import { SECRET } from "./shop.server";
-import { buildEmail, productBlock, isDesign, type Brand, type Copy, type Item } from "./designs";
+import { buildEmail, productBlock, isDesign, DEFAULT_COPY, type Brand, type Copy, type Item } from "./designs";
 export { render, STEP_LABEL, stoppedAt, STEP_ORDER };
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
@@ -362,7 +362,12 @@ export function brandOf(s: Pick<RecoverySettings, "brandName" | "brandTagline" |
 
 /** Subject + HTML of a template (designed templates are built from design + texts + brand). */
 export function templateSource(tpl: { subject: string; html: string; design?: string | null; copy?: unknown }, brand: Brand) {
-  if (isDesign(tpl.design)) return { subject: tpl.subject, html: buildEmail(tpl.design, (tpl.copy ?? {}) as Copy, brand) };
+  if (isDesign(tpl.design)) {
+    const copy = { ...((tpl.copy ?? {}) as Copy) };
+    // every e-mail reminds her of the discount already in her cart (shown only when there is one)
+    if (!copy.existing) copy.existing = ((DEFAULT_COPY as any)[(tpl as any).locale] ?? DEFAULT_COPY.en).auto2.existing;
+    return { subject: tpl.subject, html: buildEmail(tpl.design, copy, brand) };
+  }
   return { subject: tpl.subject, html: tpl.html };
 }
 
@@ -418,6 +423,13 @@ export async function sendRecovery(i: SendInput) {
   const tpl = await db.emailTemplate.findFirst({ where: { id: i.templateId, shopId: i.shopId } });
   if (!tpl) throw new Error("Șablonul nu există.");
   const locale = tpl.locale || localeOf(ctx);
+  // always know the discount already in her cart (manual sends too)
+  if (i.cartDiscount === undefined && !i.preview) {
+    const c = await cartDiscountOf(i.admin, ctx);
+    if (c.code || c.pct) i.cartDiscount = c;
+  } else if (i.cartDiscount === undefined && (ctx.cartDiscountCode || ctx.cartDiscountPct)) i.cartDiscount = { code: ctx.cartDiscountCode, pct: ctx.cartDiscountPct };
+  // a new code only when it is bigger than what she already has — otherwise we just remind her of hers
+  if (i.pct > 0 && (i.cartDiscount?.pct ?? 0) >= i.pct) i.pct = 0;
   let code = "", endsAt: Date | null = null;
   if (i.pct > 0) {
     if (i.preview) { code = `MIA${i.pct}-XXXXX`; endsAt = new Date(Date.now() + i.validHours * 3_600_000); }
@@ -435,7 +447,13 @@ export async function sendRecovery(i: SendInput) {
   const dateFmt = locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : "de-DE";
   const vars: Record<string, string> = {
     first_name: ctx.firstName || (locale === "de" ? "" : locale === "pl" ? "" : ""),
-    ...productVars(tpl.design, ctx.items.map((it) => ({ ...it, price: typeof it.price === "number" ? money(it.price, ctx.currency, locale) : it.price ?? null })), brandOf(i.settings, "")),
+    // prices as she will pay them: the full price struck through + the price after her discount (the new code, or the one in her cart)
+    ...productVars(tpl.design, ctx.items.map((it) => {
+      const p = typeof it.price === "number" ? it.price : null;
+      const off = code ? i.pct : i.cartDiscount?.pct ?? 0;
+      if (p != null && off > 0) return { ...it, oldPrice: money(p, ctx.currency, locale), price: money(Math.round(p * (100 - off)) / 100, ctx.currency, locale) };
+      return { ...it, price: p != null ? money(p, ctx.currency, locale) : (it.price as any) ?? null };
+    }), brandOf(i.settings, "")),
     total: money(ctx.total, ctx.currency, locale),
     recovery_url: url,
     discount_code: code,
@@ -586,11 +604,12 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     if (!ctx) continue;
     const tpl = await pickTemplate(shop.id, kind, localeOf(ctx));
     if (!tpl) continue;
-    const cart = kind === "auto1" ? { code: null, pct: null } : await cartDiscountOf(admin as any, ctx);
+    // the discount already in her cart (pop-up code …) is always taken into account — also in e-mail 1 (price + reminder)
+    const cart = await cartDiscountOf(admin as any, ctx);
     const hasCartDiscount = !!(cart.code || cart.pct);
     // 2nd: if the cart already has a discount we only remind about it; otherwise we give ours (pct2)
-    // 3rd: always the final, bigger discount (pct3), valid until the end of the buyer's day
-    const pct = kind === "auto2" ? (hasCartDiscount ? 0 : s.pct2) : kind === "auto3" ? s.pct3 : 0;
+    // 3rd: the final, bigger discount (pct3) — unless what she already has is as big
+    const pct = kind === "auto2" ? (hasCartDiscount ? 0 : s.pct2) : kind === "auto3" ? ((cart.pct ?? 0) >= s.pct3 ? 0 : s.pct3) : 0;
     try {
       await sendRecovery({
         shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct, validHours: s.validHours2, kind, settings: s,
