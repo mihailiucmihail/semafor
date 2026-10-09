@@ -46,6 +46,52 @@ export async function deviceContext(shopId: string, deviceId: string) {
 }
 export type DeviceCtx = NonNullable<Awaited<ReturnType<typeof deviceContext>>>;
 
+/**
+ * Fill in e-mail / phone / name for checkouts where the buyer typed them but never pressed a button
+ * (one-page checkout: the pixel only sees them on "continue"/"pay"). Shopify keeps them in the
+ * abandoned checkout, whose recovery URL carries the same checkout token as the pixel.
+ * Only empty fields are filled. Returns how many checkouts were completed with data.
+ */
+export async function enrichFromShopify(admin: Admin, shopId: string, sinceDays = 7): Promise<number> {
+  const since = new Date(Date.now() - sinceDays * DAY);
+  const missing = (await db.checkoutAttempt.findMany({ where: { shopId, createdAt: { gt: since }, email: null, checkoutToken: { not: null } }, select: { checkoutToken: true }, distinct: ["checkoutToken"] })) as any[];
+  if (!missing.length) return 0;
+  const want = new Set(missing.map((m) => m.checkoutToken as string));
+  const found = new Map<string, { email: string | null; phone: string | null; firstName: string | null; lastName: string | null; city: string | null }>();
+  let after: string | null = null;
+  for (let page = 0; page < 8 && want.size > found.size; page++) {
+    let d: any;
+    try {
+      d = await gql(admin, `query($after:String){ abandonedCheckouts(first:100, after:$after, reverse:true, sortKey:CREATED_AT){
+        pageInfo{ hasNextPage endCursor }
+        nodes{ createdAt abandonedCheckoutUrl customer{ email phone } shippingAddress{ phone firstName lastName city } billingAddress{ phone firstName lastName city } } } }`, { after });
+    } catch (e: any) { console.error("[semafor] enrich", e?.message || e); break; }
+    const conn = d?.abandonedCheckouts;
+    let older = false;
+    for (const n of conn?.nodes ?? []) {
+      if (new Date(n.createdAt) < since) { older = true; continue; }
+      const tok = String(n.abandonedCheckoutUrl || "").match(/\/checkouts\/(?:ac|cn|c)\/([^/?]+)/)?.[1];
+      if (!tok || !want.has(tok)) continue;
+      const a = n.shippingAddress || n.billingAddress || {};
+      found.set(tok, { email: n.customer?.email ?? null, phone: n.customer?.phone ?? a.phone ?? null, firstName: a.firstName ?? null, lastName: a.lastName ?? null, city: a.city ?? null });
+    }
+    if (older || !conn?.pageInfo?.hasNextPage) break;
+    after = conn.pageInfo.endCursor;
+  }
+  let n = 0;
+  for (const [tok, v] of found) {
+    if (!v.email && !v.phone) continue;
+    const rows = (await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken: tok }, select: { id: true, email: true, phone: true, firstName: true, lastName: true, city: true } })) as any[];
+    for (const r of rows) {
+      const data: any = {};
+      for (const k of ["email", "phone", "firstName", "lastName", "city"] as const) if (!r[k] && (v as any)[k]) data[k] = (v as any)[k];
+      if (Object.keys(data).length) await db.checkoutAttempt.update({ where: { id: r.id }, data });
+    }
+    n++;
+  }
+  return n;
+}
+
 /** Language for the e-mail: checkout language, else by country, else Romanian. */
 export function localeOf(ctx: Pick<DeviceCtx, "locale" | "country" | "host">) {
   const l = (ctx.locale || "").slice(0, 2);
@@ -195,6 +241,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
   const s = settingsOf(shop.settings).recovery;
   if (!s.enabled || !process.env.RESEND_API_KEY || !s.fromEmail) return { sent: 0 };
   const { admin } = await unauthenticated.admin(shop.domain);
+  await enrichFromShopify(admin as any, shop.id).catch((e) => console.error("[semafor] enrich", e?.message || e));
   const since = new Date(Date.now() - 7 * DAY);
   const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { deviceId: true, event: true, email: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
   const devs = new Map<string, { email: string | null; first: Date; last: Date; done: boolean }>();

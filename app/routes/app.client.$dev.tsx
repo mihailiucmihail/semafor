@@ -7,13 +7,14 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
-import { deviceContext, ensureTemplates, consentOf, localeOf, sendRecovery } from "../semafor/recovery.server";
+import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery } from "../semafor/recovery.server";
 import { STEP_LABEL, stoppedAt } from "../semafor/render";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, admin, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "recovery", redirect);
+  await enrichFromShopify(admin as any, shop.id, 14).catch(() => 0);
   await ensureTemplates(shop.id);
   const dev = String(params.dev || "");
   const ctx = await deviceContext(shop.id, dev);
