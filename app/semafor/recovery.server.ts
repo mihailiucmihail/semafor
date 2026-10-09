@@ -316,6 +316,20 @@ export async function cartDiscountOf(admin: Admin, ctx: Pick<DeviceCtx, "email" 
   return { code: ctx.cartDiscountCode ?? null, pct: ctx.cartDiscountPct ?? null };
 }
 
+/** Products of the buyer's abandoned checkout, read from Shopify (when the pixel did not capture them). */
+export async function shopifyCartItems(admin: Admin, email: string): Promise<{ items: Item[]; currency: string | null; total: number | null }> {
+  try {
+    const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ lineItems(first:10){ nodes{ title variantTitle quantity image{ url } discountedTotalPriceSet{ presentmentMoney{ amount currencyCode } } } } } } }`, { q: `email:${JSON.stringify(email)}` });
+    const nodes: any[] = d?.abandonedCheckouts?.nodes?.[0]?.lineItems?.nodes ?? [];
+    let cur: string | null = null, tot = 0;
+    const items: Item[] = nodes.filter((n) => n?.title).map((n) => {
+      const m = n.discountedTotalPriceSet?.presentmentMoney; if (m) { cur = m.currencyCode; tot += Number(m.amount) || 0; }
+      return { title: n.title, qty: n.quantity || 1, image: n.image?.url ?? null, variant: n.variantTitle ?? null, price: m ? Number(m.amount) : null } as any;
+    });
+    return { items, currency: cur, total: tot || null };
+  } catch { return { items: [], currency: null, total: null }; }
+}
+
 /** Brand used by the designed templates. */
 export function brandOf(s: Pick<RecoverySettings, "brandName" | "brandTagline" | "logoUrl" | "accent">, shopName: string): Brand {
   return { name: s.brandName || shopName, tagline: s.brandTagline || "", logoUrl: s.logoUrl || "", accent: s.accent || "" };
@@ -370,6 +384,12 @@ export async function sendRecovery(i: SendInput) {
   if (!ctx) throw new Error("Client necunoscut");
   if (!ctx.email) throw new Error("Clientul nu a introdus un e-mail.");
   if (!i.preview && await isOptedOut(i.shopId, ctx.email)) throw new Error("Clienta s-a dezabonat de la e-mailuri.");
+  if (!ctx.items.length) {
+    const sc = await shopifyCartItems(i.admin, ctx.email);
+    if (sc.items.length) { ctx.items = sc.items as any; ctx.currency = ctx.currency || sc.currency; ctx.total = ctx.total ?? sc.total; }
+  }
+  // never send a reminder that shows no product
+  if (!ctx.items.length && i.kind !== "manual") throw new Error("NO_ITEMS");
   const tpl = await db.emailTemplate.findFirst({ where: { id: i.templateId, shopId: i.shopId } });
   if (!tpl) throw new Error("Șablonul nu există.");
   const locale = tpl.locale || localeOf(ctx);
@@ -490,7 +510,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     seen.add(em);
     if (await isOptedOut(shop.id, em)) continue;
     const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since } }, orderBy: { createdAt: "asc" } })) as any[];
-    if (prev.some((p) => p.status === "skipped" && p.error === "a comandat între timp")) continue;
+    if (prev.some((p) => p.status === "skipped" && (p.error === "a comandat între timp" || p.error === "fără produse în coș"))) continue;
     const has = (k: string) => prev.some((p) => p.kind === k && p.status === "sent");
     const failed = (k: string) => prev.filter((p) => p.kind === k && p.status === "failed").length;
     const lastSent = prev.filter((p) => p.status === "sent").pop();
@@ -551,7 +571,10 @@ export async function runAutomation(shop: { id: string; domain: string; settings
         validUntil: kind === "auto3" ? endOfLocalDay(now, tz) : undefined,
       });
       sent++;
-    } catch (e: any) { console.error("[semafor] recovery send failed", e?.message || e); }
+    } catch (e: any) {
+      if (e?.message === "NO_ITEMS") await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "fără produse în coș" } });
+      else console.error("[semafor] recovery send failed", e?.message || e);
+    }
   }
   return { sent };
 }
@@ -575,7 +598,7 @@ export async function blastFirst(shop: { id: string; domain: string; settings: u
     if (r.event === "completed") { d.done = true; if (r.email) completed.add(r.email.toLowerCase()); }
     devs.set(r.deviceId, d);
   }
-  const res = { candidates: 0, sent: 0, ordered: 0, noConsent: 0, optedOut: 0, already: 0, failed: 0, byLang: {} as Record<string, number> };
+  const res = { candidates: 0, sent: 0, ordered: 0, noConsent: 0, optedOut: 0, already: 0, failed: 0, noItems: 0, byLang: {} as Record<string, number> };
   const seen = new Set<string>();
   for (const [deviceId, d] of devs) {
     if (!d.email || d.done) continue;
@@ -600,7 +623,7 @@ export async function blastFirst(shop: { id: string; domain: string; settings: u
     try {
       await sendRecovery({ shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct: 0, validHours: 24, kind: "auto1", settings: s });
       res.sent++;
-    } catch (e: any) { res.failed++; console.error("[semafor] blast", e?.message || e); }
+    } catch (e: any) { if (e?.message === "NO_ITEMS") res.noItems = (res.noItems || 0) + 1; else { res.failed++; console.error("[semafor] blast", e?.message || e); } }
     await new Promise((r) => setTimeout(r, 700)); // stay well under the provider's rate limit
   }
   return res;
