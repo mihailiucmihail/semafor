@@ -2,7 +2,7 @@
 client_id = "a1d407ad72929fc485d5f9a4ef9a42b1"
 name = "Semafor"
 handle = "semafor"
-application_url = "https://semafor-production.up.railway.app"
+application_url = "https://semafor-copy-production.up.railway.app"
 embedded = true
 
 [build]
@@ -31,7 +31,7 @@ api_version = "2026-07"
 scopes = "read_orders,write_orders,read_customers,write_customers,write_pixels,read_customer_events,read_payment_customizations,write_payment_customizations,write_discounts,read_discounts"
 
 [auth]
-redirect_urls = [ "https://semafor-production.up.railway.app/auth/callback", "https://semafor-production.up.railway.app/auth/shopify/callback", "https://semafor-production.up.railway.app/api/auth/callback" ]
+redirect_urls = [ "https://semafor-copy-production.up.railway.app/auth/callback", "https://semafor-copy-production.up.railway.app/auth/shopify/callback", "https://semafor-copy-production.up.railway.app/api/auth/callback" ]
 
 [pos]
 embedded = false

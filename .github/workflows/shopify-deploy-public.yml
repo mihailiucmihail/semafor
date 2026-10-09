@@ -1,0 +1,65 @@
+# Releases the PUBLIC (App Store) Semafor app — config shopify.app.public.toml, Partner org MIHAILIUC GROUP SRL.
+# Needs the repo secret SHOPIFY_PUBLIC_AUTOMATION_TOKEN. Original notes:
+# Releases the Shopify part of Semafor (app config, webhooks, scopes, extensions, functions)
+# with Shopify CLI. Needs the repo secret SHOPIFY_APP_AUTOMATION_TOKEN.
+# On failure the log tail is posted as a GitHub issue (so it can be read without the Actions UI).
+name: Shopify deploy (public app)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "extensions/**"
+      - "core/normalize.ts"
+      - "shopify.app.public.toml"
+      - ".github/workflows/shopify-deploy.yml"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install extension dependencies
+        run: |
+          for d in extensions/*/; do
+            if [ -f "$d/package.json" ]; then (cd "$d" && npm install --no-audit --no-fund); fi
+          done
+      - name: Install Shopify CLI
+        run: npm install -g @shopify/cli@latest
+      - name: Function schemas
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_PUBLIC_AUTOMATION_TOKEN }}
+        run: |
+          set -o pipefail
+          for d in extensions/*/; do
+            if grep -q 'type = "function"' "$d/shopify.extension.toml"; then
+              shopify app function schema --path "$d" --config public 2>&1 | tee -a deploy.log
+            fi
+          done
+      - name: Deploy
+        env:
+          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_PUBLIC_AUTOMATION_TOKEN }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: |
+          set -o pipefail
+          shopify app deploy --config public --allow-updates --source-control-url "$COMMIT_URL" 2>&1 | tee -a deploy.log
+      - name: Report failure as issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          touch deploy.log
+          body=$(tail -c 60000 deploy.log | sed 's/\x1b\[[0-9;]*m//g')
+          jq -n --arg t "Shopify PUBLIC deploy failed (${GITHUB_SHA::7})" --arg b "\`\`\`
+          $body
+          \`\`\`" '{title:$t, body:$b, labels:["deploy-log"]}' > issue.json
+          curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues" -d @issue.json > /dev/null
