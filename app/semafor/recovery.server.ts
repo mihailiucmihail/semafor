@@ -11,7 +11,7 @@ import { planOf } from "./plan.server";
 import db from "../db.server";
 import { unauthenticated } from "../shopify.server";
 import { settingsOf, type RecoverySettings } from "../../core/settings";
-import { defaultTemplates } from "./recovery-templates";
+import { defaultTemplates, TEMPLATE_NAMES, OLD_NAMES } from "./recovery-templates";
 import { render, esc, STEP_LABEL, stoppedAt, STEP_ORDER } from "./render";
 import { createHmac } from "node:crypto";
 import { SECRET } from "./shop.server";
@@ -23,7 +23,17 @@ const DAY = 86_400_000;
 
 export async function ensureTemplates(shopId: string) {
   const n = await db.emailTemplate.count({ where: { shopId } });
-  if (n) return;
+  if (n) {
+    // untouched default names from older versions were Romanian for every language → rename to the template's language
+    for (const [locale, names] of Object.entries(TEMPLATE_NAMES)) {
+      if (locale === "ro") continue;
+      for (const k of ["auto1", "auto2", "auto3"] as const) {
+        const old = `${locale.toUpperCase()} · ${OLD_NAMES[k]}`;
+        await db.emailTemplate.updateMany({ where: { shopId, name: old }, data: { name: `${locale.toUpperCase()} · ${names[k]}` } });
+      }
+    }
+    return;
+  }
   await db.emailTemplate.createMany({ data: defaultTemplates().map((t) => ({ ...t, shopId })) });
 }
 
