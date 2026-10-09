@@ -13,7 +13,7 @@ const DAY = 86_400_000;
  *  - if any identity tried from that device is on the blacklist → red (weight 100)
  *  - if the device cycled through several identities within 48 h → yellow (weight 40)
  */
-export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO") {
+export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO", ro = true) {
   if (!checkoutToken) return { findings: [] as DeviceFinding[], identities: [] as string[] };
   const seed = await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken }, select: { deviceId: true, fingerprint: true, ip: true } }) as any[];
   if (!seed.length) return { findings: [], identities: [] };
@@ -46,7 +46,7 @@ export async function deviceLinks(db: PrismaClient, secret: string, shopId: stri
       const row = await db.identifier.findFirst({ where: { shopId, kind: i.kind as any, hash: hmacId(secret, i.kind, i.normalized) }, include: { entry: { select: { id: true, reason: true, expiresAt: true } } } }) as any;
       if (!row || (row.entry.expiresAt && row.entry.expiresAt < new Date())) continue;
       const strong = i.kind !== "address";
-      findings.push({ kind: "device", normalized: `dispozitivul a încercat ${i.raw}`, entryId: row.entry.id, reason: row.entry.reason, weight: strong ? 100 : 60 });
+      findings.push({ kind: "device", normalized: ro ? `dispozitivul a încercat ${i.raw}` : `this device tried ${i.raw}`, entryId: row.entry.id, reason: row.entry.reason, weight: strong ? 100 : 60 });
     }
   }
 
@@ -56,7 +56,7 @@ export async function deviceLinks(db: PrismaClient, secret: string, shopId: stri
   const rP = new Set(recent.map((a) => a.phone && normPhone(a.phone, country)).filter(Boolean));
   const rN = new Set(recent.map((a) => normName(a.firstName, a.lastName)).filter(Boolean));
   if (rE.size >= 3 || rP.size >= 3 || rN.size >= 3 || rE.size + rP.size + rN.size >= 6) {
-    findings.push({ kind: "device", normalized: `${rE.size} e-mailuri, ${rP.size} telefoane, ${rN.size} nume în 48 h de pe același dispozitiv`, entryId: "", reason: "schimbă datele", weight: 40 });
+    findings.push({ kind: "device", normalized: ro ? `${rE.size} e-mailuri, ${rP.size} telefoane, ${rN.size} nume în 48 h de pe același dispozitiv` : `${rE.size} e-mails, ${rP.size} phones, ${rN.size} names in 48 h from the same device`, entryId: "", reason: ro ? "schimbă datele" : "changes identity", weight: 40 });
   }
   return { findings, identities };
 }

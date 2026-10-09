@@ -11,6 +11,7 @@ import { can, effectiveSettings } from '../../core/plans';
 import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
 import { findRelated } from './open-cod.server';
+import { shopLang } from '../i18n.server';
 
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
@@ -29,6 +30,7 @@ export async function checkOrder(opts: {
   const settings = effectiveSettings(opts.settings, plan);
   const ids = extractIdentifiers(order, opts.country);
   const isIphone = /iPhone/i.test(order.client_details?.user_agent ?? '');
+  const ro = shopLang({ id: shopId, domain: opts.shopDomain, settings: opts.settings }) === 'ro';
 
   // Own list: one query for all hashes.
   const hashes = ids.map((i) => ({ kind: i.kind, hash: hmacId(secret, i.kind, i.normalized), normalized: i.normalized }));
@@ -63,7 +65,7 @@ export async function checkOrder(opts: {
   });
   // Device chain: identities tried from the same device in checkout (Semafor pixel)
   if (can(plan, 'device_links')) try {
-    const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country);
+    const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country, ro);
     if (dl.findings.length) {
       result.matches.push(...(dl.findings as any));
       result.score += Math.max(...dl.findings.map((f) => f.weight));
@@ -78,8 +80,8 @@ export async function checkOrder(opts: {
   try {
     const r = await findRelated(admin as any, order);
     related = r.ids;
-    if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet`, entryId: '', reason: 'mai multe comenzi', weight: 40 });
-    for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
+    if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet` : `customer has ${r.unshipped.length === 1 ? 'another unshipped order' : r.unshipped.length + ' more unshipped orders'}: ${r.unshipped.join(', ')} — can be combined into one parcel`, entryId: '', reason: ro ? 'mai multe comenzi' : 'multiple orders', weight: 40 });
+    for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice` : `already has cash-on-delivery order ${n} in transit — wait until it is picked up`, entryId: '', reason: ro ? 'comandă în drum' : 'order in transit', weight: 40 });
     if ((r.unshipped.length || r.codInTransit.length) && result.level === 'green') result.level = 'yellow';
   } catch (e) { console.error('[semafor] findRelated', e); }
   const combined = combinedLevel(result);
@@ -105,8 +107,8 @@ export async function checkOrder(opts: {
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
   }
   if (combined !== 'green') {
-    const facts = result.matches.map((m) => ({ description: (m.kind as string) === 'device' || (m.kind as string) === 'order' ? `Semafor: ${m.normalized}` : `Semafor: ${labelKind(m.kind)} în lista neagră (${m.reason})`, sentiment: 'NEGATIVE' }));
-    if (result.networkShops) facts.push({ description: `Semafor: raportat de ${result.networkShops} magazin(e) din rețea`, sentiment: 'NEGATIVE' });
+    const facts = result.matches.map((m) => ({ description: (m.kind as string) === 'device' || (m.kind as string) === 'order' ? `Semafor: ${m.normalized}` : (ro ? `Semafor: ${labelKind(m.kind, true)} în lista neagră (${m.reason})` : `Semafor: ${labelKind(m.kind, false)} is on the blacklist (${REASON_EN[m.reason as string] ?? m.reason})`), sentiment: 'NEGATIVE' }));
+    if (result.networkShops) facts.push({ description: (ro ? `Semafor: raportat de ${result.networkShops} magazin(e) din rețea` : `Semafor: reported by ${result.networkShops} store(s) in the network`), sentiment: 'NEGATIVE' });
     await gql(admin,
       `#graphql
       mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
@@ -129,6 +131,10 @@ export async function checkOrder(opts: {
   return { ...result, combined, action, related };
 }
 
-function labelKind(k: IdKind): string {
-  return { email: 'e-mail', phone: 'telefon', name: 'nume', address: 'adresă', name_address: 'nume + adresă', device: 'dispozitiv' }[k];
+const REASON_EN: Record<string, string> = { refuz_colet: 'refused COD parcel', chargeback: 'chargeback', return_fraud: 'return fraud', abuse: 'abuse', other: 'other' };
+
+function labelKind(k: IdKind, ro: boolean): string {
+  return ro
+    ? { email: 'e-mail', phone: 'telefon', name: 'nume', address: 'adresă', name_address: 'nume + adresă', device: 'dispozitiv' }[k]
+    : { email: 'e-mail', phone: 'phone', name: 'name', address: 'address', name_address: 'name + address', device: 'device' }[k];
 }
