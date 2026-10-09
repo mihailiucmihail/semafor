@@ -64,11 +64,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const orderIds = all.map((d) => d.orderId).filter(Boolean) as string[];
   const names = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderId: true, orderName: true } })) as any[]) : [];
   const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
-  const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
-    id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
-    events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
-    matched: d.matched, mail: mailInfo(d),
-  }));
   // recovery e-mails per buyer: how many were sent and whether she came back / ordered after the first one
   const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent", createdAt: { gt: new Date(+since - 7 * DAY) } }, select: { deviceId: true, email: true, kind: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
   const byDev = new Map<string, any[]>(), byMail = new Map<string, any[]>();
@@ -89,6 +84,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const orderedAfter = d.completed && +(lastAt.get(d.id) ?? 0) > +first;
     return { count: all.length, kinds: all.map((x) => x.kind), last: all[all.length - 1].createdAt, back, orderedAfter };
   };
+  const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
+    id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
+    events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
+    matched: d.matched, mail: mailInfo(d),
+  }));
   const storeHandle = session.shop.replace(".myshopify.com", "");
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
