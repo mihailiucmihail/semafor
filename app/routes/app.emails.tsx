@@ -150,12 +150,15 @@ export default function Emails() {
     return () => clearTimeout(t);
   }, [r.brandName, r.brandTagline, r.logoUrl, r.accent, r.fromName]);
   const brand = useMemo(() => ({ name: look.brandName || shopName, tagline: look.brandTagline, logoUrl: look.logoUrl, accent: look.accent }), [look, shopName]);
-  const items = sample as Item[];
+  // stable across revalidations (otherwise every save re-renders all previews)
+  const sampleKey = JSON.stringify(sample);
+  const items = useMemo(() => JSON.parse(sampleKey) as Item[], [sampleKey]);
+  const [showDesigns, setShowDesigns] = useState(false);
   const shownName = look.fromName || shopName;
   const [editLive, setEditLive] = useState<any>(null);
   useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
   const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName, { p2: r.pct2, p3: r.pct3 }) : null), [editLive, brand, items, shownName, r.pct2, r.pct3]);
-  const thumbs = useMemo(() => DESIGNS.map((d) => previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName).html), [brand, items, shownName]);
+  const thumbs = useMemo(() => !showDesigns ? [] : DESIGNS.map((d) => previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName).html), [brand, items, shownName, showDesigns]);
   const setCopy = (k: string, v: string) => setEdit((x: any) => ({ ...x, copy: { ...(x.copy || {}), [k]: v } }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -265,7 +268,8 @@ export default function Emails() {
             <Card>
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">Designuri</Text>
-                <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
+                {!showDesigns && <InlineStack><Button onClick={() => setShowDesigns(true)}>Arată designurile</Button></InlineStack>}
+                {showDesigns && <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
                   {DESIGNS.map((d, di) => {
                     return (
                       <Box key={d.id} borderColor={newDesign === d.id ? "border-emphasis" : "border"} borderWidth={newDesign === d.id ? "050" : "025"} borderRadius="200" padding="200">
@@ -282,7 +286,7 @@ export default function Emails() {
                       </Box>
                     );
                   })}
-                </InlineGrid>
+                </InlineGrid>}
                 <InlineStack gap="200">
                   <Button variant="primary" onClick={() => fetcher.submit({ intent: "reset", design: newDesign }, { method: "post" })}>Creează șabloanele în designul „{DESIGN_NAME[newDesign]}”</Button>
                 </InlineStack>
