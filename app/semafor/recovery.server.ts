@@ -235,7 +235,30 @@ async function pickTemplate(shopId: string, purpose: "auto1" | "auto2", locale: 
     ?? (await db.emailTemplate.findFirst({ where: { shopId, purpose, locale: "de" }, orderBy: { updatedAt: "desc" } }));
 }
 
-/** One pass of the automatic reminders for one shop. */
+/** Buyer's time zone from the checkout country / language / store domain. */
+export function tzOf(x: { country?: string | null; locale?: string | null; host?: string | null }) {
+  const c = (x.country || "").toUpperCase();
+  const map: Record<string, string> = { RO: "Europe/Bucharest", MD: "Europe/Chisinau", DE: "Europe/Berlin", AT: "Europe/Vienna", CH: "Europe/Zurich", PL: "Europe/Warsaw", BG: "Europe/Sofia", ES: "Europe/Madrid", IT: "Europe/Rome", FR: "Europe/Paris", SE: "Europe/Stockholm", DK: "Europe/Copenhagen" };
+  if (map[c]) return map[c];
+  const l = (x.locale || "").slice(0, 2);
+  if (l === "de" || (x.host || "").endsWith(".de")) return "Europe/Berlin";
+  if (l === "pl" || (x.host || "").endsWith(".pl")) return "Europe/Warsaw";
+  return "Europe/Bucharest";
+}
+/** Local calendar day (YYYY-MM-DD) and hour of a moment in a time zone. */
+export function localParts(d: Date, tz: string) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" }).formatToParts(d).map((x) => [x.type, x.value]));
+  return { day: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
+}
+
+/**
+ * One pass of the automatic reminders for one shop.
+ *  1st e-mail: delay1Min after the last checkout step, only the same day (within 12 h) and not at night (22–8 local).
+ *  2nd e-mail ("morning", default): the next morning between morningHour and morningHour+4, buyer's local time,
+ *     to everyone who left a checkout on an earlier day (up to 3 days back) and has not ordered — also to those
+ *     who got no 1st e-mail (night, or e-mail found later). With a discount when pct2 > 0.
+ *  2nd e-mail ("delay"): delay2Hours after the 1st.
+ */
 export async function runAutomation(shop: { id: string; domain: string; settings: unknown; plan?: string | null }) {
   if (!can(planOf(shop), "recovery")) return { sent: 0 };
   const s = settingsOf(shop.settings).recovery;
@@ -243,27 +266,51 @@ export async function runAutomation(shop: { id: string; domain: string; settings
   const { admin } = await unauthenticated.admin(shop.domain);
   await enrichFromShopify(admin as any, shop.id).catch((e) => console.error("[semafor] enrich", e?.message || e));
   const since = new Date(Date.now() - 7 * DAY);
-  const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { deviceId: true, event: true, email: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
-  const devs = new Map<string, { email: string | null; first: Date; last: Date; done: boolean }>();
+  const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { deviceId: true, event: true, email: true, createdAt: true, country: true, locale: true, host: true }, orderBy: { createdAt: "asc" } })) as any[];
+  type D = { email: string | null; first: Date; last: Date; done: boolean; country: string | null; locale: string | null; host: string | null };
+  const devs = new Map<string, D>();
   const completedEmails = new Set<string>();
   for (const r of rows) {
-    const d = devs.get(r.deviceId) ?? { email: null, first: r.createdAt, last: r.createdAt, done: false };
-    d.last = r.createdAt; if (r.email) d.email = r.email; if (r.event === "completed") { d.done = true; if (r.email) completedEmails.add(r.email.toLowerCase()); }
+    const d: D = devs.get(r.deviceId) ?? { email: null, first: r.createdAt, last: r.createdAt, done: false, country: null, locale: null, host: null };
+    d.last = r.createdAt; if (r.email) d.email = r.email; if (r.country) d.country = r.country; if (r.locale) d.locale = r.locale; if (r.host) d.host = r.host;
+    if (r.event === "completed") { d.done = true; if (r.email) completedEmails.add(r.email.toLowerCase()); }
     devs.set(r.deviceId, d);
   }
+  const now = new Date();
+  const morningMode = s.secondMode !== "delay";
+  const mh = Math.min(20, Math.max(6, Number(s.morningHour) || 10));
   let sent = 0;
+  const seen = new Set<string>();
   for (const [deviceId, d] of devs) {
-    if (sent >= 20) break; // gentle: max 20 e-mails per pass
+    if (sent >= 20) break; // gentle: max 20 e-mails per pass (the scheduler runs every 5 minutes)
     if (d.done || !d.email || completedEmails.has(d.email.toLowerCase())) continue;
+    const em = d.email.toLowerCase();
+    if (seen.has(em)) continue; // one buyer on several devices → one e-mail
+    seen.add(em);
     const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since } }, orderBy: { createdAt: "asc" } })) as any[];
     if (prev.some((p) => p.status === "skipped" && p.error === "a comandat între timp")) continue;
     const has = (k: string) => prev.some((p) => p.kind === k && p.status === "sent");
     const failed = (k: string) => prev.filter((p) => p.kind === k && p.status === "failed").length;
+    const lastSent = prev.filter((p) => p.status === "sent").pop();
+    const tz = tzOf(d);
+    const loc = localParts(now, tz);
+    const age = +now - +d.last;
     let kind: "auto1" | "auto2" | null = null;
-    if (!has("auto1") && !has("manual")) { if (Date.now() - +d.last >= s.delay1Min * 60_000 && Date.now() - +d.last < 3 * DAY && failed("auto1") < 3) kind = "auto1"; }
-    else if (s.second && has("auto1") && !has("auto2")) {
-      const first = prev.find((p) => p.kind === "auto1" && p.status === "sent");
-      if (first && Date.now() - +first.createdAt >= s.delay2Hours * 3_600_000 && failed("auto2") < 3) kind = "auto2";
+
+    if (!has("auto1") && !has("manual") && !has("auto2")) {
+      const night = loc.hour < 8 || loc.hour >= 22;
+      if (age >= s.delay1Min * 60_000 && age < 12 * 3_600_000 && !night && failed("auto1") < 3) kind = "auto1";
+    }
+    if (!kind && s.second && !has("auto2")) {
+      if (morningMode) {
+        const abandonedEarlierDay = localParts(d.last, tz).day < loc.day;
+        const inWindow = loc.hour >= mh && loc.hour < mh + 4;
+        const restedSinceLast = !lastSent || +now - +lastSent.createdAt >= 6 * 3_600_000;
+        if (abandonedEarlierDay && inWindow && age < 3 * DAY && restedSinceLast && failed("auto2") < 3) kind = "auto2";
+      } else if (has("auto1")) {
+        const first = prev.find((p) => p.kind === "auto1" && p.status === "sent");
+        if (first && +now - +first.createdAt >= s.delay2Hours * 3_600_000 && failed("auto2") < 3) kind = "auto2";
+      }
     }
     if (!kind) continue;
     if (await orderedSince(admin as any, d.email, d.first)) { await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "a comandat între timp" } }); continue; }

@@ -17,7 +17,10 @@ export interface RecoverySettings {
   enabled: boolean;          // automatic e-mails on/off
   delay1Min: number;         // first reminder after N minutes without an order
   second: boolean;           // send a second e-mail
-  delay2Hours: number;       // second e-mail N hours after the first
+  delay2Hours: number;       // second e-mail N hours after the first (secondMode "delay")
+  /** "morning": the second e-mail goes the next morning at morningHour, buyer's local time (default). */
+  secondMode: 'morning' | 'delay';
+  morningHour: number;       // local hour for the morning e-mail (10 = 10:00–13:59)
   pct2: number;              // discount in the second e-mail (0 = none)
   validHours2: number;       // how long that code is valid
   onlyConsent: boolean;      // automatic e-mails only to buyers with e-mail marketing consent
@@ -27,7 +30,7 @@ export interface RecoverySettings {
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
-  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, pct2: 10, validHours2: 24,
+  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 10, validHours2: 24,
   onlyConsent: true, fromName: 'MIA by MIHAILIUC', fromEmail: '', replyTo: '',
 };
 

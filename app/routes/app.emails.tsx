@@ -102,13 +102,18 @@ export default function Emails() {
                 {!resend && <Banner tone="warning">Pentru trimitere e nevoie de un cont Resend (resend.com): verifici domeniul expeditorului (ex. mihailiuc.de) și pui cheia API în Railway ca RESEND_API_KEY.</Banner>}
                 <FormLayout>
                   <Checkbox label="Trimite automat e-mailuri clienților care au abandonat checkout-ul" checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
+                  <TextField label="Primul e-mail după (minute)" type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText="Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate. Noaptea (22–8, ora clientului) nu se trimite — clientul primește direct e-mailul de dimineață." />
+                  <Checkbox label="Trimite și al doilea e-mail" checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
                   <FormLayout.Group>
-                    <TextField label="Primul e-mail după (minute)" type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText="Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate." />
-                    <TextField label="Al doilea e-mail după (ore de la primul)" type="number" value={String(r.delay2Hours)} onChange={(v) => setR({ ...r, delay2Hours: num(v, 24) })} autoComplete="off" disabled={!r.second} helpText="Recomandat: 24." />
+                    <Select label="Când pleacă al doilea e-mail" value={r.secondMode || "morning"} onChange={(v) => setR({ ...r, secondMode: v as any })} disabled={!r.second}
+                      options={[{ label: "A doua zi dimineață (ora locală a clientului)", value: "morning" }, { label: "La un număr de ore după primul", value: "delay" }]}
+                      helpText="Dimineața: toți cei care au lăsat checkout-ul ieri (sau acum 2–3 zile) și n-au comandat — inclusiv cei care n-au primit primul e-mail." />
+                    {(r.secondMode || "morning") === "morning"
+                      ? <Select label="Ora de trimitere" value={String(r.morningHour ?? 10)} onChange={(v) => setR({ ...r, morningHour: Number(v) })} disabled={!r.second} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 10:00 — după drumul la serviciu, cu timp de comandat în pauză." />
+                      : <TextField label="Ore după primul e-mail" type="number" value={String(r.delay2Hours)} onChange={(v) => setR({ ...r, delay2Hours: num(v, 24) })} autoComplete="off" disabled={!r.second} helpText="Recomandat: 24." />}
                   </FormLayout.Group>
-                  <Checkbox label="Trimite și al doilea e-mail (cu reducere)" checked={r.second} onChange={(v) => setR({ ...r, second: v })} />
                   <FormLayout.Group>
-                    <Select label="Reducere în al doilea e-mail" value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : "fără", value: String(p) }))} />
+                    <Select label="Reducere în al doilea e-mail" helpText="Codul e personal, de unică folosință." value={String(r.pct2)} onChange={(v) => setR({ ...r, pct2: Number(v) })} disabled={!r.second} options={[0, 5, 10, 15, 20, 25].map((p) => ({ label: p ? `${p}%` : "fără", value: String(p) }))} />
                     <Select label="Codul e valabil" value={String(r.validHours2)} onChange={(v) => setR({ ...r, validHours2: Number(v) })} disabled={!r.second || !r.pct2} options={[{ label: "24 de ore", value: "24" }, { label: "48 de ore", value: "48" }, { label: "72 de ore", value: "72" }]} />
                   </FormLayout.Group>
                   <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
