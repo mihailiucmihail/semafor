@@ -212,7 +212,7 @@ export default function Emails() {
                 {resend && (
                   <InlineStack gap="200" blockAlign="end" wrap>
                     <Box minWidth="260px"><TextField label="Trimite un e-mail de test la" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="adresa@exemplu.ro" /></Box>
-                    <Box minWidth="240px"><Select label="Șablon" value={testTpl} onChange={setTestTpl} options={[{ label: "primul șablon", value: "" }, ...templates.map((t: any) => ({ label: t.name, value: t.id }))]} /></Box>
+                    <Box minWidth="240px"><Select label="Șablon" value={testTpl} onChange={setTestTpl} options={[{ label: "primul șablon", value: "" }, ...templates.map((t: any) => ({ label: `${t.name} · ${DESIGN_NAME[t.design] || "HTML propriu"}`, value: t.id }))]} /></Box>
                     <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>Trimite test</Button>
                   </InlineStack>
                 )}
