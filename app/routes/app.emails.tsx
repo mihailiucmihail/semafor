@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity } from "../semafor/recovery.server";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
 
@@ -35,7 +35,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, redirect } = await authenticate.admin(request);
+  const { session, redirect, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "recovery", redirect);
   const fd = await request.formData();
@@ -56,6 +56,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     await db.emailTemplate.deleteMany({ where: { id: String(fd.get("id")), shopId: shop.id } });
     return { ok: true, msg: "Șablon șters" };
   }
+  if (intent === "test") {
+    const to = String(fd.get("to") || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: "Adresă de e-mail invalidă" };
+    const tpl = (await db.emailTemplate.findFirst({ where: { id: String(fd.get("templateId") || ""), shopId: shop.id } }))
+      || (await db.emailTemplate.findFirst({ where: { shopId: shop.id }, orderBy: { purpose: "asc" } }));
+    if (!tpl) return { ok: false, msg: "Nu există niciun șablon" };
+    const s = shop.settings.recovery;
+    const me = await shopIdentity(admin as any);
+    const out = render({ subject: tpl.subject, html: tpl.html }, { ...SAMPLE, shop_name: me.name || SAMPLE.shop_name }, true);
+    try {
+      await sendMail({ to, subject: "[TEST] " + out.subject, html: out.html, fromName: s.fromName || me.name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
+      return { ok: true, msg: `E-mail de test trimis la ${to}` };
+    } catch (e: any) { return { ok: false, msg: String(e?.message || e).slice(0, 180) }; }
+  }
   if (intent === "reset") {
     await db.emailTemplate.createMany({ data: defaultTemplates().map((t) => ({ ...t, name: t.name + " (nou)", shopId: shop.id })) });
     return { ok: true, msg: "Șabloanele standard au fost adăugate" };
@@ -75,7 +89,8 @@ export default function Emails() {
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
   const [edit, setEdit] = useState<any | null>(null);
-  useEffect(() => { if (fetcher.state === "idle" && (fetcher.data as any)?.msg) { app.toast.show((fetcher.data as any).msg); if ((fetcher.data as any).msg !== "Setări salvate") setEdit(null); } }, [fetcher.state, fetcher.data, app]);
+  const [testTo, setTestTo] = useState("");
+  useEffect(() => { if (fetcher.state === "idle" && (fetcher.data as any)?.msg) { app.toast.show((fetcher.data as any).msg); const m = String((fetcher.data as any).msg); if (m !== "Setări salvate" && !m.includes("test") && (fetcher.data as any).ok) setEdit(null); } }, [fetcher.state, fetcher.data, app]);
   const num = (v: string, d: number) => (Number.isFinite(Number(v)) && v !== "" ? Number(v) : d);
   const preview = edit ? render({ subject: edit.subject, html: edit.html }, SAMPLE, true) : null;
 
@@ -126,6 +141,12 @@ export default function Emails() {
                   </FormLayout.Group>
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>Salvează automatizarea</Button></InlineStack>
+                {resend && (
+                  <InlineStack gap="200" blockAlign="end">
+                    <Box minWidth="280px"><TextField label="Trimite un e-mail de test la" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="adresa@exemplu.ro" /></Box>
+                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo }, { method: "post" })}>Trimite test</Button>
+                  </InlineStack>
+                )}
                 <Text as="p" variant="bodySm" tone="subdued">Limba e-mailului = limba checkout-ului clientului (DE / PL / RO). Nu se trimite dacă clientul a comandat între timp. Max. 2 e-mailuri automate per client în 7 zile.</Text>
               </BlockStack>
             </Card>
