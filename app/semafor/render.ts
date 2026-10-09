@@ -30,7 +30,7 @@ export const STEP_LABEL: Record<string, string> = {
 /** Where the buyer stopped, in plain words (the next step she did NOT do). */
 export function stoppedAt(events: string[]): string {
   if (events.includes("completed")) return "a plasat comanda";
-  if (events.includes("payment")) return "a trimis plata, dar comanda nu s-a creat (plată refuzată / 3-D Secure / Klarna anulat)";
+  if (events.includes("payment")) return "a trimis plata, dar comanda nu s-a creat (plata nu a trecut: card refuzat sau confirmare 3-D Secure neterminată)";
   if (events.includes("shipping")) return "a plecat la pasul de plată";
   if (events.includes("address")) return "a plecat la alegerea livrării";
   if (events.includes("contact")) return "a plecat la adresă";
