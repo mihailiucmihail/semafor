@@ -208,6 +208,17 @@ export async function orderedSince(admin: Admin, email: string, since: Date): Pr
 }
 
 /** The buyer's own checkout (Shopify abandoned-checkout recovery URL), moved to the store domain she used. */
+/** Link that applies a discount code and then opens `url` (Shopify /discount/<code>?redirect=…). */
+export function withDiscountLink(url: string, code: string) {
+  try { const u = new URL(url); return `${u.origin}/discount/${encodeURIComponent(code)}?redirect=${encodeURIComponent(u.pathname + u.search)}`; } catch { return url; }
+}
+
+/** Shopify cart permalink that puts the products in the cart: /cart/<variant>:<qty>,… */
+export function cartPermalink(base: string, items: Array<{ variantId?: string | null; qty?: number }>) {
+  const parts = items.map((i) => { const id = String(i.variantId || "").split("/").pop(); return id && /^\d+$/.test(id) ? `${id}:${Math.max(1, Number(i.qty) || 1)}` : null; }).filter(Boolean);
+  return parts.length ? `${base.replace(/\/$/, "")}/cart/${parts.join(",")}` : `${base.replace(/\/$/, "")}/cart`;
+}
+
 export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: string): Promise<string> {
   const host = ctx.host || null;
   let url: string | null = null;
@@ -217,13 +228,13 @@ export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: stri
       url = d?.abandonedCheckouts?.nodes?.[0]?.abandonedCheckoutUrl ?? null;
     } catch { url = null; }
   }
-  if (!url) return `https://${host || shopDomain}/cart`;
+  if (!url) return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
   if (!host) return url;
   try { const u = new URL(url); u.host = host; return u.toString(); } catch { return url; }
 }
 
 /** One-time percentage code valid for `hours`, for everything in the store. */
-export async function createDiscount(admin: Admin, pct: number, hours: number, label: string) {
+export async function createDiscount(admin: Admin, pct: number, hours: number, label: string, combine = false) {
   const code = `GIFT${pct}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
   const endsAt = new Date(Date.now() + hours * 3_600_000);
   const d = await gql(admin, `mutation($d: DiscountCodeBasicInput!){ discountCodeBasicCreate(basicCodeDiscount:$d){ codeDiscountNode{ id } userErrors{ field message } } }`, {
@@ -232,7 +243,7 @@ export async function createDiscount(admin: Admin, pct: number, hours: number, l
       usageLimit: 1, appliesOncePerCustomer: true,
       context: { all: "ALL" },
       customerGets: { value: { percentage: pct / 100 }, items: { all: true } },
-      combinesWith: { orderDiscounts: false, productDiscounts: false, shippingDiscounts: true },
+      combinesWith: { orderDiscounts: combine, productDiscounts: combine, shippingDiscounts: true },
     },
   });
   const errs = d?.discountCodeBasicCreate?.userErrors ?? [];
@@ -333,12 +344,12 @@ export async function cartDiscountOf(admin: Admin, ctx: Pick<DeviceCtx, "email" 
 /** Products of the buyer's abandoned checkout, read from Shopify (when the pixel did not capture them). */
 export async function shopifyCartItems(admin: Admin, email: string): Promise<{ items: Item[]; currency: string | null; total: number | null }> {
   try {
-    const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ lineItems(first:10){ nodes{ title variantTitle quantity image{ url } discountedTotalPriceSet{ presentmentMoney{ amount currencyCode } } } } } } }`, { q: `email:${JSON.stringify(email)}` });
+    const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ lineItems(first:10){ nodes{ title variantTitle quantity variant{ id } image{ url } discountedTotalPriceSet{ presentmentMoney{ amount currencyCode } } } } } } }`, { q: `email:${JSON.stringify(email)}` });
     const nodes: any[] = d?.abandonedCheckouts?.nodes?.[0]?.lineItems?.nodes ?? [];
     let cur: string | null = null, tot = 0;
     const items: Item[] = nodes.filter((n) => n?.title).map((n) => {
       const m = n.discountedTotalPriceSet?.presentmentMoney; if (m) { cur = m.currencyCode; tot += Number(m.amount) || 0; }
-      return { title: n.title, qty: n.quantity || 1, image: n.image?.url ?? null, variant: n.variantTitle ?? null, price: m ? Number(m.amount) : null } as any;
+      return { title: n.title, qty: n.quantity || 1, image: n.image?.url ?? null, variant: n.variantTitle ?? null, variantId: n.variant?.id ?? null, price: m ? Number(m.amount) : null } as any;
     });
     return { items, currency: cur, total: tot || null };
   } catch { return { items: [], currency: null, total: null }; }
@@ -373,7 +384,7 @@ export async function sampleItems(admin: Admin, shopId?: string): Promise<Item[]
       const row = rows.find((r) => Array.isArray(r.items) && r.items.some((i: any) => i?.image));
       if (row) {
         const it = (row.items as any[]).find((i) => i?.image);
-        return [{ title: it.title, qty: 1, image: it.image, variant: it.variant ?? null, price: typeof it.price === "number" ? money(it.price / (Number(it.qty) || 1), row.currency, (row.locale || "ro").slice(0, 2)) : null }];
+        return [{ title: it.title, qty: 1, image: it.image, variant: it.variant ?? null, variantId: it.variantId ?? null, price: typeof it.price === "number" ? money(it.price / (Number(it.qty) || 1), row.currency, (row.locale || "ro").slice(0, 2)) : null }];
       }
     } catch (e) { console.error("[semafor] sampleItems db", e); }
   }
@@ -412,13 +423,15 @@ export async function sendRecovery(i: SendInput) {
     if (i.preview) { code = `MIA${i.pct}-XXXXX`; endsAt = new Date(Date.now() + i.validHours * 3_600_000); }
     else {
       const hours = i.validUntil ? Math.max(3, (+i.validUntil - Date.now()) / 3_600_000) : i.validHours;
-      ({ code, endsAt } = await createDiscount(i.admin, i.pct, hours, i.kind));
+      ({ code, endsAt } = await createDiscount(i.admin, i.pct, hours, i.kind, !!i.settings.combineDiscounts));
     }
   }
   let url = i.preview ? `https://${ctx.host || i.shopDomain}/cart` : await recoveryUrl(i.admin, ctx, i.shopDomain);
   if (code) {
-    try { const u = new URL(url); url = `${u.origin}/discount/${encodeURIComponent(code)}?redirect=${encodeURIComponent(u.pathname + u.search)}`; } catch {}
+    url = withDiscountLink(url, code);
   }
+  // the cart already had a code (pop-up …): keep it applied when she comes back
+  if (!code && i.cartDiscount?.code && !i.preview) url = withDiscountLink(url, i.cartDiscount.code);
   const dateFmt = locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : "de-DE";
   const vars: Record<string, string> = {
     first_name: ctx.firstName || (locale === "de" ? "" : locale === "pl" ? "" : ""),

@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst, unsubVars, UNSUB_PH } from "../semafor/recovery.server";
+import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst, unsubVars, UNSUB_PH, cartPermalink, withDiscountLink, createDiscount } from "../semafor/recovery.server";
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
@@ -75,7 +75,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const items = await sampleItems(admin as any, shop.id);
       const pct = tpl.purpose === "auto3" ? s.pct3 : s.pct2;
       const name = s.fromName || me.name;
-      const out = render(templateSource(tpl as any, brand), { ...SAMPLE, ...unsubVars(tpl.locale, name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
+      // a real link: the shop, the product already in the cart and (for e-mails 2 and 3) a real one-time code applied
+      const dom: any = await (await (admin as any).graphql(`query{ shop{ primaryDomain{ url } } }`)).json().catch(() => null);
+      const base = dom?.data?.shop?.primaryDomain?.url || `https://${session.shop}`;
+      let link = cartPermalink(base, items as any);
+      let code = SAMPLE.discount_code, until = SAMPLE.valid_until;
+      if ((tpl.purpose === "auto2" || tpl.purpose === "auto3") && pct) {
+        const d = await createDiscount(admin as any, pct, 24, "test", !!s.combineDiscounts);
+        code = d.code; until = d.endsAt.toLocaleString("ro-RO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" });
+        link = withDiscountLink(link, code);
+      }
+      const out = render(templateSource(tpl as any, brand), { ...SAMPLE, recovery_url: link, discount_code: code, valid_until: until, ...unsubVars(tpl.locale, name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
       const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
       await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, name), fromName: name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       const m = `E-mail de test trimis la ${to} (${tpl.name})`;
@@ -213,6 +223,8 @@ export default function Emails() {
                     <Select label="Ora e-mailului 3" value={String(r.thirdHour ?? 12)} onChange={(v) => setR({ ...r, thirdHour: Number(v) })} disabled={!r.second || !r.third} options={[8, 9, 10, 11, 12, 13, 14, 17, 19, 20].map((h) => ({ label: `${h}:00`, value: String(h) }))} helpText="Recomandat: 12:00 — pauza de prânz; clienta are tot restul zilei pentru oferta „doar azi”." />
                     <Select label="Reducerea din e-mailul 3" value={String(r.pct3)} onChange={(v) => setR({ ...r, pct3: Number(v) })} disabled={!r.second || !r.third} options={[10, 15, 20, 25, 30].map((p) => ({ label: `${p}%`, value: String(p) }))} helpText="Valabilă doar în ziua aceea, până la 23:59 (ora clientei)." />
                   </FormLayout.Group>
+                  <Checkbox label="Reducerea din e-mail se cumulează cu alte reduceri ale magazinului (ex. la 2–3 produse)" checked={!!r.combineDiscounts} onChange={(v) => setR({ ...r, combineDiscounts: v })}
+                    helpText="Nebifat (recomandat): nu se adună — Shopify aplică reducerea cea mai mare pentru clientă. Bifat: se adună (reducerea automată a magazinului trebuie și ea să permită combinarea)." />
                   <Checkbox label="Doar clienților care au bifat abonarea la e-mailuri" checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText="Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." />
                   <FormLayout.Group>
                     <TextField label="Nume expeditor" value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder={shopName || "numele magazinului"} helpText="Gol = numele magazinului din Shopify." />

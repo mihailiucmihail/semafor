@@ -13,7 +13,7 @@ export const isDesign = (d: unknown): d is DesignId => d === "elegant" || d === 
 
 export type Copy = { greeting: string; heading: string; text: string; button: string; note: string; discount?: string; /** shown when the cart already had a discount */ existing?: string };
 export type Brand = { name: string; tagline?: string; logoUrl?: string; accent?: string };
-export type Item = { title: string; qty: number; image?: string | null; variant?: string | null; price?: string | null };
+export type Item = { title: string; qty: number; image?: string | null; variant?: string | null; variantId?: string | null; price?: string | null };
 
 type Look = {
   page: string; card: string; border: string; ink: string; muted: string; accent: string; line: string;

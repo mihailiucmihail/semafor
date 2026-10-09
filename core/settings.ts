@@ -27,6 +27,9 @@ export interface RecoverySettings {
   third: boolean;
   thirdHour: number;         // local hour for the 3rd e-mail
   pct3: number;              // discount in the 3rd e-mail, valid until the end of that day
+  /** true: the e-mail discount adds up with the shop's other discounts (e.g. "2-3 bags");
+   *  false (default): they don't add up — Shopify applies whichever saves the buyer more. */
+  combineDiscounts: boolean;
   onlyConsent: boolean;      // automatic e-mails only to buyers with e-mail marketing consent
   fromName: string;
   fromEmail: string;         // optional own address; used only if its domain is verified in Semafor's Resend account
@@ -39,7 +42,7 @@ export interface RecoverySettings {
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
-  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 15, validHours2: 24, third: true, thirdHour: 12, pct3: 20,
+  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 15, validHours2: 24, third: true, thirdHour: 12, pct3: 20, combineDiscounts: false,
   onlyConsent: true, fromName: '', fromEmail: '', replyTo: '', brandName: '', brandTagline: '', logoUrl: '', accent: '',
 };
 

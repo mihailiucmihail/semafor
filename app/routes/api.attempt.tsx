@@ -36,7 +36,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       currency: cut(b.currency, 4), total: Number.isFinite(Number(b.total)) && b.total !== null ? Number(b.total) : null,
       discountCode: cut(b.discountCode, 80),
       discountPct: Number.isFinite(Number(b.discountPct)) && Number(b.discountPct) > 0 && Number(b.discountPct) <= 100 ? Number(b.discountPct) : null,
-      items: Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined,
+      items: Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), variantId: cut(String(i?.variantId ?? ""), 80), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined,
       acceptsMarketing: typeof b.acceptsMarketing === "boolean" ? b.acceptsMarketing : null,
     },
   });

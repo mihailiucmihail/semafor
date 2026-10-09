@@ -46,6 +46,7 @@ register(({ analytics, browser, init, settings }) => {
       qty: (l && l.quantity) || 1,
       image: (l && l.variant && l.variant.image && l.variant.image.src) || null,
       variant: (l && l.variant && l.variant.title) || null,
+      variantId: (l && l.variant && l.variant.id) || null,
       price: Number((l && l.finalLinePrice && l.finalLinePrice.amount) || (l && l.variant && l.variant.price && l.variant.price.amount * ((l && l.quantity) || 1)) || 0) || null,
     }));
     // discount already in the checkout (pop-up code, automatic discount …)
