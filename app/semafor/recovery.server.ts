@@ -124,6 +124,20 @@ export async function consentOf(admin: Admin, email: string): Promise<string | n
   } catch { return null; }
 }
 
+/** HTML of a sent e-mail: stored copy, else fetched from Resend (e-mails sent before copies were stored). */
+export async function sentEmailHtml(send: { id: string; html?: string | null; providerId?: string | null }) {
+  if (send.html) return send.html;
+  const key = process.env.RESEND_API_KEY;
+  if (!key || !send.providerId) return null;
+  try {
+    const r = await fetch(`https://api.resend.com/emails/${encodeURIComponent(send.providerId)}`, { headers: { Authorization: `Bearer ${key}` } });
+    const j: any = await r.json();
+    const html = typeof j?.html === "string" ? j.html : null;
+    if (html) await db.emailSend.update({ where: { id: send.id }, data: { html } }).catch(() => {});
+    return html;
+  } catch { return null; }
+}
+
 /** Signed unsubscribe link for one buyer of one shop. */
 export function unsubToken(shopId: string, email: string) {
   const e = email.trim().toLowerCase();
@@ -432,7 +446,7 @@ export async function sendRecovery(i: SendInput) {
     const uurl = unsubUrl(i.shopId, ctx.email);
     const html = withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, locale, vars.shop_name);
     const providerId = await sendMail({ to: ctx.email, subject: out.subject, html, fromName: i.settings.fromName || ident.name, fromEmail: await senderOf(i.shopDomain, i.settings), replyTo: i.settings.replyTo || ident.email || undefined, unsubscribeUrl: uurl });
-    await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "sent", providerId } });
+    await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "sent", providerId, html } });
   } catch (e: any) {
     await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: tpl.id, subject: out.subject, kind: i.kind, discountCode: code || null, discountPct: i.pct || null, status: "failed", error: String(e?.message || e).slice(0, 500) } });
     throw e;

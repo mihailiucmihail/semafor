@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
-import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery, mailReady } from "../semafor/recovery.server";
+import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery, mailReady, sentEmailHtml } from "../semafor/recovery.server";
 import { STEP_LABEL, stoppedAt } from "../semafor/render";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -22,6 +22,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const consent = ctx.email ? await consentOf(admin as any, ctx.email) : null;
   const templates = (await db.emailTemplate.findMany({ where: { shopId: shop.id }, orderBy: [{ locale: "asc" }, { purpose: "asc" }], select: { id: true, name: true, locale: true, purpose: true } })) as any[];
   const sends = ctx.email ? ((await db.emailSend.findMany({ where: { shopId: shop.id, OR: [{ deviceId: dev }, { email: ctx.email }] }, orderBy: { createdAt: "desc" }, take: 20 })) as any[]) : [];
+  // the e-mails as they looked (latest 5 sent)
+  let shown = 0;
+  for (const x of sends) { if (x.status === "sent" && shown < 5) { const h = await sentEmailHtml(x); x.view = h ? h.replace(/https?:\/\/[^"'\s>]*\/unsub\?t=[^"'\s>]*/g, "#") : null; shown++; } delete x.html; }
   const r = shop.settings.recovery;
   return {
     dev,
@@ -30,6 +33,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     ready: { resend: mailReady() || (!!process.env.RESEND_API_KEY && !!r.fromEmail), from: true },
   };
 };
+
+const KIND: Record<string, string> = { manual: "manual", auto1: "e-mail 1 (reamintire)", auto2: "e-mail 2 (stoc limitat)", auto3: "e-mail 3 (ultima șansă)" };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
   const { session, admin, redirect } = await authenticate.admin(request);
@@ -151,11 +156,18 @@ export default function Client() {
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">E-mailuri trimise acestui client</Text>
                   {sends.map((s: any) => (
-                    <InlineStack key={s.id} gap="300" blockAlign="center">
-                      <Box minWidth="130px"><Text as="span" variant="bodySm" tone="subdued">{fmt(s.createdAt)}</Text></Box>
-                      <Badge tone={s.status === "sent" ? "success" : s.status === "failed" ? "critical" : undefined}>{s.status === "sent" ? "trimis" : s.status === "failed" ? "eroare" : "sărit"}</Badge>
-                      <Text as="span" variant="bodySm">{s.kind === "manual" ? "manual" : s.kind === "auto1" ? "automat 1" : "automat 2"} · {s.subject}{s.discountCode ? ` · ${s.discountCode}` : ""}{s.error ? ` · ${s.error}` : ""}</Text>
-                    </InlineStack>
+                    <BlockStack key={s.id} gap="200">
+                      <InlineStack gap="300" blockAlign="center">
+                        <Box minWidth="130px"><Text as="span" variant="bodySm" tone="subdued">{fmt(s.createdAt)}</Text></Box>
+                        <Badge tone={s.status === "sent" ? "success" : s.status === "failed" ? "critical" : undefined}>{s.status === "sent" ? "trimis" : s.status === "failed" ? "eroare" : "sărit"}</Badge>
+                        <Text as="span" variant="bodySm">{KIND[s.kind] || s.kind} · {s.subject}{s.discountCode ? ` · ${s.discountCode}` : ""}{s.error ? ` · ${s.error}` : ""}</Text>
+                      </InlineStack>
+                      {s.view && (
+                        <Box borderColor="border" borderWidth="025" borderRadius="200" overflowX="hidden" overflowY="hidden">
+                          <iframe title={s.subject} srcDoc={s.view} loading="lazy" style={{ width: "100%", height: 620, border: 0 }} />
+                        </Box>
+                      )}
+                    </BlockStack>
                   ))}
                 </BlockStack>
               </Card>

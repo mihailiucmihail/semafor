@@ -235,6 +235,7 @@ model EmailSend {
   status        String                          // sent | failed | skipped
   error         String?
   providerId    String?
+  html          String?                         // the e-mail exactly as it was sent (shown in the client page)
   createdAt     DateTime @default(now())
 
   @@index([shopId, deviceId])

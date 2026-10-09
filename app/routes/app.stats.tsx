@@ -67,8 +67,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
-    matched: d.matched,
+    matched: d.matched, mail: mailInfo(d),
   }));
+  // recovery e-mails per buyer: how many were sent and whether she came back / ordered after the first one
+  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent", createdAt: { gt: new Date(+since - 7 * DAY) } }, select: { deviceId: true, email: true, kind: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
+  const byDev = new Map<string, any[]>(), byMail = new Map<string, any[]>();
+  for (const x of sends) {
+    (byDev.get(x.deviceId) ?? byDev.set(x.deviceId, []).get(x.deviceId)!).push(x);
+    const m = String(x.email).toLowerCase(); (byMail.get(m) ?? byMail.set(m, []).get(m)!).push(x);
+  }
+  const lastAt = new Map<string, Date>(); // last checkout activity per device
+  for (const a of attempts) lastAt.set(a.deviceId, a.createdAt);
+  const mailInfo = (d: any) => {
+    const list = new Map<string, any>();
+    for (const x of byDev.get(d.id) ?? []) list.set(x.kind + +x.createdAt, x);
+    for (const e of d.emails as Set<string>) for (const x of byMail.get(e.toLowerCase()) ?? []) list.set(x.kind + +x.createdAt, x);
+    const all = [...list.values()].sort((a, b) => +a.createdAt - +b.createdAt);
+    if (!all.length) return null;
+    const first = all[0].createdAt;
+    const back = +(lastAt.get(d.id) ?? 0) > +first;
+    const orderedAfter = d.completed && +(lastAt.get(d.id) ?? 0) > +first;
+    return { count: all.length, kinds: all.map((x) => x.kind), last: all[all.length - 1].createdAt, back, orderedAfter };
+  };
   const storeHandle = session.shop.replace(".myshopify.com", "");
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
@@ -153,7 +173,7 @@ export default function Stats() {
                 <Box padding="400"><Text as="p" tone="subdued">Nicio încercare în această perioadă.</Text></Box>
               ) : (
                 <IndexTable resourceName={{ singular: "client", plural: "clienți" }} itemCount={devices.length} selectable={false}
-                  headings={[{ title: "Client" }, { title: "Contact" }, { title: "Până unde a ajuns" }, { title: "Rezultat" }, { title: "Când" }]}>
+                  headings={[{ title: "Client" }, { title: "Contact" }, { title: "Până unde a ajuns" }, { title: "E-mailuri" }, { title: "Rezultat" }, { title: "Când" }]}>
                   {devices.map((d: any, i: number) => {
                     const step = d.completed ? "a plătit / a plasat comanda" : d.events.includes("payment") ? "a trimis plata (comanda nu s-a creat)" : d.events.includes("shipping") ? "a plecat la plată" : d.events.includes("address") ? "a plecat la livrare" : d.events.includes("contact") ? "a plecat la adresă" : "a plecat la e-mail";
                     return (
@@ -171,6 +191,15 @@ export default function Stats() {
                           </BlockStack>
                         </IndexTable.Cell>
                         <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Link url={`/app/client/${d.dev}`}>{d.steps} {d.steps === 1 ? "pas" : "pași"} — vezi pașii →</Link></BlockStack></IndexTable.Cell>
+                        <IndexTable.Cell>
+                          {d.mail ? (
+                            <BlockStack gap="050">
+                              <InlineStack gap="100"><Badge tone="info">{`✉ ${d.mail.count} ${d.mail.count === 1 ? "e-mail" : "e-mailuri"}`}</Badge></InlineStack>
+                              <Text as="span" variant="bodySm" tone="subdued">{d.mail.kinds.map((k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : "manual")).join(" · ")} · ultimul {new Date(d.mail.last).toLocaleString("ro-RO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</Text>
+                              {d.mail.orderedAfter ? <Badge tone="success">a comandat după e-mail</Badge> : d.mail.back ? <Badge tone="attention">a revenit după e-mail</Badge> : null}
+                            </BlockStack>
+                          ) : <Text as="span" tone="subdued">—</Text>}
+                        </IndexTable.Cell>
                         <IndexTable.Cell>
                           {d.orderId
                             ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || "Comanda"}</a>
