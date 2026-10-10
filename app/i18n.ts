@@ -323,6 +323,8 @@ const D = {
   "emails.shopEmail": { en: "the store email", ro: "e-mailul magazinului" },
   "emails.soon": { en: "Email sending will be enabled soon. You can already prepare your settings and templates.", ro: "Trimiterea e-mailurilor se activează în curând. Poți pregăti deja setările și șabloanele." },
   "emails.enable": { en: "Automatically email customers who abandoned checkout", ro: "Trimite automat e-mailuri clienților care au abandonat checkout-ul" },
+  "emails.first": { en: "Send email 1 (about an hour after leaving the checkout)", ro: "Trimite e-mailul 1 (la ~o oră după ce a părăsit coșul)" },
+  "emails.firstHelp": { en: "Turn off to send only the next-day reminder.", ro: "Debifează ca să trimiți doar reamintirea de a doua zi." },
   "emails.delay1": { en: "Send first email after (minutes)", ro: "Primul e-mail după (minute)" },
   "emails.delay1Help": { en: "Recommended: 60. The first hour brings the most recovered orders. Nothing is sent at night (22–8, customer's time) — the customer gets the morning email instead.", ro: "Recomandat: 60. Prima oră aduce cele mai multe comenzi recuperate. Noaptea (22–8, ora clientului) nu se trimite — clientul primește direct e-mailul de dimineață." },
   "emails.howTitle": { en: "How it works:", ro: "Cum funcționează:" },

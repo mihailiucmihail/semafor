@@ -21,6 +21,7 @@ export interface ShopSettings {
 
 export interface RecoverySettings {
   enabled: boolean;          // automatic e-mails on/off
+  first: boolean;            // send the 1st reminder (~1 h after leaving); false = start with the next-day e-mail
   delay1Min: number;         // first reminder after N minutes without an order
   second: boolean;           // send a second e-mail
   delay2Hours: number;       // second e-mail N hours after the first (secondMode "delay")
@@ -48,7 +49,7 @@ export interface RecoverySettings {
 }
 
 export const DEFAULT_RECOVERY: RecoverySettings = {
-  enabled: false, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 15, validHours2: 24, third: true, thirdHour: 12, pct3: 20, combineDiscounts: false,
+  enabled: false, first: true, delay1Min: 60, second: true, delay2Hours: 24, secondMode: 'morning', morningHour: 10, pct2: 15, validHours2: 24, third: true, thirdHour: 12, pct3: 20, combineDiscounts: false,
   onlyConsent: true, fromName: '', fromEmail: '', replyTo: '', brandName: '', brandTagline: '', logoUrl: '', accent: '',
 };
 

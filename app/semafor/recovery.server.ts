@@ -15,7 +15,7 @@ import { defaultTemplates, TEMPLATE_NAMES, OLD_NAMES } from "./recovery-template
 import { render, esc, STEP_LABEL, stoppedAt, STEP_ORDER } from "./render";
 import { createHmac } from "node:crypto";
 import { SECRET } from "./shop.server";
-import { buildEmail, productBlock, isDesign, DEFAULT_COPY, type Brand, type Copy, type Item } from "./designs";
+import { buildEmail, productBlock, isDesign, DEFAULT_COPY, OLD_AUTO2_COPY, type Brand, type Copy, type Item } from "./designs";
 export { render, STEP_LABEL, stoppedAt, STEP_ORDER };
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
@@ -24,6 +24,15 @@ const DAY = 86_400_000;
 export async function ensureTemplates(shopId: string) {
   const n = await db.emailTemplate.count({ where: { shopId } });
   if (n) {
+    // untouched default "auto2" texts from v1 → the new, gentler "this colour sells out fast" reminder
+    const t2 = (await db.emailTemplate.findMany({ where: { shopId, purpose: "auto2" } })) as any[];
+    for (const t of t2) {
+      const o = OLD_AUTO2_COPY[t.locale]; const nw = (DEFAULT_COPY as any)[t.locale]?.auto2;
+      if (o && nw && (t.copy as any)?.text === o.text && t.subject === o.subject) {
+        const { subject, ...copy } = nw;
+        await db.emailTemplate.update({ where: { id: t.id }, data: { subject, copy } });
+      }
+    }
     // untouched default names from older versions were Romanian for every language → rename to the template's language
     for (const [locale, names] of Object.entries(TEMPLATE_NAMES)) {
       if (locale === "ro") continue;
@@ -371,9 +380,11 @@ export function brandOf(s: Pick<RecoverySettings, "brandName" | "brandTagline" |
 }
 
 /** Subject + HTML of a template (designed templates are built from design + texts + brand). */
-export function templateSource(tpl: { subject: string; html: string; design?: string | null; copy?: unknown }, brand: Brand) {
+export function templateSource(tpl: { subject: string; html: string; design?: string | null; copy?: unknown }, brand: Brand, noDiscount = false) {
   if (isDesign(tpl.design)) {
     const copy = { ...((tpl.copy ?? {}) as Copy) };
+    // no discount in this e-mail → drop a note that talks about applying a discount
+    if (noDiscount && copy.note && /reducer|rabat|rabatt|discount|code|cod/i.test(copy.note)) copy.note = "";
     // every e-mail reminds her of the discount already in her cart (shown only when there is one)
     if (!copy.existing) copy.existing = ((DEFAULT_COPY as any)[(tpl as any).locale] ?? DEFAULT_COPY.en).auto2.existing;
     return { subject: tpl.subject, html: buildEmail(tpl.design, copy, brand) };
@@ -476,7 +487,7 @@ export async function sendRecovery(i: SendInput) {
   const ident = await shopIdentity(i.admin);
   vars.shop_name = i.settings.fromName || ident.name;
   Object.assign(vars, unsubVars(locale, vars.shop_name));
-  const out = render(templateSource(tpl as any, brandOf(i.settings, ident.name)), vars, !!code);
+  const out = render(templateSource(tpl as any, brandOf(i.settings, ident.name), !code && !(i.cartDiscount?.pct || i.cartDiscount?.code)), vars, !!code);
   // greeting without a name: "Hallo ," → "Hallo,"
   out.html = out.html.replace(/(Hallo|Cześć|Bună),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună) ,/g, "$1,");
   if (i.preview) return { ...out, to: ctx.email, code, url };
@@ -578,7 +589,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     const restedSinceLast = !lastSent || +now - +lastSent.createdAt >= 6 * 3_600_000;
 
     // 1st: ~1 hour after leaving the checkout, not at night — plain reminder, no discount
-    if (!has("auto1") && !has("manual") && !has("auto2") && !has("auto3")) {
+    if (s.first !== false && !has("auto1") && !has("manual") && !has("auto2") && !has("auto3")) {
       const night = loc.hour < 8 || loc.hour >= 22;
       if (age >= s.delay1Min * 60_000 && age < 12 * 3_600_000 && !night && failed("auto1") < 3) kind = "auto1";
     }

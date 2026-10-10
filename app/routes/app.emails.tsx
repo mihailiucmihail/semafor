@@ -210,7 +210,8 @@ export default function Emails() {
                   : <Banner tone="info">{tr("emails.soon")}</Banner>}
                 <FormLayout>
                   <Checkbox label={tr("emails.enable")} checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
-                  <TextField label={tr("emails.delay1")} type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" helpText={tr("emails.delay1Help")} />
+                  <Checkbox label={tr("emails.first")} checked={r.first !== false} onChange={(v) => setR({ ...r, first: v })} helpText={tr("emails.firstHelp")} />
+                  <TextField label={tr("emails.delay1")} type="number" value={String(r.delay1Min)} onChange={(v) => setR({ ...r, delay1Min: num(v, 60) })} autoComplete="off" disabled={r.first === false} helpText={tr("emails.delay1Help")} />
                   <Banner tone="info">
                     <b>{tr("emails.howTitle")}</b>{tr("emails.howBody")}
                   </Banner>
