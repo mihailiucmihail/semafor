@@ -238,6 +238,18 @@ export function cartPermalink(base: string, items: Array<{ variantId?: string | 
   return parts.length ? `${base.replace(/\/$/, "")}/cart/${parts.join(",")}` : `${base.replace(/\/$/, "")}/cart`;
 }
 
+/** Up to 5 photos of the product behind a variant (for the gallery in the e-mail). */
+export async function productImages(admin: Admin, variantId: string | null | undefined): Promise<string[]> {
+  const id = String(variantId || "").split("/").pop();
+  if (!id || !/^\d+$/.test(id)) return [];
+  try {
+    const d = await gql(admin, `query($id:ID!){ productVariant(id:$id){ image{ url } product{ images(first:6){ nodes{ url } } } } }`, { id: `gid://shopify/ProductVariant/${id}` });
+    const v = d?.productVariant; if (!v) return [];
+    const all = [v.image?.url, ...(v.product?.images?.nodes ?? []).map((n: any) => n.url)].filter(Boolean) as string[];
+    return [...new Set(all)].slice(0, 5);
+  } catch { return []; }
+}
+
 export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: string): Promise<string> {
   const host = ctx.host || null;
   let url: string | null = null;
@@ -441,6 +453,8 @@ export async function sendRecovery(i: SendInput) {
   }
   // never send a reminder that shows no product
   if (!ctx.items.length && i.kind !== "manual") throw new Error("NO_ITEMS");
+  // more photos of the (first) bag for the gallery
+  if (ctx.items[0] && !(ctx.items[0] as any).images) (ctx.items[0] as any).images = await productImages(i.admin, (ctx.items[0] as any).variantId);
   const tpl = await db.emailTemplate.findFirst({ where: { id: i.templateId, shopId: i.shopId } });
   if (!tpl) throw new Error("Șablonul nu există.");
   const locale = tpl.locale || localeOf(ctx);

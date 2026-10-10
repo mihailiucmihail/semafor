@@ -7,7 +7,7 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import db from "../db.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
-import { ensureTemplates, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst, unsubVars, UNSUB_PH, cartPermalink, withDiscountLink, createDiscount } from "../semafor/recovery.server";
+import { ensureTemplates, productImages, mailReady, senderOf, sendMail, shopIdentity, sampleItems, brandOf, templateSource, productVars, unsubUrl, withUnsubFooter, blastFirst, unsubVars, UNSUB_PH, cartPermalink, withDiscountLink, createDiscount } from "../semafor/recovery.server";
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
@@ -84,13 +84,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       const seen = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id, locale: { startsWith: tpl.locale }, host: { not: null } }, orderBy: { createdAt: "desc" }, select: { host: true } })) as any;
       const base = seen?.host ? `https://${String(seen.host).replace(/^https?:\/\//, "")}` : dom?.data?.shop?.primaryDomain?.url || `https://${session.shop}`;
       let link = cartPermalink(base, items as any);
-      let code = SAMPLE.discount_code, until = SAMPLE.valid_until;
+      let code = "", until = "";
       if ((tpl.purpose === "auto2" || tpl.purpose === "auto3") && pct) {
         const d = await createDiscount(admin as any, pct, 24, "test", !!s.combineDiscounts);
         code = d.code; until = d.endsAt.toLocaleString("ro-RO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bucharest" });
         link = withDiscountLink(link, code);
       }
-      const out = render(templateSource(tpl as any, brand), { ...SAMPLE, recovery_url: link, discount_code: code, valid_until: until, ...unsubVars(tpl.locale, name), discount_pct: String(pct || 15), ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, tpl.purpose === "auto2" || tpl.purpose === "auto3");
+      if (items[0] && !(items[0] as any).images) (items[0] as any).images = await productImages(admin as any, (items[0] as any).variantId);
+      const out = render(templateSource(tpl as any, brand, !code), { ...SAMPLE, recovery_url: link, discount_code: code, valid_until: until, ...unsubVars(tpl.locale, name), discount_pct: code ? String(pct) : "", cart_discount_pct: "", ...productVars(tpl.design, items, brand), product_title: items[0]?.title || "", shop_name: name }, !!code);
       const uurl = unsubUrl(shop.id, to) + "&test=1"; // test e-mails: the page works, but nobody gets unsubscribed
       await sendMail({ to, unsubscribeUrl: uurl, subject: "[TEST] " + out.subject, html: withUnsubFooter(out.html.split(UNSUB_PH).join(uurl), uurl, tpl.locale, name), fromName: name, fromEmail: await senderOf(session.shop, s), replyTo: s.replyTo || me.email || undefined });
       const m = t(lang, "emails.msg.testSent", { to, name: tpl.name });
