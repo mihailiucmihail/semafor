@@ -1,0 +1,269 @@
+{%- comment -%} MIA PDP — reduceri la mai multe genți (în cardul de livrare) + recenzii compacte. RO + DE. {%- endcomment -%}
+{%- liquid
+  assign mk = localization.market.handle
+  assign de = false
+  if mk == 'deutschland'
+    assign de = true
+  endif
+  assign pl = false
+  if mk == 'polska'
+    assign pl = true
+  endif
+  assign tiers = section.settings.tiers | split: ','
+-%}
+{%- if mk == 'ro' or de or pl -%}
+<style>
+.mdl .vol{margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--line)}
+.mdl .vol p{margin:0 0 10px;font-size:13px;line-height:1.5;color:var(--ink2)!important}
+.mdl .vol p b{color:var(--ink)!important;font-weight:500}
+.mdl .vol .tr{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mdl .vol .tr div{background:#fff;border:1px solid var(--line);padding:9px 4px 8px;text-align:center}
+.mdl .vol .tr b{display:block;font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:500;line-height:1;color:var(--rust)!important}
+.mdl .vol .tr small{display:block;margin-top:4px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:var(--ink2)!important}
+/* Recenzii compacte pe pagina produsului */
+.mde .mde-rev#bewertungen{padding:56px 56px 0}
+.mde-rev#bewertungen .ch{margin-bottom:16px;gap:12px}
+.mde-rev#bewertungen .ch h2{font-size:clamp(28px,3vw,42px)}
+.mde-rev#bewertungen .ch .link{font-size:11px;padding-bottom:4px}
+.mde-rev#bewertungen .top{grid-template-columns:auto 1fr;gap:18px;align-items:center;padding-bottom:14px;margin-bottom:14px}
+.mde-rev#bewertungen .score{font-size:56px;line-height:.9}
+.mde-rev#bewertungen .score i{font-size:.36em;margin-left:3px}
+.mde-rev#bewertungen .meta{gap:4px}
+.mde-rev#bewertungen .meta .st{font-size:12px;letter-spacing:.24em}
+.mde-rev#bewertungen .meta b{font-size:19px;line-height:1.15}
+.mde-rev#bewertungen .meta .jm{font-size:10px;letter-spacing:.1em;gap:6px}
+.mde-rev#bewertungen .meta .jm i{width:10px;height:10px}
+.mde-rev#bewertungen .sub{font-size:10px;margin-top:0}
+.mde-rev#bewertungen .note{font-size:13px;margin-bottom:12px}
+.mde-rev#bewertungen .tiles{gap:12px}
+.mde-rev#bewertungen .tl .b{padding:12px 12px 14px;gap:5px}
+.mde-rev#bewertungen .tl p{font-size:16px;line-height:1.3;-webkit-line-clamp:3}
+.mde-rev#bewertungen .tl small{font-size:11px;line-height:1.45}
+.mde-rev#bewertungen .all{margin-top:12px;padding:13px 10px;font-size:10px;letter-spacing:.14em}
+.mde-rev#bewertungen .more{display:block;margin:14px auto 0;padding:13px 26px;background:transparent;border:1px solid var(--ink,#2a1a12);color:#2a1a12;font-family:'Jost',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;cursor:pointer}
+.mde-rev#bewertungen .more:hover{background:rgba(42,26,18,.06)}
+@media(max-width:640px){
+  .mde .mde-rev#bewertungen{padding:40px 20px 0}
+  .mde-rev#bewertungen .ch h2{font-size:30px}
+  .mde-rev#bewertungen .score{font-size:48px}
+  .mde-rev#bewertungen .meta b{font-size:17px}
+  .mde-rev#bewertungen .tiles{gap:10px}
+  .mde-rev#bewertungen .more{width:100%}
+}
+</style>
+{%- if de -%}{%- render 'mia-de-reviews-json' -%}{%- endif -%}
+<template id="mia-vol-tpl">
+  <div class="vol">
+    <p>{% if de %}Mit Freundinnen oder Kolleginnen bestellen und <b>zusätzlich sparen</b> – der Rabatt wird automatisch im Warenkorb abgezogen.{% elsif pl %}Zamów razem z przyjaciółkami lub koleżankami i <b>zaoszczędź dodatkowo</b> – rabat naliczy się automatycznie w koszyku.{% else %}Comandați cu prietenele sau colegele și <b>primiți reduceri speciale</b> – reducerea se aplică automat în coș.{% endif %}</p>
+    <div class="tr">
+      {%- for t in tiers -%}{%- assign x = t | split: ':' -%}
+      <div><b>−{{ x[1] | strip }}&#8239;%</b><small>{% if pl and x[0] contains '+' %}od {{ x[0] | remove: '+' | strip }} torebek{% else %}{{ x[0] | strip }} {% if de %}Taschen{% elsif pl %}{% assign xn = x[0] | strip | plus: 0 %}{% assign xm = xn | modulo: 10 %}{% assign xh = xn | modulo: 100 %}{% if xn == 1 %}torebka{% elsif xm >= 2 and xm <= 4 and xh != 12 and xh != 13 and xh != 14 %}torebki{% else %}torebek{% endif %}{% else %}genți{% endif %}{% endif %}</small></div>
+      {%- endfor -%}
+    </div>
+  </div>
+</template>
+<script>
+(function(){
+  function put(){
+    var box=document.getElementById('mro-ship'),tpl=document.getElementById('mia-vol-tpl');
+    if(!box||!tpl)return false;if(box.querySelector('.vol'))return true;
+    var ft=box.querySelector('.ft'),n=tpl.content.cloneNode(true);
+    if(ft)box.insertBefore(n,ft);else box.appendChild(n);return true;
+  }
+  if(!put())document.addEventListener('DOMContentLoaded',put);
+})();
+(function(){
+  var STEP={{ section.settings.step | default: 10 }},DE={{ de | json }},PL={{ pl | json }},PID={{ product.id | json }};
+  var L=PL?{more:'Pokaż więcej opinii',tag:'Zdjęcie klientki',ver:'Zweryfikowany zakup',anon:'Klientka'}:DE?{more:{{ section.settings.more_de | json }},tag:'Kundenfoto',ver:'Verifizierter Kauf',anon:'Kundin'}:{more:{{ section.settings.more_ro | json }},tag:'Poză de la clientă',ver:'Achiziție verificată',anon:'Clientă'};
+  var HIDE='37e78fed-9360-4eb4-9026-d498b8e382b4,ec8c3ea2-9f89-4e5f-bf0c-a5d2b6d7f7bc,804a1355-ee0b-4ed7-83f8-33d4d681514b,a86b8de2-ebd5-45f6-b5ee-f1c69398bf66,01700673-c8fa-41ad-8a46-458a32e118df';
+  function esc(x){return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function key(name,d){return (String(name||'').trim().toLowerCase())+'|'+d;}
+  /* v45: no translation label any more – DE/PL show photo-only review cards (see mia-de-head v44); RO never had one */
+  function rl(){return '';}
+  function go(){
+    var sec=document.querySelector('.mde-rev#bewertungen'),g=sec&&sec.querySelector('.tiles');if(!g||g.__m)return;g.__m=1;
+    if(sec.querySelector('.note')||!PID||!window.Shopify||!Shopify.shop)return;
+    var pname=(document.querySelector('meta[property="og:title"]')||{}).content||document.title||'';
+    var seen={};[].forEach.call(g.querySelectorAll(':scope > .tl small'),function(sm){var nmEl=sm.querySelector('.nm'),t=sm.textContent,m=t.match(/(\d{2}\.\d{2}\.\d{4})/);seen[key(nmEl?nmEl.textContent:t.split(' · ')[0],m?m[1]:'')]=1;});
+    var page=0,done=false,busy=false,target=STEP,q=[];
+    var btn=document.createElement('button');btn.type='button';btn.className='more';btn.textContent=L.more;btn.style.display='none';
+    g.parentNode.insertBefore(btn,g.nextSibling);
+    function count(){return g.querySelectorAll(':scope > .tl').length;}
+    function tile(r){
+      var rt=+r.rating||0;if(rt<4||HIDE.indexOf(r.uuid)>-1)return null;
+      var d=new Date(r.created_at),ds=('0'+d.getUTCDate()).slice(-2)+'.'+('0'+(d.getUTCMonth()+1)).slice(-2)+'.'+d.getUTCFullYear();
+      var nm=((DE||PL)&&r.reviewer_name==='Anonim')?L.anon:(r.reviewer_name||L.anon),k=key(nm,ds);if(seen[k])return null;
+      if(DE||PL){var np=String(nm).trim().split(/\s+/);if(np.length>1)nm=np[0]+' '+np[np.length-1].charAt(0).toUpperCase()+'.';}
+      var body='';if(PL){body=(window.__miaPL&&window.__miaPL[r.uuid])||'';}else if(DE){body=(window.__miaDE&&window.__miaDE[r.uuid])||'';}else{body=r.body||String(r.body_html||'').replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();}
+      var pics=(r.pictures_urls||[]).map(function(p){return p.huge||p.original;}).filter(Boolean);
+      var vid=(r.video_external_ids||[])[0]||'';
+      if(!pics.length&&!body&&!vid)return null;seen[k]=1;
+      var st='';for(var i=0;i<rt;i++)st+='★';
+      var JMP=(DE||PL)?'':'https://judge.me/reviews/stores/mihailiuc.co/products/'+((location.pathname.split('/products/')[1]||'').split(/[\/?#]/)[0]);
+      var FB=(document.querySelector('meta[property="og:image"]')||{}).content||'';
+      var vtag=PL?'Wideo klientki':DE?'Kundenvideo':'Video de la clientă';
+      var el=document.createElement('div');el.className='tl'+(pics.length||vid?'':' q')+(vid?' vd':'');el.setAttribute('data-pics',pics.join('|'));el.setAttribute('data-jm',JMP);if(vid)el.setAttribute('data-vid',vid);
+      var im='';
+      if(pics.length){im='<div class="im"><img src="'+esc(pics[0])+'" alt="'+esc(pname)+' – '+esc(L.tag)+'" loading="lazy">'+(vid?'<span class="play" aria-hidden="true">▶</span>':'')+'<span class="tag">'+esc(L.tag)+'</span></div>';}
+      else if(vid){var vth=/^[0-9a-f]{8}-/i.test(vid)?('https://review-videos.judgeme.com/'+vid+'/thumbnail.jpg'):('https://videodelivery.net/'+vid+'/thumbnails/thumbnail.jpg?time=1s&height=900');im='<div class="im"><img src="'+esc(vth)+'" data-fb="'+esc(FB)+'" onerror="this.onerror=null;this.dataset.fbused=1;if(this.dataset.fb)this.src=this.dataset.fb" alt="'+esc(pname)+' – '+esc(vtag)+'" loading="lazy"><span class="play" aria-hidden="true">▶</span><span class="tag">'+esc(vtag)+'</span></div>';}
+      el.innerHTML=im+
+        '<div class="b'+(r.verified_buyer?' vf':'')+'"><span class="st">'+st+'</span>'+(body?'<p>'+esc(body)+'</p>'+rl(body,r.body||r.body_html):'')+'<small><span class="nm">'+esc(nm)+'</span><span class="mt">'+ds+'</span>'+(r.verified_buyer?'<span class="vt">'+esc(L.ver)+'</span>':'')+'</small></div>';
+      return el;
+    }
+    function fetchPage(){
+      page++;
+      return fetch('https://judge.me/reviews/reviews_for_widget?url='+Shopify.shop+'&shop_domain='+Shopify.shop+'&platform=shopify&page='+page+'&per_page=10&product_id='+PID)
+        .then(function(r){return r.ok?r.json():null;}).then(function(j){
+          if(!j||!j.reviews||!j.reviews.length){done=true;return;}
+          var tr=j.review_translations||{};
+          j.reviews.forEach(function(r){r._tr=tr[r.uuid];var el=tile(r);if(el)q.push(el);});
+          if(j.pagination&&page>=j.pagination.total_pages)done=true;
+        }).catch(function(){done=true;});
+    }
+    function fill(){
+      if(busy)return;busy=true;btn.disabled=true;
+      (function loop(){
+        while(q.length&&count()<target)g.appendChild(q.shift());
+        if(count()>=target||(done&&!q.length)){busy=false;btn.disabled=false;btn.style.display=(done&&!q.length)?'none':'';return;}
+        fetchPage().then(loop);
+      })();
+    }
+    btn.addEventListener('click',function(){target=count()+STEP;fill();});
+    fill();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else setTimeout(go,0);
+})();
+</script>
+<style>
+/* Descriere premium */
+.mdx{--ink:#2a1a12;--ink2:#5a4a40;--rust:#8a4a2a;--gold:#b8924f;--line:rgba(42,26,18,.12);position:relative;margin:6px 0 18px;padding:26px 22px 8px;background:#faf7f2;border:1px solid var(--line);text-align:left;font-family:'Jost','Helvetica Neue',Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.mdx:before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.7}
+.mdx .k{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.26em;text-transform:uppercase;font-weight:500;color:var(--rust)!important}
+.mdx .k:before{content:"";width:22px;height:1px;background:var(--gold)}
+.mdx .lead{margin:14px 0 18px;font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;line-height:1.35;font-style:italic;color:var(--ink)!important}
+.mdx .lead:first-letter{font-size:1.9em;float:left;line-height:.85;margin:4px 8px 0 0;font-style:normal;color:var(--rust)}
+.mdx .pts{list-style:none;margin:-4px 0 18px;padding:0;display:grid;gap:9px}
+.mdx .pts li{position:relative;padding-left:22px;font-size:13.5px;line-height:1.5;color:var(--ink2)!important;opacity:0;transform:translateY(6px);transition:opacity .6s,transform .6s cubic-bezier(.22,1,.36,1)}
+.mdx.on .pts li{opacity:1;transform:none}
+.mdx .pts li:before{content:"";position:absolute;left:2px;top:.45em;width:9px;height:5px;border-left:1.5px solid var(--gold);border-bottom:1.5px solid var(--gold);transform:rotate(-45deg)}
+.mdx dl{margin:0;padding:0;border-top:1px solid var(--line)}
+.mdx .r{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);opacity:0;transform:translateY(8px);transition:opacity .6s,transform .6s cubic-bezier(.22,1,.36,1)}
+.mdx.on .r{opacity:1;transform:none}
+.mdx .r:last-child{border-bottom:0}
+.mdx .r svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--gold);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.mdx dt{flex:1;margin:0;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--ink2)!important}
+.mdx dd{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:500;text-align:right;color:var(--ink)!important;line-height:1.2}
+/* Ambalaj cadou premium */
+.mgf{--ink:#2a1a12;--ink2:#5a4a40;--rust:#8a4a2a;--gold:#b8924f;--line:rgba(42,26,18,.14);position:relative;display:flex;gap:14px;align-items:center;margin:4px 0 16px;padding:12px 14px 12px 12px;background:#fff;border:1px solid var(--line);cursor:pointer;text-align:left;font-family:'Jost','Helvetica Neue',Arial,sans-serif;color:var(--ink);transition:border-color .35s,box-shadow .35s,background .35s;-webkit-tap-highlight-color:transparent;user-select:none}
+.mgf:hover{border-color:rgba(184,146,79,.6)}
+.mgf.on{border-color:var(--gold);background:#fbf7ef;box-shadow:0 10px 30px -18px rgba(138,74,42,.55)}
+.mgf .ph{position:relative;flex:none;width:84px;height:84px;overflow:hidden;background:#efe7da}
+.mgf .ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.mgf.on .ph img{transform:scale(1.08)}
+.mgf .ph:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 45%,transparent 60%);transform:translateX(-120%)}
+.mgf.shine .ph:after{animation:mgfShine 1s ease}
+@keyframes mgfShine{to{transform:translateX(120%)}}
+.mgf .tx{flex:1;min-width:0}
+.mgf .k{font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;font-weight:500;color:var(--rust)!important}
+.mgf b{display:block;margin:3px 0 2px;font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;font-weight:500;line-height:1.1;color:var(--ink)!important}
+.mgf b em{font-style:italic;color:var(--rust)!important}
+.mgf p{margin:0;font-size:12px;line-height:1.45;color:var(--ink2)!important}
+.mgf .sw{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+.mgf .tg{position:relative;width:42px;height:24px;border-radius:24px;background:rgba(42,26,18,.14);transition:background .35s}
+.mgf .tg:after{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.mgf.on .tg{background:var(--gold)}
+.mgf.on .tg:after{transform:translateX(18px)}
+.mgf .pr{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:var(--rust)!important;white-space:nowrap}
+.mgf .ok{position:absolute;right:10px;top:-9px;background:var(--gold);color:#fff!important;font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;padding:3px 8px;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s}
+.mgf.on .ok{opacity:1;transform:none}
+/* sticky ATC bar: button above the product name */
+.product-buy-buttons--drawer{flex-direction:column-reverse!important}
+.product-buy-buttons--drawer .product-buy-buttons--drawer-info-container{padding-top:2px}
+@media(prefers-reduced-motion:reduce){.mdx .r,.mgf *{transition:none!important;animation:none!important}}
+</style>
+<script>
+(function(){
+  var DE={{ de | json }},PL={{ pl | json }},MIA={% assign t4 = product.title | upcase | strip | slice: 0, 4 %}{% if t4 == 'MIA ' %}true{% else %}false{% endif %};
+  var COPY=PL?{lead:'Skóra naturalna o pięknym rysunku lica – miękka i przyjemna w dłoni.',pts:['Przyjemna w dotyku podszewka, którą łatwo przetrzeć','Podszewkę dobieramy możliwie najbliżej koloru skóry','Metalowe nóżki na spodzie chronią skórę','Starannie wykończone, wielokrotnie barwione krawędzie','Każdą torebkę sprawdzamy jeszcze raz przed wysyłką']}:DE?{lead:'Echtes Leder mit schöner Narbung – weich und angenehm in der Hand.',pts:['Angenehmes Innenfutter, das sich leicht abwischen lässt','Das Futter wählen wir möglichst passend zur Farbe des Leders','Metallfüßchen am Boden schützen das Leder','Sorgfältig veredelte Kanten, mehrfach gefärbt','Jede Tasche wird vor dem Versand noch einmal geprüft']}
+    :{lead:'Piele naturală de calitate, cu o granulație frumoasă – moale și plăcută la atingere.',pts:['Căptușeală plăcută la atingere, care se șterge foarte ușor','Căptușeala o alegem cât mai apropiată de nuanța pielii','Picioare metalice la bază, care protejează pielea','Margini finisate cu grijă și vopsite de mai multe ori','Fiecare geantă este verificată încă o dată înainte de expediere']};
+  var ICON={
+    ext:'<svg viewBox="0 0 24 24"><path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/></svg>',
+    int:'<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>',
+    col:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="rgba(184,146,79,.35)"/></svg>',
+    cmp:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="1"/><path d="M12 6v14M3 10h18"/></svg>',
+    dim:'<svg viewBox="0 0 24 24"><path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/></svg>',
+    def:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg>'
+  };
+  function ico(l){l=l.toLowerCase();
+    if(/exterior|au(ss|ß)en|zewn/.test(l))return ICON.ext;
+    if(/interior|innen|futter|wewn|podszew/.test(l))return ICON.int;
+    if(/culoare|farbe|kolor/.test(l))return ICON.col;
+    if(/compart|fach|fächer|komor|przegr/.test(l))return ICON.cmp;
+    if(/dimensiun|maße|masse|größe|wymiar/.test(l))return ICON.dim;
+    return ICON.def;}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function desc(){
+    var b=document.querySelector('[data-block-type="description"] .product-form--block--description');
+    if(!b||b.__p)return;b.__p=1;
+    var lines=b.innerText.split('\n').map(function(s){return s.trim();}).filter(Boolean),lead=[],rows=[];
+    lines.forEach(function(s){
+      var m=s.match(/^[•\-–·*]\s*([^:]{2,40}):\s*(.+)$/);
+      if(m)rows.push([m[1].trim(),m[2].trim().replace(/\.$/,'')]);else lead.push(s.replace(/^[•\-–·*]\s*/,''));
+    });
+    if(!rows.length)return;
+    var h='<div class="k">'+(PL?'Torebka w szczegółach':DE?'Die Tasche im Detail':'Detalii')+'</div>';
+    if(MIA){lead=[COPY.lead];}
+    if(lead.length)h+='<p class="lead">'+esc(lead.join(' '))+'</p>';
+    if(MIA)h+='<ul class="pts">'+COPY.pts.map(function(p,i){return '<li style="transition-delay:'+(i*70)+'ms">'+esc(p)+'</li>';}).join('')+'</ul>';
+    h+='<dl>'+rows.map(function(r,i){return '<div class="r" style="transition-delay:'+(i*80)+'ms">'+ico(r[0])+'<dt>'+esc(r[0])+'</dt><dd>'+esc(r[1])+'</dd></div>';}).join('')+'</dl>';
+    var box=document.createElement('div');box.className='mdx';box.innerHTML=h;
+    b.style.display='none';b.parentNode.insertBefore(box,b);
+    var hd=b.parentNode.parentNode&&b.parentNode.parentNode.querySelector('.product-form--block--heading, h2, h3');
+    if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){if(es[0].isIntersecting){box.classList.add('on');io.disconnect();}},{threshold:.15});io.observe(box);}else box.classList.add('on');
+  }
+  function gift(tries){
+    var lbl=[].slice.call(document.querySelectorAll('.gpo-app span.label-content')).find(function(e){return /cadou|geschenk|prezent/i.test(e.textContent);});
+    if(!lbl){if((tries||0)<40)setTimeout(function(){gift((tries||0)+1);},250);return;}
+    var app=lbl.closest('.gpo-app'),grp=lbl.closest('.gpo-group')||app,img=grp.querySelector('img'),inp=grp.querySelector('input');
+    if(!img||!inp||app.__p)return;app.__p=1;
+    if(PL){lbl.textContent='Zaznacz, aby dodać opakowanie prezentowe';}
+    var c=document.createElement('div');c.className='mgf';c.setAttribute('role','switch');c.tabIndex=0;
+    c.innerHTML='<span class="ok">'+(PL?'Dodano':DE?'Hinzugefügt':'Adăugat')+' ✓</span>'+
+      '<div class="ph"><img src="{{ section.settings.gift_img }}" alt="" loading="lazy"></div>'+
+      '<div class="tx"><div class="k">'+(PL?'Opakowanie prezentowe':DE?'Geschenkverpackung':'Ambalaj cadou')+'</div>'+
+      '<b>'+(PL?'Spraw komuś <em>radość.</em>':DE?'Jemandem eine <em>Freude machen.</em>':'Surprinde pe cineva <em>drag.</em>')+'</b>'+
+      '<p>'+(PL?'Torebka dotrze w pudełku prezentowym z kokardą – gotowa do wręczenia, nie musisz nic pakować.':DE?'Die Tasche kommt in einer Geschenkbox mit Schleife – fertig zum Verschenken, du musst nichts mehr einpacken.':'Geanta ajunge într-o cutie cadou legată cu fundă, gata de oferit – fără grija ambalării.')+'</p></div>'+
+      '<div class="sw"><span class="tg"></span><span class="pr">'+(PL?'Gratis':DE?'Kostenlos':'Gratuit')+'</span></div>';
+    grp.parentNode.insertBefore(c,grp);grp.style.cssText='position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);opacity:0';
+    function sync(){var on=!!inp.checked;c.classList.toggle('on',on);c.setAttribute('aria-checked',on?'true':'false');}
+    function tog(){img.click();setTimeout(function(){sync();if(inp.checked){c.classList.remove('shine');void c.offsetWidth;c.classList.add('shine');}},60);}
+    c.addEventListener('click',tog);c.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();tog();}});
+    inp.addEventListener('change',sync);sync();
+  }
+  /* Sticky (drawer) "Adaugă în coș" bypasses Globo's add-on flow: forward its click to the main button. */
+  window.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('.product-buy-buttons--drawer button.product-buy-buttons--primary');if(!b)return;
+    var f=b.closest('form');if(!f)return;
+    var main=[].slice.call(f.querySelectorAll('button.product-buy-buttons--primary')).find(function(x){return !x.closest('.product-buy-buttons--drawer');});
+    if(!main||main.disabled)return;
+    e.preventDefault();e.stopImmediatePropagation();main.click();
+  },true);
+  function run(){desc();gift(0);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+})();
+
+</script>
+{%- endif -%}
+{% schema %}
+{
+  "name": "MIA PDP — Extra",
+  "settings": [
+    { "type": "text", "id": "tiers", "label": "Reduceri (bucăți:procent)", "default": "2:10,3:13,4+:15" },
+    { "type": "number", "id": "step", "label": "Recenzii afișate / pas", "default": 10 },
+    { "type": "text", "id": "more_ro", "label": "Buton RO", "default": "Încarcă mai multe recenzii" },
+    { "type": "text", "id": "more_de", "label": "Buton DE", "default": "Weitere Bewertungen laden" },
+    { "type": "text", "id": "gift_img", "label": "Imagine cutie cadou", "default": "https://cdn.shopify.com/s/files/1/0954/5079/2260/files/01AC9FFE-CA7F-401E-ABB7-888C6DEB0339.jpg?v=1777197164&width=300" }
+  ],
+  "presets": [{ "name": "MIA PDP — Extra" }]
+}
+{% endschema %}

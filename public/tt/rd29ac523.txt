@@ -1,0 +1,52 @@
+{%- comment -%} Shared head for the German MIA homepage sections {%- endcomment -%}
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+{{ 'mia-de-home.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'mia-de-home.js' | asset_url }}" defer></script>
+<style>body{overflow-x:hidden}.mde-inside .v .play{display:none}.mde-inside .v.needs-tap .play{display:grid}.mde-inside .v video{opacity:1}
+.mde a.btn,.mde button.btn,.mde .btn,.mde a.btn:hover,.mde a.btn:visited{color:#fff!important;text-decoration:none!important}
+.mde a.btn.ghost,.mde a.btn.ghost:hover,.mde a.btn.ghost:visited,.mde .btn.ghost{color:#2a1a12!important}
+.mde a.link,.mde a.link:visited{color:#2a1a12!important}.mde .mde-rev .all,.mde .mde-rev .all:visited{color:#2a1a12!important}.mde .mde-svc .g a{color:#8a4a2a!important}.mde .idx a{color:#5a4a40!important}</style>
+{%- comment -%} v48: DE/PL – review texts visible again (own native translations: mia-de-review-de2 / mia-pl-review-body), first name + initial, no translation label, no Judge.me links. {%- endcomment -%}
+{%- if localization.market.handle == 'deutschland' or localization.market.handle == 'polska' -%}
+<style>
+.mde-rev .tl .b .mia-rl{display:none!important}
+.mde-rev .ch .link.r,.mde-rev .top .meta a.link{display:none!important}
+.mde-rev a.all,.mde-lb .jml,.mde-lb .vplay{display:none!important}
+.mde-rev .mia-trn{margin:-8px 0 18px;font-family:'Jost','Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:1.5;letter-spacing:.01em;color:#8a7d72;font-style:normal;text-transform:none}
+@media(max-width:640px){.mde-rev .mia-trn{margin:-4px 0 14px;font-size:11.5px}}
+</style>
+<script>
+(function(){
+  function shortNames(){
+    document.querySelectorAll('.mde-rev .tl[data-jm]').forEach(function(t){t.setAttribute('data-jm','');});
+    document.querySelectorAll('.mde-rev .tl .b small').forEach(function(el){
+      if(el.dataset.mn){return;}
+      el.dataset.mn='1';
+      var n=el.firstChild;
+      if(!n||n.nodeType!==3){return;}
+      var t=n.nodeValue,i=t.indexOf('·');
+      var nm=(i>-1?t.slice(0,i):t).trim(),rest=i>-1?t.slice(i):'';
+      var p=nm.split(/\s+/);
+      if(p.length>1){n.nodeValue=p[0]+' '+p[p.length-1].charAt(0).toUpperCase()+'. '+rest;}
+    });
+  }
+  if(document.readyState!=='loading'){shortNames();}else{document.addEventListener('DOMContentLoaded',shortNames);}
+})();
+/* v52: honest note – many reviews come from Romanian customers and were translated */
+(function(){
+  var T={% if localization.market.handle == 'deutschland' %}{{ 'Viele Bewertungen stammen von Kundinnen aus Rumänien und wurden ins Deutsche übersetzt.' | json }}{% else %}{{ 'Wiele opinii pochodzi od klientek z Rumunii i zostało przetłumaczonych na język polski.' | json }}{% endif %};
+  function addNote(){
+    document.querySelectorAll('.mde-rev').forEach(function(sec){
+      if(sec.querySelector('.mia-trn'))return;
+      var ch=sec.querySelector('.ch');if(!ch)return;
+      var after=ch,nx=ch.nextElementSibling;
+      if(nx&&nx.classList.contains('note'))after=nx;
+      var p=document.createElement('p');p.className='mia-trn';p.textContent=T;
+      after.parentNode.insertBefore(p,after.nextSibling);
+    });
+  }
+  if(document.readyState!=='loading'){addNote();}else{document.addEventListener('DOMContentLoaded',addNote);}
+})();
+</script>
+{%- endif -%}
