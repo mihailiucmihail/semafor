@@ -231,6 +231,7 @@ const D = {
   "emails.list.empty": { en: "Nobody here yet.", ro: "Deocamdată nimeni." },
   "emails.list.colEmail": { en: "E-mail", ro: "E-mail" },
   "emails.list.colReason": { en: "Reason", ro: "Motiv" },
+  "common.back": { en: "Back", ro: "Înapoi" },
   "stats.showAll": { en: "Show all", ro: "Arată toți" },
   "stats.allAttempts": { en: "All checkout attempts", ro: "Toate încercările de comandă" },
   "stats.noAttempts": { en: "No attempts in this period.", ro: "Nicio încercare în această perioadă." },

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, InlineGrid, Text, Badge, Select, Button, Banner, Box, Divider, Thumbnail, Avatar } from "@shopify/polaris";
 import { EmailIcon, PhoneIcon, LocationIcon, GlobeIcon } from "@shopify/polaris-icons";
 import { Dot, IdLine, SectionHead } from "../components/semafor-ui";
@@ -70,6 +70,7 @@ export default function Client() {
   const hoursNum = hours === "today" ? Math.max(1, Math.ceil((new Date(new Date().setHours(23, 59, 0, 0)).getTime() - Date.now()) / 3_600_000)) : Number(hours);
   const d: any = fetcher.data;
   const tr = useT();
+  const navigate = useNavigate();
   const lang = useLang();
   useEffect(() => { if (fetcher.state === "idle" && d && !d.preview && d.ok) app.toast.show(tr("client.sentToast", { to: d.to })); }, [fetcher.state, d, app, tr]);
 
@@ -82,7 +83,7 @@ export default function Client() {
   const initials = (name.split(/[\s@.]+/).filter(Boolean).slice(0, name.includes("@") ? 1 : 2).map((w: string) => w[0]).join("") || "?").toUpperCase();
 
   return (
-    <Page fullWidth backAction={{ content: tr("nav.stats"), url: "/app/stats" }} title={name} subtitle={[ctx.city, ctx.country, locale.toUpperCase()].filter(Boolean).join(", ")}
+    <Page fullWidth backAction={{ content: tr("common.back"), onAction: () => (window.history.length > 1 ? navigate(-1) : navigate("/app/stats")) }} title={name} subtitle={[ctx.city, ctx.country, locale.toUpperCase()].filter(Boolean).join(", ")}
       titleMetadata={ctx.completed ? <Badge tone="success">{tr("common.ordered")}</Badge> : <Badge tone="attention">{tr(`stopped.${stoppedStep(ctx.events)}` as TKey)}</Badge>}>
       <TitleBar title={name} />
       <Layout>

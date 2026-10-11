@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid, Divider, Modal, Link } from "@shopify/polaris";
+import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
+import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid, Divider } from "@shopify/polaris";
 import { EmailIcon, OrderIcon, ClockIcon, AlertCircleIcon, EditIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
 import { Kpi, SectionHead } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
@@ -13,7 +13,7 @@ import { ensureTemplates, productImages, mailReady, senderOf, sendMail, shopIden
 import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } from "../semafor/designs";
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
-import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
+import { useT, t, trMsg, type TKey } from "../i18n";
 import { shopLang } from "../i18n.server";
 
 const DAY = 86_400_000;
@@ -25,33 +25,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureTemplates(shop.id);
   const templates = (await db.emailTemplate.findMany({ where: { shopId: shop.id }, orderBy: [{ locale: "asc" }, { purpose: "asc" }, { name: "asc" }] })) as any[];
   const since = new Date(Date.now() - 30 * DAY);
-  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { status: true, kind: true, email: true, createdAt: true, deviceId: true, error: true, subject: true } })) as any[];
+  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { status: true, kind: true, email: true, createdAt: true } })) as any[];
   const sent = sends.filter((s) => s.status === "sent");
   // recovered = an e-mail we wrote to placed an order (checkout completed) after our e-mail
   const emails = [...new Set(sent.map((s) => s.email.toLowerCase()))];
-  const done = emails.length ? ((await db.checkoutAttempt.findMany({ where: { shopId: shop.id, event: "completed", createdAt: { gt: since }, email: { not: null } }, select: { email: true, createdAt: true, orderId: true } })) as any[]).filter((d) => emails.includes(String(d.email).toLowerCase())) : [];
+  const done = emails.length ? ((await db.checkoutAttempt.findMany({ where: { shopId: shop.id, event: "completed", createdAt: { gt: since }, email: { not: null } }, select: { email: true, createdAt: true } })) as any[]).filter((d) => emails.includes(String(d.email).toLowerCase())) : [];
   const recovered = emails.filter((e) => { const first = sent.filter((s) => s.email.toLowerCase() === e).sort((a, b) => +a.createdAt - +b.createdAt)[0]; return done.some((d) => d.email?.toLowerCase() === e && +d.createdAt > +first.createdAt); }).length;
-  // per-person lists behind the KPI cards
-  const orderOf = new Map<string, any>();
-  for (const e of emails) {
-    const first = sent.filter((s) => s.email.toLowerCase() === e).sort((a, b) => +a.createdAt - +b.createdAt)[0];
-    const d = done.find((x) => x.email?.toLowerCase() === e && +x.createdAt > +first.createdAt);
-    if (d) orderOf.set(e, d);
-  }
-  const orderIds = [...orderOf.values()].map((d) => d.orderId).filter(Boolean) as string[];
-  const onames = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderId: true, orderName: true } })) as any[]) : [];
-  const nameOf = new Map(onames.map((n) => [n.orderId, n.orderName]));
-  const people = emails.map((e) => {
-    const mine = sent.filter((s) => s.email.toLowerCase() === e).sort((a, b) => +a.createdAt - +b.createdAt);
-    const o = orderOf.get(e);
-    return { email: mine[0].email, deviceId: mine[mine.length - 1].deviceId, count: mine.length, kinds: mine.map((m) => m.kind), last: mine[mine.length - 1].createdAt,
-      ordered: !!o, orderedAt: o?.createdAt ?? null, orderId: o?.orderId ? String(o.orderId).split("/").pop() : null, orderName: o?.orderId ? nameOf.get(o.orderId) ?? null : null };
-  }).sort((a, b) => +new Date(b.last) - +new Date(a.last));
-  const rows = (st: string) => sends.filter((s) => s.status === st).sort((a, b) => +b.createdAt - +a.createdAt).slice(0, 300)
-    .map((s) => ({ email: s.email, deviceId: s.deviceId, kind: s.kind, error: s.error ?? "", createdAt: s.createdAt }));
   return {
-    lists: { sent: people, recovered: people.filter((p) => p.ordered), skipped: rows("skipped"), failed: rows("failed") },
-    storeHandle: session.shop.replace(".myshopify.com", ""),
     recovery: shop.settings.recovery, templates,
     stats: { sent: sent.length, people: emails.length, recovered, skipped: sends.filter((s) => s.status === "skipped").length, failed: sends.filter((s) => s.status === "failed").length },
     resend: mailReady(),
@@ -165,8 +145,7 @@ function copyFor(locale: string, purpose: string) {
 }
 
 export default function Emails() {
-  const { recovery, templates, stats, resend, sender, shopName, sample, lists, storeHandle } = useLoaderData<typeof loader>();
-  const lang = useLang();
+  const { recovery, templates, stats, resend, sender, shopName, sample } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
@@ -196,7 +175,8 @@ export default function Emails() {
   const sampleKey = JSON.stringify(sample);
   const items = useMemo(() => JSON.parse(sampleKey) as Item[], [sampleKey]);
   const [showDesigns, setShowDesigns] = useState(false);
-  const [list, setList] = useState<"" | "sent" | "recovered" | "skipped" | "failed">("");
+  const navigate = useNavigate();
+  const setList = (k: string) => navigate(`/app/emails/${k}`);
   const shownName = look.fromName || shopName;
   const [editLive, setEditLive] = useState<any>(null);
   useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
@@ -426,40 +406,6 @@ export default function Emails() {
           </BlockStack>
         </Layout.Section>
       </Layout>
-      <Modal open={!!list} onClose={() => setList("")} size="large" title={list ? tr(`emails.list.${list}` as TKey) : ""}
-        secondaryActions={[{ content: tr("common.close"), onAction: () => setList("") }]}>
-        {list && (() => {
-          const fmt = (d: any) => new Date(d).toLocaleString(dateLocale(lang), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-          const kindLabel = (k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : tr("common.manual"));
-          const people = list === "sent" || list === "recovered";
-          const data: any[] = (lists as any)[list];
-          if (!data.length) return <Modal.Section><Text as="p" tone="subdued">{tr("emails.list.empty")}</Text></Modal.Section>;
-          return (
-            <div className="sf-table">
-              <IndexTable selectable={false} itemCount={data.length} resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }}
-                headings={people
-                  ? [{ title: tr("common.customer") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]
-                  : [{ title: tr("common.customer") }, { title: tr("emails.list.colEmail") }, { title: tr("emails.list.colReason") }, { title: tr("common.when") }]}>
-                {data.map((x: any, i: number) => (
-                  <IndexTable.Row id={String(i)} key={i} position={i}>
-                    <IndexTable.Cell><Link url={`/app/client/${x.deviceId}`} removeUnderline><Text as="span" fontWeight="semibold"><span className="sf-break">{x.email}</span></Text></Link></IndexTable.Cell>
-                    {people ? (<>
-                      <IndexTable.Cell><Badge tone="info">{tr(x.count === 1 ? "stats.mailOne" : "stats.mailMany", { n: x.count })}</Badge> <Text as="span" variant="bodySm" tone="subdued">{x.kinds.map(kindLabel).join(", ")}</Text></IndexTable.Cell>
-                      <IndexTable.Cell>{x.ordered
-                        ? (x.orderId ? <Button variant="plain" url={`https://admin.shopify.com/store/${storeHandle}/orders/${x.orderId}`} target="_top">{x.orderName || tr("stats.order")}</Button> : <Badge tone="success">{tr("common.ordered")}</Badge>)
-                        : <Badge>{tr("stats.notOrdered")}</Badge>}</IndexTable.Cell>
-                    </>) : (<>
-                      <IndexTable.Cell><Text as="span" variant="bodySm">{kindLabel(x.kind)}</Text></IndexTable.Cell>
-                      <IndexTable.Cell><Text as="span" variant="bodySm" tone={list === "failed" ? "critical" : "subdued"}><span className="sf-break">{x.error ? trMsg(lang, x.error) : "—"}</span></Text></IndexTable.Cell>
-                    </>)}
-                    <IndexTable.Cell><Text as="span" variant="bodySm"><span className="sf-nowrap">{fmt(people ? (x.orderedAt || x.last) : x.createdAt)}</span></Text></IndexTable.Cell>
-                  </IndexTable.Row>
-                ))}
-              </IndexTable>
-            </div>
-          );
-        })()}
-      </Modal>
     </Page>
   );
 }
