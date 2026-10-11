@@ -65,7 +65,7 @@ const D = {
   "level.red": { en: "Red", ro: "Roșu" },
 
   // ── blacklist (app._index) ──
-  "index.title": { en: "Semafor — Blacklist", ro: "Semafor — Lista neagră" },
+  "index.title": { en: "Semafor: COD Fraud & Recovery", ro: "Semafor: COD Fraud & Recovery" },
   "index.addCustomer": { en: "Add customer", ro: "Adaugă client" },
   "index.statBlocked": { en: "Blocked customers", ro: "Clienți blocați" },
   "index.statShared": { en: "Reported to network", ro: "Raportați în rețea" },

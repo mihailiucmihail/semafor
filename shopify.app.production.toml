@@ -1,6 +1,6 @@
 # Semafor — Shopify app configuration (Dev Dashboard app 432372121601)
 client_id = "ff9a2bc78999c0b605d1fd3a38678477"
-name = "Semafor"
+name = "Semafor: COD Fraud & Recovery"
 handle = "semafor"
 application_url = "https://semafor-production.up.railway.app"
 embedded = true
