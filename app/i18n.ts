@@ -375,6 +375,8 @@ const D = {
   "emails.onlyConsentHelp": { en: "Recommended for the EU (Germany: reminder emails without consent may be considered unsolicited advertising).", ro: "Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." },
   "emails.fromName": { en: "Sender name", ro: "Nume expeditor" },
   "emails.fromNameHelp": { en: "Empty = store name from Shopify.", ro: "Gol = numele magazinului din Shopify." },
+  "emails.fromEmail": { en: "Send from (your own address)", ro: "Trimite de la (adresa ta)" },
+  "emails.fromEmailHelp": { en: "Used only once your domain is verified for sending; until then e-mails go from the Semafor address shown above.", ro: "Se folosește doar după ce domeniul tău e verificat pentru trimitere; până atunci e-mailurile pleacă de la adresa Semafor de mai sus." },
   "emails.replyTo": { en: "Replies go to", ro: "Răspunsurile merg la" },
   "emails.replyToHelp": { en: "Empty = the store's contact email.", ro: "Gol = e-mailul de contact al magazinului." },
   "emails.saveAutomation": { en: "Save automation", ro: "Salvează automatizarea" },

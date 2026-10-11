@@ -250,6 +250,7 @@ export default function Emails() {
                     helpText={tr("emails.combineHelp")} />
                   <Checkbox label={tr("emails.onlyConsent")} checked={r.onlyConsent} onChange={(v) => setR({ ...r, onlyConsent: v })} helpText={tr("emails.onlyConsentHelp")} />
                   <Text as="p" variant="bodySm" tone="subdued">{tr("emails.stockNote")}</Text>
+                  <TextField label={tr("emails.fromEmail")} type="email" value={r.fromEmail || ""} onChange={(v) => setR({ ...r, fromEmail: v.trim() })} autoComplete="off" placeholder={sender} helpText={tr("emails.fromEmailHelp")} />
                   <FormLayout.Group>
                     <TextField label={tr("emails.fromName")} value={r.fromName} onChange={(v) => setR({ ...r, fromName: v })} autoComplete="off" placeholder={shopName || tr("emails.shopNamePh")} helpText={tr("emails.fromNameHelp")} />
                     <TextField label={tr("emails.replyTo")} value={r.replyTo} onChange={(v) => setR({ ...r, replyTo: v })} autoComplete="off" placeholder={tr("emails.shopEmail")} helpText={tr("emails.replyToHelp")} />
