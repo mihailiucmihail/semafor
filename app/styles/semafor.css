@@ -149,3 +149,7 @@
 .sf-kpi-click:hover{transform:translateY(-2px);box-shadow:var(--p-shadow-300)}
 .sf-kpi-click:focus-visible{outline:2px solid var(--p-color-border-focus);outline-offset:2px}
 .sf-kpi-click.active{box-shadow:0 0 0 2px var(--p-color-border-emphasis)}
+
+/* template editor: brief highlight when it opens */
+@keyframes sf-flash{0%{box-shadow:0 0 0 3px var(--p-color-border-emphasis)}100%{box-shadow:0 0 0 0 transparent}}
+.sf-editor-flash{border-radius:var(--p-border-radius-300);animation:sf-flash 1.6s ease-out;scroll-margin-top:16px}

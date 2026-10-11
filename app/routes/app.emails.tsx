@@ -202,6 +202,9 @@ export default function Emails() {
   useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
   const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName, { p2: r.pct2, p3: r.pct3 }) : null), [editLive, brand, items, shownName, r.pct2, r.pct3]);
   const thumbs = useMemo(() => !showDesigns ? [] : DESIGNS.map((d) => previewOf({ design: d.id, purpose: "auto2", subject: "", copy: copyFor("ro", "auto2").copy }, brand, items, shownName).html), [brand, items, shownName, showDesigns]);
+  // open editor → scroll to it (it lives under the template list)
+  const [editKey, setEditKey] = useState(0);
+  const openEdit = (v: any) => { setEdit(v); setEditKey((k) => k + 1); setTimeout(() => document.getElementById("sf-tpl-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80); };
   const setCopy = (k: string, v: string) => setEdit((x: any) => ({ ...x, copy: { ...(x.copy || {}), [k]: v } }));
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -210,7 +213,7 @@ export default function Emails() {
   }
   function newTemplate() {
     const { subject, copy } = copyFor("ro", "auto1");
-    setEdit({ id: "", name: tr("emails.newTpl"), locale: "ro", purpose: "auto1", subject, html: "", design: newDesign, copy });
+    openEdit({ id: "", name: tr("emails.newTpl"), locale: "ro", purpose: "auto1", subject, html: "", design: newDesign, copy });
   }
   const saveTemplate = () => fetcher.submit({ intent: "save", id: edit.id, name: edit.name, locale: edit.locale, purpose: edit.purpose, subject: edit.subject, html: edit.html || "", design: edit.design, copy: JSON.stringify(edit.copy || null) }, { method: "post" });
 
@@ -357,7 +360,7 @@ export default function Emails() {
                     <IndexTable.Cell><Badge size="small">{t.locale.toUpperCase()}</Badge></IndexTable.Cell>
                     <IndexTable.Cell>{purposeLabel(t.purpose)}</IndexTable.Cell>
                     <IndexTable.Cell><Text as="span" variant="bodySm"><span className="sf-clamp2 sf-break">{t.subject}</span></Text></IndexTable.Cell>
-                    <IndexTable.Cell><InlineStack gap="100" align="end" wrap={false}><Button size="slim" icon={EditIcon} onClick={() => setEdit({ ...t, copy: t.copy || null })}>{tr("common.edit")}</Button><Button size="slim" icon={DeleteIcon} tone="critical" variant="tertiary" accessibilityLabel={`${tr("common.delete")}: ${t.name}`} onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })} /></InlineStack></IndexTable.Cell>
+                    <IndexTable.Cell><InlineStack gap="100" align="end" wrap={false}><Button size="slim" icon={EditIcon} onClick={() => openEdit({ ...t, copy: t.copy || null })}>{tr("common.edit")}</Button><Button size="slim" icon={DeleteIcon} tone="critical" variant="tertiary" accessibilityLabel={`${tr("common.delete")}: ${t.name}`} onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })} /></InlineStack></IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
               </IndexTable>
@@ -365,6 +368,7 @@ export default function Emails() {
             </Card>
 
             {edit && (
+              <div id="sf-tpl-editor" className="sf-editor-flash" key={editKey}>
               <Card>
                 <BlockStack gap="300">
                   <Text as="h2" variant="headingMd">{edit.id ? tr("emails.editTpl") : tr("emails.newTpl")}</Text>
@@ -417,6 +421,7 @@ export default function Emails() {
                   </InlineGrid>
                 </BlockStack>
               </Card>
+              </div>
             )}
           </BlockStack>
         </Layout.Section>
