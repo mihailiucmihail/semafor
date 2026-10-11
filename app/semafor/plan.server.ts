@@ -4,8 +4,9 @@ import { can, normPlan, planFromSubscriptionName, FREE_MONTHLY_CHECKS, type Feat
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
 /** Shops that always have Pro (the owner's own stores). Comma-separated myshopify domains. */
-const OWNER_SHOPS = (process.env.SEMAFOR_PRO_SHOPS || "1nbnns-by.myshopify.com")
-  .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+/** + the owner's development store used for the App Store review screencast (dev stores can't pick paid plans). */
+const OWNER_SHOPS = ["1nbnns-by.myshopify.com", "mihailiuc-nyprysws.myshopify.com", ...(process.env.SEMAFOR_PRO_SHOPS || "").split(",")]
+  .map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 export function isOwnerShop(domain: string | null | undefined) {
   return OWNER_SHOPS.includes(String(domain || "").toLowerCase());
