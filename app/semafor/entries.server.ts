@@ -128,22 +128,30 @@ export async function pushCheckoutMetafield(admin: { graphql: (q: string, o?: an
  * Make sure the "Semafor — plăți" payment customization exists and carries the current blocklist.
  * Returns a status line for the Settings page.
  */
+const PC_TITLE = "Semafor — blacklist payment rules";
+
 export async function syncPaymentBlock(admin: { graphql: (q: string, o?: any) => Promise<Response> }, payload?: any) {
   const q: any = await (await admin.graphql(`#graphql
     query { paymentCustomizations(first: 25) { nodes { id title enabled functionId } }
             shopifyFunctions(first: 25, apiType: "payment_customization") { nodes { id handle app { title } } } }`)).json();
   if (q.errors) return { ok: false, error: q.errors.map((e: any) => e.message).join("; ") };
   const fn = q.data.shopifyFunctions.nodes.find((f: any) => f.handle === "semafor-hide-payment");
-  if (!fn) return { ok: false, error: "funcția nu este încă publicată" };
+  if (!fn) return { ok: false, error: "payment function not deployed yet" };
   const value = JSON.stringify(payload ?? {});
   let pc = q.data.paymentCustomizations.nodes.find((n: any) => n.functionId === fn.id);
   if (!pc) {
     const r: any = await (await admin.graphql(`#graphql
       mutation($in: PaymentCustomizationInput!) { paymentCustomizationCreate(paymentCustomization: $in) { paymentCustomization { id } userErrors { field message code } } }`,
-      { variables: { in: { title: "Semafor — lista neagră", enabled: true, functionHandle: "semafor-hide-payment", metafields: [{ namespace: "$app", key: "blocklist", type: "json", value }] } } })).json();
+      { variables: { in: { title: PC_TITLE, enabled: true, functionHandle: "semafor-hide-payment", metafields: [{ namespace: "$app", key: "blocklist", type: "json", value }] } } })).json();
     const ue = r?.data?.paymentCustomizationCreate?.userErrors;
     if (ue?.length || r.errors) return { ok: false, error: (ue || r.errors).map((e: any) => e.message).join("; ") };
     return { ok: true, created: true };
+  }
+  if (pc.title !== PC_TITLE) {
+    // older installs were created with a Romanian title; Shopify shows it under Settings → Payments → Customizations
+    await admin.graphql(`#graphql
+      mutation($id: ID!, $in: PaymentCustomizationInput!) { paymentCustomizationUpdate(id: $id, paymentCustomization: $in) { userErrors { message } } }`,
+      { variables: { id: pc.id, in: { title: PC_TITLE } } }).catch(() => null);
   }
   if (payload) {
     const r: any = await (await admin.graphql(`#graphql
@@ -152,5 +160,5 @@ export async function syncPaymentBlock(admin: { graphql: (q: string, o?: any) =>
     const ue = r?.data?.metafieldsSet?.userErrors;
     if (ue?.length) return { ok: false, error: ue.map((e: any) => e.message).join("; ") };
   }
-  return { ok: pc.enabled, error: pc.enabled ? undefined : "dezactivată în Setări → Plăți" };
+  return { ok: pc.enabled, error: pc.enabled ? undefined : "disabled in Settings → Payments → Customizations" };
 }
