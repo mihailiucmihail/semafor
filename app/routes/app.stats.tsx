@@ -100,7 +100,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const devices = [...pick].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
-    matched: d.matched, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null,
+    matched: d.matched, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null, popupSource: leads.get(d.id)?.source ?? null,
   }));
   const storeHandle = session.shop.replace(".myshopify.com", "");
 
@@ -225,7 +225,7 @@ export default function Stats() {
                               {d.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
                               {d.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
                               {d.popup && !d.emails.some((x: string) => x.toLowerCase() === d.popup) && <IdLine icon={EmailIcon} label={tr("kind.email")}>{d.popup}</IdLine>}
-                              {d.popup && <span><Badge tone="magic">{tr("popup.badge")}</Badge></span>}
+                              {d.popup && <span><Badge tone="magic">{tr(d.popupSource === "cart" ? "popup.origin.cart" : d.popupSource === "site" ? "popup.origin.site" : "popup.badge")}</Badge></span>}
                               {!d.emails.length && !d.phones.length && !d.popup && <Text as="span" tone="subdued">—</Text>}
                             </BlockStack>
                           </IndexTable.Cell>

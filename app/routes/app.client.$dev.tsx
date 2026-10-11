@@ -137,7 +137,7 @@ export default function Client() {
                   <BlockStack gap="300">
                     {!ready.resend && <Banner tone="info">{tr("client.sendingSoon")}</Banner>}
                     {!(ctx.acceptsMarketing || consent === "SUBSCRIBED") && <Banner tone="warning">{tr("client.noConsentWarn")}</Banner>}
-                    <Text as="p">{tr("client.to")}<b>{ctx.email}</b>{(ctx as any).emailFromPopup ? <> <Badge tone="magic">{tr("popup.badge")}</Badge></> : null}</Text>
+                    <Text as="p">{tr("client.to")}<b>{ctx.email}</b>{(ctx as any).emailFromPopup ? <> <Badge tone="magic">{popupSource ? tr(popupSource.source === "cart" ? "popup.origin.cart" : "popup.origin.site") : tr("popup.badge")}</Badge></> : null}</Text>
                     <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
                       <Select label={tr("common.template")} value={tpl} onChange={setTpl} options={sorted.map((t: any) => ({ label: `${t.name}`, value: t.id }))} />
                       <Select label={tr("client.discount")} value={pct} onChange={setPct} options={[{ label: tr("client.noDiscount"), value: "0" }, ...[5, 10, 15, 20, 25].map((p) => ({ label: `${p}%`, value: String(p) }))]} />

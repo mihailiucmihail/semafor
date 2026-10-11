@@ -111,10 +111,10 @@ export async function popupLeadFor(shopId: string, deviceId: string) {
 export async function popupLeadMap(shopId: string, deviceIds?: string[]) {
   const rows = (await db.popupLead.findMany({
     where: { shopId, ...(deviceIds ? { deviceId: { in: deviceIds } } : {}) },
-    orderBy: { createdAt: "asc" }, select: { deviceId: true, email: true, createdAt: true, locale: true },
-  })) as Array<{ deviceId: string; email: string; createdAt: Date; locale: string | null }>;
-  const m = new Map<string, { email: string; createdAt: Date; locale: string | null }>();
-  for (const r of rows) m.set(r.deviceId, { email: r.email, createdAt: r.createdAt, locale: r.locale });
+    orderBy: { createdAt: "asc" }, select: { deviceId: true, email: true, createdAt: true, locale: true, source: true },
+  })) as Array<{ deviceId: string; email: string; createdAt: Date; locale: string | null; source: string }>;
+  const m = new Map<string, { email: string; createdAt: Date; locale: string | null; source: string }>();
+  for (const r of rows) m.set(r.deviceId, { email: r.email, createdAt: r.createdAt, locale: r.locale, source: r.source });
   return m;
 }
 
