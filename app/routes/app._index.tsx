@@ -30,7 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shared = await db.blockEntry.count({ where: { shopId: shop.id, shared: true } });
   // read-only summary for the header: order verdicts of the last 30 days (worst of own list / network)
   const since = new Date(Date.now() - 30 * 86_400_000);
-  const groups = (await db.orderCheck.groupBy({ by: ["level", "networkLevel"], where: { shopId: shop.id, checkedAt: { gt: since } }, _count: { _all: true } })) as any[];
+  const groups = (await (db.orderCheck.groupBy as any)({ by: ["level", "networkLevel"], where: { shopId: shop.id, checkedAt: { gt: since } }, _count: { _all: true } })) as any[];
   const verdicts = { green: 0, yellow: 0, red: 0 };
   for (const g of groups) verdicts[worst(g.level, g.networkLevel)] += g._count._all;
   return { entries, total, shared, q, network: shop.settings.shareNetwork, verdicts };

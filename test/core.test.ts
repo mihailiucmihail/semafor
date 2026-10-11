@@ -150,3 +150,33 @@ test('plans: feature gates and effective settings', () => {
   assert.deepEqual([effectiveSettings(s, 'free').yellowAction, effectiveSettings(s, 'free').cancelRed], ['tag', false]);
   assert.deepEqual([effectiveSettings(s, 'basic').yellowAction, effectiveSettings(s, 'basic').cancelRed], ['block', true]);
 });
+
+// ── storefront pop-up config (core/popup.ts) ──
+import { cleanPopup, buildPopupConfig, textOverrides, POPUP_DEFAULT_TEXTS } from '../core/popup.ts';
+import { settingsOf } from '../core/settings.ts';
+
+test('popup: defaults, clamping and stored overrides', () => {
+  const s = settingsOf({});
+  assert.equal(s.popup.enabled, false);
+  assert.equal(s.popup.cartDelay, 4);
+  assert.equal(s.popup.code, 'BUNVENIT15');
+  const p = cleanPopup({ enabled: true, mode: 'cart', delay: 9999, cartDelay: -3, hideDays: 0, code: ' bun venit15 ', design: 'nope' as any, imageUrl: 'http://x', texts: { ro: { ...POPUP_DEFAULT_TEXTS.ro, heading: 'Salut' } } });
+  assert.equal(p.mode, 'cart');
+  assert.equal(p.delay, 300);
+  assert.equal(p.cartDelay, 0);
+  assert.equal(p.hideDays, 1);
+  assert.equal(p.code, 'BUNVENIT15');
+  assert.equal(p.design, 'classic');
+  assert.equal(p.imageUrl, '');
+  assert.deepEqual(p.texts, { ro: { heading: 'Salut' } }); // only what differs from the defaults is stored
+  assert.deepEqual(textOverrides('de', POPUP_DEFAULT_TEXTS.de), {});
+});
+
+test('popup: storefront config fills {shop} and {pct} in every language', () => {
+  const cfg = buildPopupConfig(cleanPopup({ enabled: true, pct: 20 }), 'MIHAILIUC');
+  assert.equal(cfg.texts.ro.bigLabel, '-20%');
+  assert.match(cfg.texts.ro.text, /noutățile MIHAILIUC și primești 20% reducere/);
+  assert.match(cfg.texts.de.text, /20 % Rabatt/);
+  assert.ok(!/\{(shop|pct)\}/.test(JSON.stringify(cfg)));
+  assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'pl', 'ro']);
+});

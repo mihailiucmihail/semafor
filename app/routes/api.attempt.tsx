@@ -2,11 +2,11 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import db from "../db.server";
 
 /**
- * Receives checkout steps from the Semafor custom pixel (Shopify Customer events).
+ * Receives checkout steps (and the cart before checkout, event "cart") from the Semafor pixel (Shopify Customer events).
  * Body is JSON sent as text/plain (no CORS preflight from the pixel sandbox).
  */
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
-const EVENTS = new Set(["started", "contact", "address", "shipping", "payment", "completed"]);
+const EVENTS = new Set(["cart", "started", "contact", "address", "shipping", "payment", "completed"]);
 const hits = new Map<string, { n: number; t: number }>();
 const cut = (v: unknown, n = 200) => (typeof v === "string" && v.trim() ? v.trim().slice(0, n) : null);
 
@@ -27,6 +27,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = await db.shop.findUnique({ where: { domain }, select: { id: true, uninstalledAt: true } });
   if (!shop || shop.uninstalledAt) return new Response("unknown shop", { status: 404, headers: CORS });
 
+  const items = Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), variantId: cut(String(i?.variantId ?? ""), 80), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined;
+
+  // "cart" (before checkout): one row per cart session — while the device's latest row is a cart row from the last
+  // 3 days it is updated (full cart replaces, a single added line is merged) instead of adding a row per click.
+  if (event === "cart") {
+    if (!items?.length) return new Response("ok", { headers: CORS });
+    const last = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id, deviceId }, orderBy: { createdAt: "desc" }, select: { id: true, event: true, items: true, createdAt: true } })) as any;
+    const fresh = last && last.event === "cart" && Date.now() - +last.createdAt < 3 * 86_400_000;
+    let next = items;
+    if (b.add && fresh && Array.isArray(last.items)) {
+      next = [...(last.items as any[])];
+      for (const it of items) {
+        const k = next.findIndex((x: any) => it.variantId && x?.variantId === it.variantId);
+        if (k >= 0) next[k] = { ...next[k], qty: (Number(next[k].qty) || 1) + it.qty, price: next[k].price != null && it.price != null ? Number(next[k].price) + it.price : next[k].price ?? it.price };
+        else next.push(it);
+      }
+      next = next.slice(0, 10);
+    }
+    const sum = next.reduce((a: number, x: any) => a + (Number(x?.price) || 0), 0);
+    const total = !b.add && Number.isFinite(Number(b.total)) && b.total !== null ? Number(b.total) : sum || null;
+    const data = {
+      fingerprint: cut(b.fingerprint, 64), ip, host: cut(b.host, 120), locale: cut(b.locale, 10)?.toLowerCase() ?? null,
+      currency: cut(b.currency, 4), total, items: next,
+    };
+    if (fresh) await db.checkoutAttempt.update({ where: { id: last.id }, data: { ...data, createdAt: new Date() } });
+    else await db.checkoutAttempt.create({ data: { shopId: shop.id, deviceId, event, ...data } });
+    return new Response("ok", { headers: CORS });
+  }
+
   await db.checkoutAttempt.create({
     data: {
       shopId: shop.id, deviceId, fingerprint: cut(b.fingerprint, 64), ip, checkoutToken: cut(b.checkoutToken, 100), event,
@@ -36,7 +65,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       currency: cut(b.currency, 4), total: Number.isFinite(Number(b.total)) && b.total !== null ? Number(b.total) : null,
       discountCode: cut(b.discountCode, 80),
       discountPct: Number.isFinite(Number(b.discountPct)) && Number(b.discountPct) > 0 && Number(b.discountPct) <= 100 ? Number(b.discountPct) : null,
-      items: Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), variantId: cut(String(i?.variantId ?? ""), 80), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined,
+      items,
       acceptsMarketing: typeof b.acceptsMarketing === "boolean" ? b.acceptsMarketing : null,
     },
   });

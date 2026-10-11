@@ -47,7 +47,8 @@ export default defineConfig({
     hmr: hmrConfig,
     fs: {
       // See https://vitejs.dev/config/server-options.html#server-fs-allow for more information
-      allow: ["app", "node_modules"],
+      // extensions/semafor-popup/assets: the admin pop-up preview uses the storefront CSS/JS itself
+      allow: ["app", "node_modules", "extensions/semafor-popup/assets"],
     },
   },
   plugins: [

@@ -33,5 +33,11 @@ scopes = "read_orders,write_orders,read_customers,write_customers,write_pixels,r
 [auth]
 redirect_urls = [ "https://semafor-production.up.railway.app/auth/callback", "https://semafor-production.up.railway.app/auth/shopify/callback", "https://semafor-production.up.railway.app/api/auth/callback" ]
 
+# Storefront pop-up (theme app embed "Semafor pop-up") posts to https://<store>/apps/semafor/… → https://semafor-production.up.railway.app/proxy/…
+[app_proxy]
+url = "https://semafor-production.up.railway.app/proxy"
+subpath = "semafor"
+prefix = "apps"
+
 [pos]
 embedded = false

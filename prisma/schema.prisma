@@ -24,6 +24,7 @@ model Shop {
   attempts    CheckoutAttempt[]
   templates   EmailTemplate[]
   sends       EmailSend[]
+  popupLeads  PopupLead[]
 }
 
 enum Reason {
@@ -272,4 +273,23 @@ model EmailOptOut {
   createdAt DateTime @default(now())
 
   @@unique([shopId, email])
+}
+
+/** Visitors who left their e-mail in the Semafor storefront pop-up. Links the browser (deviceId, the same id the
+ *  pixel uses) to an e-mail, so a later cart / checkout without an e-mail can still get the reminder e-mails. */
+model PopupLead {
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deviceId   String
+  email      String                                // lower-case
+  source     String                                // site | cart
+  locale     String?                               // storefront language, e.g. ro
+  pageUrl    String?
+  customerId String?                               // gid://shopify/Customer/… created / found in Shopify
+  createdAt  DateTime @default(now())
+
+  @@index([shopId, deviceId])
+  @@index([shopId, email])
+  @@index([shopId, createdAt])
 }

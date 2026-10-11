@@ -20,6 +20,7 @@ export function render(tpl: { subject: string; html: string }, v: Record<string,
 
 export const STEP_ORDER = ["started", "contact", "address", "shipping", "payment", "completed"] as const;
 export const STEP_LABEL: Record<string, string> = {
+  cart: "a pus produse în coș",
   started: "a intrat în checkout",
   contact: "a introdus e-mailul / telefonul",
   address: "a completat adresa",
@@ -34,15 +35,17 @@ export function stoppedAt(events: string[]): string {
   if (events.includes("shipping")) return "a plecat la pasul de plată";
   if (events.includes("address")) return "a plecat la alegerea livrării";
   if (events.includes("contact")) return "a plecat la adresă";
+  if (!events.includes("started") && events.includes("cart")) return "a lăsat produsele în coș (fără checkout)";
   return "a plecat imediat după ce a deschis checkout-ul";
 }
 
 /** Same decision as stoppedAt(), as a step id — the admin UI translates it (app/i18n.ts, "stopped.*"). */
-export function stoppedStep(events: string[]): "completed" | "payment" | "shipping" | "address" | "contact" | "started" {
+export function stoppedStep(events: string[]): "completed" | "payment" | "shipping" | "address" | "contact" | "started" | "cart" {
   if (events.includes("completed")) return "completed";
   if (events.includes("payment")) return "payment";
   if (events.includes("shipping")) return "shipping";
   if (events.includes("address")) return "address";
   if (events.includes("contact")) return "contact";
+  if (!events.includes("started") && events.includes("cart")) return "cart";
   return "started";
 }

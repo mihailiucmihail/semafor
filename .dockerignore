@@ -3,5 +3,6 @@ build
 .git
 .env*
 test
-extensions
+extensions/*/node_modules
+extensions/*/dist
 drafts

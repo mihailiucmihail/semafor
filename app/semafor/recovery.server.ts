@@ -1,5 +1,5 @@
 /**
- * Abandoned-checkout recovery e-mails.
+ * Abandoned-checkout recovery e-mails (also carts without a checkout, when the e-mail is known from the Semafor pop-up).
  *  - builds the e-mail for one device (buyer) from its checkout steps,
  *  - optionally creates a one-time discount code (Shopify, write_discounts),
  *  - links back to the buyer's own Shopify checkout (abandoned checkout URL, on the store domain she used),
@@ -53,14 +53,25 @@ export async function deviceContext(shopId: string, deviceId: string) {
   const last = <K extends string>(k: K) => { for (let i = steps.length - 1; i >= 0; i--) if (steps[i][k] != null && steps[i][k] !== "") return steps[i][k]; return null; };
   const withItems = [...steps].reverse().find((s) => Array.isArray(s.items) && s.items.length);
   const events = [...new Set(steps.map((s) => s.event))];
+  // e-mail left in the Semafor pop-up on this browser: used when the cart / checkout itself has no e-mail
+  const lead = (await db.popupLead.findFirst({ where: { shopId, deviceId }, orderBy: { createdAt: "desc" }, select: { email: true, createdAt: true, source: true, locale: true } })) as { email: string; createdAt: Date; source: string; locale: string | null } | null;
+  const checkoutEmail = last("email") as string | null;
   return {
     steps, events,
-    email: last("email") as string | null, phone: last("phone") as string | null,
+    email: checkoutEmail || lead?.email || null,
+    /** true when the only e-mail we have comes from the pop-up */
+    emailFromPopup: !checkoutEmail && !!lead,
+    popup: lead,
+    /** latest activity is the cart (no checkout after it) → recover with a cart link, not the checkout */
+    lastEvent: steps[steps.length - 1].event as string,
+    cartOnly: !events.some((e) => e !== "cart"),
+    phone: last("phone") as string | null,
     firstName: last("firstName") as string | null, lastName: last("lastName") as string | null, city: last("city") as string | null,
-    host: last("host") as string | null, locale: (last("locale") as string | null) || null, country: last("country") as string | null,
+    host: last("host") as string | null, locale: (last("locale") as string | null) || lead?.locale || null, country: last("country") as string | null,
     currency: (withItems?.currency ?? last("currency")) as string | null, total: (withItems?.total ?? last("total")) as number | null,
     items: (withItems?.items ?? []) as { title: string; qty: number; image?: string | null; variant?: string | null; price?: number | string | null }[],
-    acceptsMarketing: last("acceptsMarketing") as boolean | null,
+    // subscribing in the pop-up is e-mail marketing consent
+    acceptsMarketing: lead ? true : (last("acceptsMarketing") as boolean | null),
     cartDiscountCode: last("discountCode") as string | null,
     cartDiscountPct: last("discountPct") as number | null,
     checkoutToken: last("checkoutToken") as string | null,
@@ -253,6 +264,8 @@ export async function productImages(admin: Admin, variantId: string | null | und
 export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: string): Promise<string> {
   const host = ctx.host || null;
   let url: string | null = null;
+  // only a cart (or a newer cart after the checkout): link to the cart itself, not to an older checkout of that e-mail
+  if (ctx.lastEvent === "cart") return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
   if (ctx.email) {
     try {
       const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ abandonedCheckoutUrl } } }`, { q: `email:${JSON.stringify(ctx.email)}` });
@@ -358,8 +371,8 @@ export async function sendMail(m: { to: string; subject: string; html: string; f
 }
 
 /** Discount already applied in the buyer's checkout (pop-up code …): Shopify's abandoned checkout first, else what the pixel saw. */
-export async function cartDiscountOf(admin: Admin, ctx: Pick<DeviceCtx, "email" | "cartDiscountCode" | "cartDiscountPct">): Promise<{ code: string | null; pct: number | null }> {
-  if (ctx.email) {
+export async function cartDiscountOf(admin: Admin, ctx: Pick<DeviceCtx, "email" | "cartDiscountCode" | "cartDiscountPct"> & { lastEvent?: string }): Promise<{ code: string | null; pct: number | null }> {
+  if (ctx.email && ctx.lastEvent !== "cart") {
     try {
       const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ discountCodes totalDiscountSet{ shopMoney{ amount } } subtotalPriceSet{ shopMoney{ amount } } } } }`, { q: `email:${JSON.stringify(ctx.email)}` });
       const n = d?.abandonedCheckouts?.nodes?.[0];
@@ -447,7 +460,7 @@ export async function sendRecovery(i: SendInput) {
   if (!ctx) throw new Error("Client necunoscut");
   if (!ctx.email) throw new Error("Clientul nu a introdus un e-mail.");
   if (!i.preview && await isOptedOut(i.shopId, ctx.email)) throw new Error("Clienta s-a dezabonat de la e-mailuri.");
-  if (!ctx.items.length) {
+  if (!ctx.items.length && ctx.lastEvent !== "cart") {
     const sc = await shopifyCartItems(i.admin, ctx.email);
     if (sc.items.length) { ctx.items = sc.items as any; ctx.currency = ctx.currency || sc.currency; ctx.total = ctx.total ?? sc.total; }
   }
@@ -577,6 +590,13 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     if (r.event === "completed") { d.done = true; if (r.email) completedEmails.add(r.email.toLowerCase()); }
     devs.set(r.deviceId, d);
   }
+  // browsers without an e-mail in the cart / checkout but with one from the Semafor pop-up
+  const fromPopup = new Set<string>();
+  const noMail = [...devs].filter(([, d]) => !d.email).map(([id]) => id);
+  if (noMail.length) {
+    const leads = (await db.popupLead.findMany({ where: { shopId: shop.id, deviceId: { in: noMail } }, orderBy: { createdAt: "asc" }, select: { deviceId: true, email: true } })) as Array<{ deviceId: string; email: string }>;
+    for (const l of leads) { const d = devs.get(l.deviceId); if (d) { d.email = l.email; fromPopup.add(l.deviceId); } }
+  }
   const now = new Date();
   const morningMode = s.secondMode !== "delay";
   const mh = Math.min(20, Math.max(6, Number(s.morningHour) || 10));
@@ -627,10 +647,12 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     }
     if (!kind) continue;
     if (await orderedSince(admin as any, d.email, d.first)) { await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "a comandat între timp" } }); continue; }
-    if (s.onlyConsent) {
+    if (s.onlyConsent || fromPopup.has(deviceId)) {
       const ctx = await deviceContext(shop.id, deviceId);
       const c = await consentOf(admin as any, d.email);
-      if (!(ctx?.acceptsMarketing || c === "SUBSCRIBED")) {
+      // pop-up subscribers count as consent, unless they unsubscribed since (in Shopify)
+      const ok = fromPopup.has(deviceId) ? c !== "UNSUBSCRIBED" : !!(ctx?.acceptsMarketing || c === "SUBSCRIBED");
+      if (!ok) {
         if (!prev.some((p) => p.kind === kind && p.status === "skipped")) await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "fără acord de marketing" } });
         continue;
       }

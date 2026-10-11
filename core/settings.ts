@@ -17,7 +17,47 @@ export interface ShopSettings {
   adminLocale?: string | null;
   /** Shop country from Shopify (billing address), used only for the automatic language. */
   shopCountry?: string | null;
+  /** Storefront pop-up (e-mail capture with a discount) — see core/popup.ts. */
+  popup: PopupSettings;
+  /** Last time the storefront pop-up embed pinged Semafor (ISO) — tells the admin page the embed is on. */
+  popupSeenAt?: string | null;
 }
+
+export type PopupDesign = 'classic' | 'winter' | 'spring' | 'summer' | 'autumn';
+export type PopupLang = 'ro' | 'de' | 'pl' | 'en';
+export const POPUP_LANGS: PopupLang[] = ['ro', 'de', 'pl', 'en'];
+export const POPUP_DESIGNS: PopupDesign[] = ['classic', 'winter', 'spring', 'summer', 'autumn'];
+
+/** Texts of the pop-up in one storefront language ({shop} = shop name, {pct} = discount %). */
+export interface PopupTexts {
+  bigLabel: string; bigSub: string;
+  eyebrow: string; heading: string; text: string; placeholder: string; button: string; note: string; decline: string;
+  successEyebrow: string; successHeading: string; successText: string; successButton: string; successNote: string;
+  copy: string; copied: string; close: string; invalid: string; failed: string;
+}
+
+export interface PopupSettings {
+  enabled: boolean;
+  /** "site": any page after `delay` s · "cart": only with items in the cart, `cartDelay` s after add-to-cart / cart open */
+  mode: 'site' | 'cart';
+  delay: number;
+  cartDelay: number;
+  /** Also open on exit intent (desktop, mouse leaving to the top) when the cart has items — once per page. */
+  exitIntent: boolean;
+  /** Days the pop-up stays hidden after "no thanks" / close. */
+  hideDays: number;
+  code: string;
+  pct: number;
+  design: PopupDesign;
+  imageUrl: string;
+  /** Merchant overrides per storefront language (only fields that differ from the defaults). */
+  texts: Partial<Record<PopupLang, Partial<PopupTexts>>>;
+}
+
+export const DEFAULT_POPUP: PopupSettings = {
+  enabled: false, mode: 'site', delay: 10, cartDelay: 4, exitIntent: true, hideDays: 14,
+  code: 'BUNVENIT15', pct: 15, design: 'classic', imageUrl: '', texts: {},
+};
 
 export interface RecoverySettings {
   enabled: boolean;          // automatic e-mails on/off
@@ -63,11 +103,13 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   uiLang: null,
   adminLocale: null,
   shopCountry: null,
+  popup: DEFAULT_POPUP,
+  popupSeenAt: null,
 };
 
 export function settingsOf(json: unknown): ShopSettings {
   const j = (json as Partial<ShopSettings>) ?? {};
-  return { ...DEFAULT_SETTINGS, ...j, recovery: { ...DEFAULT_RECOVERY, ...(j.recovery ?? {}) } };
+  return { ...DEFAULT_SETTINGS, ...j, recovery: { ...DEFAULT_RECOVERY, ...(j.recovery ?? {}) }, popup: { ...DEFAULT_POPUP, ...(j.popup ?? {}) } };
 }
 
 /**

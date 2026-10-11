@@ -1,0 +1,43 @@
+{%- comment -%}
+  Semafor pop-up — app embed. Everything visible is rendered by assets/popup.js.
+  Settings are written by the Semafor admin (Pop-up page) into the app-data metafield semafor.popup (JSON).
+  Nothing is output when the pop-up is off, inside the checkout or on the password page.
+{%- endcomment -%}
+{%- liquid
+  assign cfg = app.metafields.semafor.popup.value
+  assign show = false
+  if cfg and cfg.enabled
+    assign show = true
+  endif
+  if request.page_type == 'password' or request.page_type == 'captcha'
+    assign show = false
+  endif
+-%}
+{%- if show -%}
+<script>
+  window.SemaforPopup = {
+    cfg: {{ cfg | json }},
+    locale: {{ request.locale.iso_code | json }},
+    customer: {% if customer %}true{% else %}false{% endif %},
+    cartCount: {{ cart.item_count | default: 0 }},
+    pageType: {{ request.page_type | json }},
+    designMode: {{ request.design_mode | json }},
+    proxy: "/apps/semafor",
+    css: {{ 'popup.css' | asset_url | json }}
+  };
+</script>
+<script src="{{ 'popup.js' | asset_url }}" defer></script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Semafor pop-up",
+  "target": "body",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Texts, design, discount and when the pop-up appears are set in the Semafor app → Pop-up."
+    }
+  ]
+}
+{% endschema %}

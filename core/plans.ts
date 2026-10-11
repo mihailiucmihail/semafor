@@ -3,7 +3,7 @@
 //
 //   free  (Gratuit) — manual blacklist + network, traffic light on up to FREE_MONTHLY_CHECKS orders / month
 //   basic (Basic)   — unlimited orders, blocking in checkout (hide COD / block), auto-cancel red,
-//                     yellow actions, identities linked by device
+//                     yellow actions, identities linked by device, storefront e-mail pop-up
 //   pro   (Pro)     — + checkout steps analytics, client page, recovery e-mails (manual + automatic)
 import type { ShopSettings } from './settings';
 
@@ -13,7 +13,7 @@ export const FREE_MONTHLY_CHECKS = 50;
 
 export type Feature =
   | 'unlimited_checks' | 'checkout_block' | 'auto_cancel' | 'yellow_actions' | 'device_links'
-  | 'checkout_stats' | 'recovery';
+  | 'checkout_stats' | 'recovery' | 'popup';
 
 export const FEATURE_PLAN: Record<Feature, Plan> = {
   unlimited_checks: 'basic',
@@ -23,6 +23,7 @@ export const FEATURE_PLAN: Record<Feature, Plan> = {
   device_links: 'basic',
   checkout_stats: 'pro',
   recovery: 'pro',
+  popup: 'basic',
 };
 
 export function normPlan(p: string | null | undefined): Plan {

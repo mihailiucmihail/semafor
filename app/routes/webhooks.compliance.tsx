@@ -24,6 +24,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       if (where.OR.length) await db.identifier.updateMany({ where, data: { raw: "[redacted]" } });
       const or = [email ? { email: { equals: email, mode: "insensitive" as const } } : null, phone ? { phone } : null].filter(Boolean) as any[];
       if (or.length) await db.checkoutAttempt.deleteMany({ where: { shopId: s.id, OR: or } });
+      if (email) await db.popupLead.deleteMany({ where: { shopId: s.id, email: email.trim().toLowerCase() } });
       await db.auditLog.create({ data: { shopId: s.id, actor: "shopify", action: "gdpr.customer_redact", payload: { hadEmail: !!email, hadPhone: !!phone } } });
       break;
     }

@@ -8,7 +8,7 @@ export default function Privacy() {
   return (
     <main style={S}>
       <h1>Semafor — Privacy policy</h1>
-      <p><em>Last updated: 10 October 2026 · Developer: Mihail Mihailiuc, Bucharest, Romania · Contact: mihailiucmihail@gmail.com</em></p>
+      <p><em>Last updated: 11 October 2026 · Developer: Mihail Mihailiuc, Bucharest, Romania · Contact: mihailiucmihail@gmail.com</em></p>
       <h2>What Semafor does</h2>
       <p>Semafor is a fraud-prevention app for Shopify merchants. It lets a merchant keep a blacklist of customers who refused cash-on-delivery parcels, filed chargebacks or abused the store, checks new orders against that list and, if the merchant enables it, prevents blacklisted customers from paying at checkout.</p>
       <h2>Data we process</h2>
@@ -27,11 +27,13 @@ export default function Privacy() {
       <p>Customers can ask the merchant (or us) for access to or deletion of their data; requests received through Shopify (<code>customers/data_request</code>, <code>customers/redact</code>) are fulfilled automatically.</p>
       <h2>Abandoned checkout e-mails</h2>
       <p>If the merchant turns on reminder e-mails, Semafor sends them on the merchant's behalf to the e-mail address the buyer typed in checkout, only when the buyer accepted marketing or the merchant's settings allow it. Each e-mail contains the cart contents and, optionally, a one-time discount code. Sending is done through Resend (USA). A log of sent e-mails is kept so the merchant can see the results; it is deleted with the shop data on uninstall.</p>
+      <h2>Storefront pop-up</h2>
+      <p>If the merchant turns on the Semafor pop-up, a visitor can leave their e-mail address in exchange for a discount code. With the visitor's consent (given by submitting the form) Semafor stores the e-mail together with the random device identifier kept in the visitor's browser (the same one used for checkout events), the storefront language and the page address, and creates or updates the customer in the merchant's Shopify store with e-mail marketing consent (never overriding an earlier unsubscribe). The device link lets the merchant recognise the subscriber later — for example when they leave products in the cart without typing an e-mail — and send the cart reminder e-mails described above. Every e-mail contains an unsubscribe link. The pop-up data is kept until the customer asks for deletion (<code>customers/redact</code>) or the app is uninstalled. Semafor also records, without personal data, what was in the cart before checkout so those reminders can show the products.</p>
       <h2>Hosting and sub-processors</h2>
       <p>Data is stored in an encrypted PostgreSQL database hosted by Railway (USA). E-mails are delivered by Resend (USA). Both operate under standard contractual clauses.</p>
       <hr />
       <h1>Politica de confidențialitate (RO)</h1>
-      <p>Semafor este o aplicație de prevenire a fraudei pentru magazinele Shopify. Prelucrăm datele comenzilor (nume, e-mail, telefon, adresă), datele introduse la checkout împreună cu un identificator aleator al dispozitivului, amprenta tehnică a browserului și adresa IP, exclusiv pentru a recunoaște clienții din lista neagră a magazinului. Temei: interesul legitim al comerciantului (art. 6 alin. (1) lit. f GDPR). Comerciantul este operator, noi suntem persoană împuternicită. Datele de checkout se păstrează 120 de zile; datele magazinului se șterg la 48 de ore după dezinstalare. Contact: mihailiucmihail@gmail.com.</p>
+      <p>Semafor este o aplicație de prevenire a fraudei pentru magazinele Shopify. Prelucrăm datele comenzilor (nume, e-mail, telefon, adresă), datele introduse la checkout împreună cu un identificator aleator al dispozitivului, amprenta tehnică a browserului și adresa IP, exclusiv pentru a recunoaște clienții din lista neagră a magazinului. Dacă magazinul folosește pop-up-ul Semafor, adresa de e-mail lăsată de vizitator (cu acordul său) este salvată împreună cu identificatorul dispozitivului, pentru a crea clientul în Shopify cu acord de marketing și pentru a-i trimite reamintiri pentru coșul abandonat; fiecare e-mail conține link de dezabonare. Temei: interesul legitim al comerciantului (art. 6 alin. (1) lit. f GDPR). Comerciantul este operator, noi suntem persoană împuternicită. Datele de checkout se păstrează 120 de zile; datele magazinului se șterg la 48 de ore după dezinstalare. Contact: mihailiucmihail@gmail.com.</p>
     </main>
   );
 }

@@ -7,6 +7,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import { enrichFromShopify } from "../semafor/recovery.server";
+import { popupLeadMap } from "../semafor/popup.server";
 import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers } from "../semafor/entries.server";
@@ -50,7 +51,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     for (const i of perAttempt[idx]) if (hitSet.has(i.hash) && !d.matched.includes(i.raw)) d.matched.push(i.raw);
     devs.set(a.deviceId, d);
   });
-  const all = [...devs.values()];
+  // "cart" rows (before checkout) only matter for browsers whose e-mail is known from the pop-up
+  const leads = await popupLeadMap(shop.id, [...devs.keys()]);
+  const inCheckout = (d: Dev) => d.events.some((e) => e !== "cart");
+  const all = [...devs.values()].filter((d) => inCheckout(d) || leads.has(d.id));
+  const checkoutDevs = all.filter(inCheckout);
   const black = all.filter((d) => d.matched.length);
   const hopping = all.filter((d) => d.emails.size >= 3 || d.phones.size >= 3 || d.names.size >= 3 || d.emails.size + d.phones.size + d.names.size >= 6);
   const slipped = black.filter((d) => d.completed);
@@ -80,7 +85,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const mailInfo = (d: any) => {
     const list = new Map<string, any>();
     for (const x of byDev.get(d.id) ?? []) list.set(x.kind + +x.createdAt, x);
-    for (const e of d.emails as Set<string>) for (const x of byMail.get(e.toLowerCase()) ?? []) list.set(x.kind + +x.createdAt, x);
+    const lead = leads.get(d.id)?.email;
+    for (const e of [...(d.emails as Set<string>), ...(lead ? [lead] : [])]) for (const x of byMail.get(e.toLowerCase()) ?? []) list.set(x.kind + +x.createdAt, x);
     const all = [...list.values()].sort((a, b) => +a.createdAt - +b.createdAt);
     if (!all.length) return null;
     const first = all[0].createdAt;
@@ -92,14 +98,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const devices = [...pick].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
-    matched: d.matched, mail: mailInfo(d),
+    matched: d.matched, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null,
   }));
   const storeHandle = session.shop.replace(".myshopify.com", "");
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
   return {
     days, f, since: firstAttempt?.createdAt ?? null,
-    kpi: { attempts: attempts.length, devices: all.length, completedDevices: all.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
+    kpi: { attempts: attempts.filter((a) => a.event !== "cart").length, devices: checkoutDevs.length, completedDevices: checkoutDevs.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
     orders, suspicious, devices, storeHandle,
   };
 };
@@ -194,9 +200,9 @@ export default function Stats() {
                   <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={devices.length} selectable={false}
                     headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("stats.colReached") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]}>
                     {devices.map((d: any, i: number) => {
-                      const stepKey = d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : "started";
+                      const stepKey = d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : !d.events.includes("started") && d.events.includes("cart") ? "cart" : "started";
                       const step = tr(`stats.step.${stepKey}` as TKey);
-                      const title = d.names[0] || d.emails[0] || d.phones[0] || tr("common.customer");
+                      const title = d.names[0] || d.emails[0] || d.popup || d.phones[0] || tr("common.customer");
                       return (
                         <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
                           <IndexTable.Cell>
@@ -213,7 +219,9 @@ export default function Stats() {
                             <BlockStack gap="050">
                               {d.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
                               {d.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
-                              {!d.emails.length && !d.phones.length && <Text as="span" tone="subdued">—</Text>}
+                              {d.popup && !d.emails.some((x: string) => x.toLowerCase() === d.popup) && <IdLine icon={EmailIcon} label={tr("kind.email")}>{d.popup}</IdLine>}
+                              {d.popup && <span><Badge tone="magic">{tr("popup.badge")}</Badge></span>}
+                              {!d.emails.length && !d.phones.length && !d.popup && <Text as="span" tone="subdued">—</Text>}
                             </BlockStack>
                           </IndexTable.Cell>
                           <IndexTable.Cell>

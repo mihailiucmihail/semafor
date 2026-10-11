@@ -22,11 +22,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), lang: shopLang(shop, request) };
+  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request) };
 };
 
 export default function App() {
-  const { apiKey, pro, lang } = useLoaderData<typeof loader>();
+  const { apiKey, pro, basic, lang } = useLoaderData<typeof loader>();
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <LangProvider lang={lang}>
@@ -34,6 +34,7 @@ export default function App() {
           <Link to="/app" rel="home">{t(lang, "nav.blacklist")}</Link>
           <Link to="/app/stats">{t(lang, pro ? "nav.stats" : "nav.statsPro")}</Link>
           <Link to="/app/emails">{t(lang, pro ? "nav.emails" : "nav.emailsPro")}</Link>
+          <Link to="/app/popup">{t(lang, basic ? "nav.popup" : "nav.popupBasic")}</Link>
           <Link to="/app/checks">{t(lang, "nav.checks")}</Link>
           <Link to="/app/import">{t(lang, "nav.import")}</Link>
           <Link to="/app/settings">{t(lang, "nav.settings")}</Link>

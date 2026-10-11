@@ -80,6 +80,48 @@ register(({ analytics, browser, init, settings }) => {
     try { fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body), keepalive: true }); } catch (e) {}
   }
 
+  // Cart (before checkout): lets Semafor recover carts of visitors whose e-mail is known from the Semafor pop-up.
+  // "add" = one line was added (merged into the stored cart); otherwise the full cart replaces it.
+  function money(m) { const n = Number(m && m.amount); return Number.isFinite(n) && n > 0 ? n : null; }
+  function cartItem(l) {
+    const v = (l && l.merchandise) || {};
+    return {
+      title: (v.product && v.product.title) || v.title || "",
+      qty: (l && l.quantity) || 1,
+      image: (v.image && v.image.src) || null,
+      variant: v.title && v.title !== "Default Title" ? v.title : null,
+      variantId: v.id || null,
+      price: money(l && l.cost && l.cost.totalAmount) || (money(v.price) ? money(v.price) * ((l && l.quantity) || 1) : null),
+    };
+  }
+  async function sendCart(event, add) {
+    const ctx = (event && event.context) || {};
+    const doc = ctx.document || {};
+    const d = (event && event.data) || {};
+    let items = [], total = null, currency = null;
+    if (add) {
+      const l = d.cartLine; if (!l) return;
+      items = [cartItem(l)];
+      currency = (l.cost && l.cost.totalAmount && l.cost.totalAmount.currencyCode) || (l.merchandise && l.merchandise.price && l.merchandise.price.currencyCode) || null;
+    } else {
+      const c = d.cart; if (!c || !(c.lines || []).length) return;
+      items = (c.lines || []).slice(0, 10).map(cartItem);
+      total = money(c.cost && c.cost.totalAmount);
+      currency = (c.cost && c.cost.totalAmount && c.cost.totalAmount.currencyCode) || null;
+    }
+    const path = (doc.location && doc.location.pathname) || "";
+    const lm = path.match(/^\/([a-z]{2})(?:-[a-z]{2})?(?:\/|$)/i);
+    const body = {
+      shop: SHOP, event: "cart", add: !!add, deviceId: await deviceId(), fingerprint: await fingerprint(ctx),
+      host: (doc.location && doc.location.host) || null,
+      locale: lm ? lm[1].toLowerCase() : null,
+      currency, total, items,
+    };
+    try { fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body), keepalive: true }); } catch (e) {}
+  }
+  analytics.subscribe("product_added_to_cart", (e) => sendCart(e, true));
+  analytics.subscribe("cart_viewed", (e) => sendCart(e, false));
+
   analytics.subscribe("checkout_started", (e) => send("started", e));
   analytics.subscribe("checkout_contact_info_submitted", (e) => send("contact", e));
   analytics.subscribe("checkout_address_info_submitted", (e) => send("address", e));

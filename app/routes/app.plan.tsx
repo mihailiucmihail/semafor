@@ -76,7 +76,7 @@ export default function PlanPage() {
 
             <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
               {PLANS.map((id) => {
-                const items = [1, 2, 3, 4].map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS }));
+                const items = (id === "free" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS }));
                 const name = planName(id);
                 const yr = yearly && id !== "free";
                 return (

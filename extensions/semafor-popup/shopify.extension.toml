@@ -1,0 +1,5 @@
+# Semafor storefront pop-up (e-mail + discount). An app embed block: the merchant turns it on in
+# Online Store → Themes → Customize → App embeds. Its settings come from the Semafor admin (app-data metafield).
+name = "Semafor pop-up"
+type = "theme"
+uid = "53697a16-a7d6-474e-afa6-fa03d47f46b8"
