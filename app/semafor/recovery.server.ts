@@ -800,11 +800,22 @@ export function startRecoveryScheduler() {
   if (g.__semaforRecovery) return;
   g.__semaforRecovery = setInterval(async () => {
     try {
-      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true } })) as any[];
+      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true, country: true } })) as any[];
       const { sessionStorage } = await import("../shopify.server");
       for (const sh of shops) {
         // only shops installed in THIS app (two deployments share the database)
         try { const ss = await (sessionStorage as any).findSessionsByShop(sh.domain); if (!ss?.some((x: any) => !x.isOnline)) continue; } catch { continue; }
+        // safety net: orders whose orders/create webhook never arrived get checked (and tagged) within 5 minutes
+        try {
+          const { withinQuota } = await import("./plan.server");
+          const { catchUpOrders } = await import("./backfill.server");
+          const { getShop } = await import("./shop.server");
+          if (await withinQuota(sh)) {
+            const full = await getShop(sh.domain);
+            const { admin } = await unauthenticated.admin(sh.domain);
+            if (full) await catchUpOrders(admin as any, full as any, 20);
+          }
+        } catch (e: any) { console.error("[semafor] order catch-up", sh.domain, e?.message || e); }
         try { await runAutomation(sh); } catch (e: any) { console.error("[semafor] recovery", sh.domain, e?.message || e); }
       }
     } catch (e: any) { console.error("[semafor] recovery scheduler", e?.message || e); }

@@ -11,6 +11,8 @@ query($n:Int!){ orders(first:$n, sortKey:CREATED_AT, reverse:true){ nodes{
   billingAddress{ firstName lastName name phone address1 address2 city zip countryCodeV2 }
 } } }`;
 
+const QRECENT = Q.replace("query($n:Int!){ orders(first:$n,", "query($n:Int!,$q:String!){ orders(first:$n, query:$q,");
+
 const addr = (a: any) => a ? { first_name: a.firstName, last_name: a.lastName, name: a.name, phone: a.phone, address1: a.address1, address2: a.address2, city: a.city, zip: a.zip, country_code: a.countryCodeV2 } : null;
 
 const Q1 = `#graphql
@@ -66,7 +68,9 @@ export async function catchUpOrders(admin: AdminClient, shop: { id: string; doma
   const last = lastCatchUp.get(shop.id) || 0;
   if (Date.now() - last < 30_000) return 0;
   lastCatchUp.set(shop.id, Date.now());
-  const r = await admin.graphql(Q, { variables: { n } });
+  // only recent orders (last 48 h): never re-tag a store's old history
+  const since = new Date(Date.now() - 48 * 3600_000).toISOString();
+  const r = await admin.graphql(QRECENT, { variables: { n, q: `created_at:>='${since}'` } });
   const j: any = await r.json();
   if (j.errors) throw new Error(j.errors.map((e: any) => e.message).join("; "));
   const orders = (j.data?.orders?.nodes ?? []) as any[];
