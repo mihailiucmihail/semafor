@@ -30,12 +30,22 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   // the e-mails as they looked (latest 5 sent)
   let shown = 0;
   for (const x of sends) { if (x.status === "sent" && shown < 5) { const h = await sentEmailHtml(x); x.view = h ? h.replace(/https?:\/\/[^"'\s>]*\/unsub\?t=[^"'\s>]*/g, "#") : null; shown++; } delete x.html; }
+  // where each welcome e-mail came from: the pop-up signup just before it (site / cart, page)
+  const leads = ctx.email ? ((await db.popupLead.findMany({ where: { shopId: shop.id, OR: [{ deviceId: dev }, { email: String(ctx.email).toLowerCase() }] }, orderBy: { createdAt: "desc" }, select: { source: true, pageUrl: true, createdAt: true } })) as any[]) : [];
+  const pagePath = (u?: string | null) => { if (!u) return null; try { return decodeURIComponent(new URL(u).pathname); } catch { return u; } };
+  for (const x of sends) {
+    if (x.kind !== "welcome") continue;
+    const l = leads.find((l) => +l.createdAt <= +x.createdAt + 60_000) ?? leads[leads.length - 1];
+    if (l) x.origin = { source: l.source, page: pagePath(l.pageUrl), at: l.createdAt };
+  }
+  const popupSource = leads[0] ? { source: leads[0].source, page: pagePath(leads[0].pageUrl) } : null;
   const r = shop.settings.recovery;
   // orders of this buyer that Semafor brought (pop-up / reminder e-mail)
   const orderIds = [...new Set((ctx.steps as any[]).map((s) => s.orderId).filter(Boolean))] as string[];
   const attributed = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderName: true, attribution: true } })) as any[]).filter((o) => o.attribution?.primary) : [];
   return {
     attributed,
+    popupSource,
     dev,
     ctx: { ...ctx, steps: ctx.steps.map((s: any) => ({ event: s.event, at: s.createdAt, email: s.email, phone: s.phone, name: [s.firstName, s.lastName].filter(Boolean).join(" "), city: s.city })) },
     locale: localeOf(ctx), consent, templates, sends,
@@ -65,7 +75,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 const fmt = (d: string | Date, lang: Lang) => new Date(d).toLocaleString(dateLocale(lang), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 export default function Client() {
-  const { ctx, locale, consent, templates, sends, ready, attributed } = useLoaderData<typeof loader>();
+  const { ctx, locale, consent, templates, sends, ready, attributed, popupSource } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const sorted = useMemo(() => [...templates].sort((a: any, b: any) => (a.locale === locale ? -1 : 0) - (b.locale === locale ? -1 : 0)), [templates, locale]);
@@ -164,6 +174,12 @@ export default function Client() {
                         <Text as="span" variant="bodySm" tone="subdued"><span className="sf-num">{fmt(s.createdAt, lang)}</span></Text>
                       </InlineStack>
                       <Text as="p" variant="bodySm"><span className="sf-break">{KINDS.includes(s.kind) ? tr(`client.kind.${s.kind}` as TKey) : s.kind} · {s.subject}{s.discountCode ? ` · ${s.discountCode}` : ""}{s.error ? ` · ${trMsg(lang, s.error)}` : ""}</span></Text>
+                      {s.origin && (
+                        <InlineStack gap="200" blockAlign="center">
+                          <Badge tone="magic">{tr(s.origin.source === "cart" ? "popup.origin.cart" : "popup.origin.site")}</Badge>
+                          {s.origin.page && <Text as="span" variant="bodySm" tone="subdued"><span className="sf-break">{tr("popup.origin.page", { page: s.origin.page })}</span></Text>}
+                        </InlineStack>
+                      )}
                       {s.view && (
                         <Box borderColor="border" borderWidth="025" borderRadius="200" overflowX="hidden" overflowY="hidden">
                           <iframe title={s.subject} srcDoc={s.view} loading="lazy" style={{ width: "100%", height: 620, border: 0 }} />
@@ -196,7 +212,7 @@ export default function Client() {
                 ))}
                 {(ctx as any).popup && (
                   <InlineStack gap="200" blockAlign="center">
-                    <Badge tone="magic">{tr("popup.badge")}</Badge>
+                    <Badge tone="magic">{popupSource ? tr(popupSource.source === "cart" ? "popup.origin.cart" : "popup.origin.site") : tr("popup.badge")}</Badge>
                     <Text as="span" variant="bodySm" tone="subdued"><span className="sf-break">{tr("popup.clientLinked", { email: (ctx as any).popup.email, date: fmt((ctx as any).popup.createdAt, lang) })}</span></Text>
                   </InlineStack>
                 )}

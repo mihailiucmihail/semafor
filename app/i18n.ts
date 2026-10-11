@@ -545,6 +545,9 @@ const D = {
 
   // ── storefront pop-up (app.popup) ──
   "popup.badge": { en: "from pop-up", ro: "din pop-up" },
+  "popup.origin.site": { en: "from the site pop-up", ro: "din pop-up-ul de pe site" },
+  "popup.origin.cart": { en: "from the cart pop-up", ro: "din pop-up-ul din coș" },
+  "popup.origin.page": { en: "page {page}", ro: "pagina {page}" },
   "popup.clientLinked": { en: "Left {email} in the pop-up on {date}", ro: "A lăsat {email} în pop-up pe {date}" },
   "popup.subtitle": { en: "Collect emails with a welcome discount — and recognise the visitor later, even when the cart or checkout has no email.", ro: "Strânge e-mailuri cu o reducere de bun venit — și recunoaște vizitatorul mai târziu, chiar dacă în coș sau în checkout nu există e-mail." },
   "popup.locked": { en: "The pop-up is available on the Basic and Pro plans.", ro: "Pop-up-ul este disponibil în planurile Basic și Pro." },
