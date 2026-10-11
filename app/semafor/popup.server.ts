@@ -234,3 +234,20 @@ export async function popupStats(shopId: string, days = 30) {
   }
   return { leads: leads.length, cart, ordered };
 }
+
+/**
+ * Shopify deletes app-owned metafields on uninstall, so after a reinstall the storefront embed has no config even
+ * though Semafor still has the pop-up switched on. Called from the admin layout: re-pushes when the metafield is gone
+ * (checked at most every 10 minutes per shop).
+ */
+const ensured = new Map<string, number>();
+export async function ensurePopupConfig(admin: Admin, shop: { id: string; plan?: string | null; domain?: string | null; settings: ShopSettings }) {
+  if (!shop.settings.popup?.enabled) return;
+  const last = ensured.get(shop.id) || 0;
+  if (Date.now() - last < 10 * 60_000) return;
+  ensured.set(shop.id, Date.now());
+  const d = await gql(admin, `query { currentAppInstallation { metafield(namespace: "semafor", key: "popup") { id } } }`);
+  if (d?.currentAppInstallation?.metafield?.id) return;
+  await pushPopupConfig(admin, shop);
+  console.log("[semafor] popup config restored after reinstall", shop.domain);
+}

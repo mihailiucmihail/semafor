@@ -10,6 +10,7 @@ import { ensureShop } from "../semafor/shop.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 import { refreshPlan, isOwnerShop } from "../semafor/plan.server";
 import { mailQuota } from "../semafor/quota.server";
+import { ensurePopupConfig } from "../semafor/popup.server";
 import { Banner, Box, Text } from "@shopify/polaris";
 import { can } from "../../core/plans";
 import { LangProvider, t } from "../i18n";
@@ -24,6 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
+  await ensurePopupConfig(admin as any, shop as any).catch((e) => console.error("[semafor] ensurePopupConfig", e));
   // Resend plan limits are global for all shops — only the app owner sees (and can act on) this warning
   const quota = isOwnerShop(session.shop) ? await mailQuota().catch(() => null) : null;
   return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null };

@@ -105,6 +105,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, msg: t(lang, "emails.msg.invalidEmail"), test: t(lang, "emails.msg.invalidEmail") };
     try {
       const tpl = (await db.emailTemplate.findFirst({ where: { id: String(fd.get("templateId") || ""), shopId: shop.id } }))
+        // no template picked: the admin's language first (English admin → EN reminder), then any
+        || (await db.emailTemplate.findFirst({ where: { shopId: shop.id, locale: lang }, orderBy: [{ purpose: "asc" }, { updatedAt: "desc" }] }))
         || (await db.emailTemplate.findFirst({ where: { shopId: shop.id }, orderBy: { updatedAt: "desc" } }));
       if (!tpl) return { ok: false, msg: t(lang, "emails.msg.noTemplate"), test: t(lang, "emails.msg.noTemplate") };
       const s = shop.settings.recovery;

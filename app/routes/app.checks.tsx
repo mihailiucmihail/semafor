@@ -86,7 +86,7 @@ export default function Checks() {
                           <IndexTable.Cell><Badge tone={TONE[net]}>{c.networkShops ? tr("checks.netShops", { level: LABEL[net], n: c.networkShops }) : LABEL.green}</Badge></IndexTable.Cell>
                           <IndexTable.Cell>
                             <BlockStack gap="050">{m.length ? m.map((x, k) => (
-                              <Text key={k} as="span" variant="bodySm"><span className="sf-break">{x.kind === "device" || x.kind === "order" ? trMsg(lang, x.normalized) : <><Text as="span" variant="bodySm" tone="subdued">{kindLabel(x.kind)}: </Text>{x.normalized} <Text as="span" variant="bodySm" tone="subdued">({trMsg(lang, x.reason)})</Text></>}</span></Text>
+                              <Text key={k} as="span" variant="bodySm"><span className="sf-break">{x.kind === "device" || x.kind === "order" ? trMsg(lang, x.normalized) : <><Text as="span" variant="bodySm" tone="subdued">{kindLabel(x.kind)}: </Text>{x.normalized} <Text as="span" variant="bodySm" tone="subdued">({["refuz_colet", "chargeback", "return_fraud", "abuse", "other"].includes(x.reason) ? tr(`reason.${x.reason}` as TKey) : trMsg(lang, x.reason)})</Text></>}</span></Text>
                             )) : <Text as="span" tone="subdued">—</Text>}</BlockStack>
                           </IndexTable.Cell>
                           <IndexTable.Cell>

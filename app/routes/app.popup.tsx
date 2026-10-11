@@ -175,7 +175,8 @@ export default function PopupPage() {
       return [l, Object.fromEntries(Object.entries(cur[l]).map(([k, v]) => [k, v === (from as any)[k] ? (to as any)[k] : v]))];
     })) as Texts);
   };
-  const [tab, setTab] = useState(0);
+  // start on the admin language (an English admin sees the English pop-up first)
+  const [tab, setTab] = useState(Math.max(0, (POPUP_LANGS as readonly string[]).indexOf(lang)));
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [state, setState] = useState<"form" | "success">("form");
   const [advanced, setAdvanced] = useState(p.codeMode === "own");
