@@ -22,8 +22,9 @@ export function shopLang(shop: ShopLike, request?: Request): Lang {
   const locale = (urlLocale || s.adminLocale || "").toLowerCase();
   if (locale.startsWith("ro")) return "ro";
   // the admin language the merchant chose wins over the store's country (English admin in a Romanian store → English)
-  if (locale) return "en";
+  if (locale.startsWith("en")) return "en";
   if (isOwnerShop(shop.domain)) return "ro";
+  if (locale) return "en";
   if (String(s.shopCountry || "").toUpperCase() === "RO") return "ro";
   return "en";
 }
