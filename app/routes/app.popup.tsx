@@ -15,6 +15,8 @@ import { PCT_CHOICES, WELCOME_KEYS, autoCode, buildPopupConfig, cleanPopup, popu
 import { sendWelcome } from "../semafor/welcome.server";
 import { senderOf, MAIL_DOMAIN, mailReady } from "../semafor/recovery.server";
 import { Kpi, SectionHead } from "../components/semafor-ui";
+import { AttrKpi } from "../components/attribution";
+import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
 // the storefront files themselves → the preview is exactly what visitors see
 import popupCss from "../../extensions/semafor-popup/assets/popup.css?raw";
@@ -36,7 +38,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
   let shopName = "";
   try { const j: any = await (await admin.graphql(`query { shop { name } }`)).json(); shopName = j?.data?.shop?.name || ""; } catch { /* ignore */ }
-  const [stats, code] = await Promise.all([popupStats(shop.id, 30), checkDiscountCode(admin as any, p.code)]);
+  await backfillAttribution(db, admin as any, shop);
+  const [stats, code, attr] = await Promise.all([popupStats(shop.id, 30), checkDiscountCode(admin as any, p.code), attributionSummary(db, shop.id, 30, ["popup_site", "popup_cart"])]);
   const texts = Object.fromEntries(POPUP_LANGS.map((l) => [l, popupTexts(p, l)])) as Texts;
   const wtexts = Object.fromEntries(POPUP_LANGS.map((l) => [l, welcomeTexts(p, l)])) as WTexts;
   const sender = await senderOf(session.shop, shop.settings.recovery);
@@ -44,7 +47,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const handle = session.shop.replace(/\.myshopify\.com$/, "");
   const apiKey = process.env.SHOPIFY_API_KEY || "";
   return {
-    popup: p, texts, wtexts, shopName, stats, code,
+    popup: p, texts, wtexts, shopName, stats, code, attr,
     mail: { ready: mailReady(), sender, semaforDomain: !!MAIL_DOMAIN && sender.endsWith("@" + MAIL_DOMAIN) },
     seenAt: shop.settings.popupSeenAt ?? null,
     recovery: { pro: can(plan, "recovery"), auto: !!shop.settings.recovery.enabled },
@@ -227,10 +230,11 @@ export default function PopupPage() {
           </BlockStack>
         </Card>
 
-        <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+        <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
           <Kpi icon={EmailIcon} label={tr("popup.kpiLeads")} value={data.stats.leads} hint={tr("popup.kpiLeadsHint")} />
           <Kpi icon={CartIcon} label={tr("popup.kpiCart")} value={data.stats.cart} hint={tr("popup.kpiCartHint")} />
           <Kpi icon={OrderIcon} label={tr("popup.kpiOrdered")} value={data.stats.ordered} tone={data.stats.ordered ? "success" : undefined} hint={tr("popup.kpiOrderedHint")} />
+          <AttrKpi s={data.attr} sources={["popup_site", "popup_cart"]} src="popup" />
         </InlineGrid>
 
         <div className="sf-pp-layout">

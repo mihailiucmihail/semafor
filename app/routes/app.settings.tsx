@@ -31,6 +31,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     yellowAction: String(fd.get("yellowAction")) as any,
     cancelRed: fd.get("cancelRed") === "true",
     shareNetwork: fd.get("shareNetwork") === "true",
+    tagAttributed: fd.get("tagAttributed") !== "false",
     thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
     // language is sent only when the merchant picked one; otherwise the stored choice (or automatic) stays
     uiLang: fd.get("uiLang") === "en" || fd.get("uiLang") === "ro" ? (String(fd.get("uiLang")) as "en" | "ro") : shop.settings.uiLang ?? null,
@@ -45,12 +46,12 @@ export default function Settings() {
   const app = useAppBridge();
   const tr = useT();
   const lang = useLang();
-  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "" });
+  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "" });
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
   const allOk = (webhooks as any[]).every((w) => w.ok);
-  const save = () => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork) }, { method: "post" });
+  const save = () => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork), tagAttributed: String(s.tagAttributed) }, { method: "post" });
 
   return (
     <Page fullWidth>
@@ -86,6 +87,12 @@ export default function Settings() {
           <Layout.AnnotatedSection title={tr("settings.networkHeading")} description={tr("settings.networkDesc")}>
             <Card>
               <Checkbox label={tr("settings.networkLabel")} checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })} helpText={tr("settings.networkHelp")} />
+            </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("attr.settingsHeading")} description={tr("attr.settingsDesc")}>
+            <Card>
+              <Checkbox label={tr("attr.settingsLabel")} checked={s.tagAttributed} onChange={(v) => setS({ ...s, tagAttributed: v })} helpText={tr("attr.settingsHelp")} />
             </Card>
           </Layout.AnnotatedSection>
 

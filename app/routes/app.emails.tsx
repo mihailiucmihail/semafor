@@ -14,6 +14,8 @@ import { DESIGNS, DEFAULT_COPY, buildEmail, productBlock, isDesign, type Item } 
 import { render } from "../semafor/render";
 import { defaultTemplates } from "../semafor/recovery-templates";
 import { useT, t, trMsg, type TKey } from "../i18n";
+import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
+import { AttrKpi } from "../components/attribution";
 import { shopLang } from "../i18n.server";
 
 const DAY = 86_400_000;
@@ -34,6 +36,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const recovered = emails.filter((e) => { const first = sent.filter((s) => s.email.toLowerCase() === e).sort((a, b) => +a.createdAt - +b.createdAt)[0]; return done.some((d) => d.email?.toLowerCase() === e && +d.createdAt > +first.createdAt); }).length;
   return {
     recovery: shop.settings.recovery, templates,
+    attr: await (async () => { await backfillAttribution(db, admin as any, shop); return attributionSummary(db, shop.id, 30, ["email"]); })(),
     stats: { sent: sent.length, people: emails.length, recovered, skipped: sends.filter((s) => s.status === "skipped").length, failed: sends.filter((s) => s.status === "failed").length },
     resend: mailReady(),
     sender: await senderOf(session.shop, shop.settings.recovery),
@@ -146,7 +149,7 @@ function copyFor(locale: string, purpose: string) {
 }
 
 export default function Emails() {
-  const { recovery, templates, stats, resend, sender, shopName, sample } = useLoaderData<typeof loader>();
+  const { recovery, templates, stats, resend, sender, shopName, sample, attr } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
@@ -203,11 +206,12 @@ export default function Emails() {
       <TitleBar title={tr("nav.emails")} />
       <Layout>
         <Layout.Section variant="fullWidth">
-            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
+            <InlineGrid columns={{ xs: 1, sm: 2, lg: 5 }} gap="300">
               <Kpi icon={EmailIcon} label={tr("emails.sent30")} value={stats.sent} hint={tr("emails.customers", { n: stats.people })} onClick={() => setList("sent")} />
               <Kpi icon={OrderIcon} label={tr("emails.orderedAfter")} value={stats.recovered} tone={stats.recovered ? "success" : undefined} hint={tr("emails.pctContacted", { p: stats.people ? Math.round((stats.recovered / stats.people) * 100) : 0 })} onClick={() => setList("recovered")} />
               <Kpi icon={ClockIcon} label={tr("emails.skipped")} value={stats.skipped} hint={tr("emails.skippedHint")} onClick={() => setList("skipped")} />
               <Kpi icon={AlertCircleIcon} label={tr("emails.errors")} value={stats.failed} tone={stats.failed ? "critical" : undefined} onClick={() => setList("failed")} />
+              <AttrKpi s={attr} sources={["email"]} src="email" />
             </InlineGrid>
         </Layout.Section>
 

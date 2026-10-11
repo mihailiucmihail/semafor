@@ -12,6 +12,7 @@ import { ensureShop } from "../semafor/shop.server";
 import { deviceContext, enrichFromShopify, ensureTemplates, consentOf, localeOf, sendRecovery, mailReady, sentEmailHtml } from "../semafor/recovery.server";
 import { STEP_LABEL, stoppedStep } from "../semafor/render";
 import { useT, useLang, dateLocale, trMsg, type Lang, type TKey } from "../i18n";
+import { AttrBadge } from "../components/attribution";
 import { shopLang } from "../i18n.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -30,7 +31,11 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   let shown = 0;
   for (const x of sends) { if (x.status === "sent" && shown < 5) { const h = await sentEmailHtml(x); x.view = h ? h.replace(/https?:\/\/[^"'\s>]*\/unsub\?t=[^"'\s>]*/g, "#") : null; shown++; } delete x.html; }
   const r = shop.settings.recovery;
+  // orders of this buyer that Semafor brought (pop-up / reminder e-mail)
+  const orderIds = [...new Set((ctx.steps as any[]).map((s) => s.orderId).filter(Boolean))] as string[];
+  const attributed = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderName: true, attribution: true } })) as any[]).filter((o) => o.attribution?.primary) : [];
   return {
+    attributed,
     dev,
     ctx: { ...ctx, steps: ctx.steps.map((s: any) => ({ event: s.event, at: s.createdAt, email: s.email, phone: s.phone, name: [s.firstName, s.lastName].filter(Boolean).join(" "), city: s.city })) },
     locale: localeOf(ctx), consent, templates, sends,
@@ -60,7 +65,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 const fmt = (d: string | Date, lang: Lang) => new Date(d).toLocaleString(dateLocale(lang), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 export default function Client() {
-  const { ctx, locale, consent, templates, sends, ready } = useLoaderData<typeof loader>();
+  const { ctx, locale, consent, templates, sends, ready, attributed } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const sorted = useMemo(() => [...templates].sort((a: any, b: any) => (a.locale === locale ? -1 : 0) - (b.locale === locale ? -1 : 0)), [templates, locale]);
@@ -183,6 +188,12 @@ export default function Client() {
                     {ctx.email ? consentBadge : null}
                   </BlockStack>
                 </InlineStack>
+                {(attributed as any[]).map((o, k) => (
+                  <BlockStack key={k} gap="050">
+                    {o.orderName && <Text as="span" variant="bodySm" fontWeight="semibold">{o.orderName}</Text>}
+                    <AttrBadge a={o.attribution} />
+                  </BlockStack>
+                ))}
                 {(ctx as any).popup && (
                   <InlineStack gap="200" blockAlign="center">
                     <Badge tone="magic">{tr("popup.badge")}</Badge>

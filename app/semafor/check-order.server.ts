@@ -12,6 +12,7 @@ import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
 import { findRelated } from './open-cod.server';
 import { shopLang } from '../i18n.server';
+import { attributeOrder } from './attribution.server';
 
 export interface AdminClient { graphql(q: string, opts?: { variables?: Record<string, unknown> }): Promise<Response> }
 async function gql(admin: AdminClient, q: string, variables?: Record<string, unknown>) { const r = await admin.graphql(q, { variables }); const j = await r.json(); return j; }
@@ -127,6 +128,9 @@ export async function checkOrder(opts: {
     create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action },
     update: { score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
   });
+
+  // Was it brought by Semafor (pop-up / reminder e-mail)? Only for new orders (webhook), not for re-checks / backfill.
+  if (!opts.skipCancel) await attributeOrder(db, admin, { id: shopId, domain: opts.shopDomain, settings: opts.settings }, order);
 
   return { ...result, combined, action, related };
 }

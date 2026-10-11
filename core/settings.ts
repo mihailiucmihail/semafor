@@ -19,6 +19,8 @@ export interface ShopSettings {
   shopCountry?: string | null;
   /** Storefront pop-up (e-mail capture with a discount) — see core/popup.ts. */
   popup: PopupSettings;
+  /** Tag orders brought by Semafor (pop-up / reminder e-mail) — "Semafor · Pop-up" … */
+  tagAttributed: boolean;
   /** Last time the storefront pop-up embed pinged Semafor (ISO) — tells the admin page the embed is on. */
   popupSeenAt?: string | null;
 }
@@ -116,6 +118,7 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   shopCountry: null,
   popup: DEFAULT_POPUP,
   popupSeenAt: null,
+  tagAttributed: true,
 };
 
 export function settingsOf(json: unknown): ShopSettings {

@@ -101,6 +101,11 @@ model OrderCheck {
   matched      Json                           // Match[]
   actionTaken  String?                        // tag | risk | prepaid | cancel | none
   checkedAt    DateTime @default(now())
+  // order attribution ("brought by Semafor") — app/semafor/attribution.server.ts; null = not computed yet
+  attribution  Json?
+  total        Float?                         // order total in the shop currency
+  currency     String?
+  orderedAt    DateTime?
 
   @@unique([shopId, orderId])
   @@index([shopId, checkedAt])

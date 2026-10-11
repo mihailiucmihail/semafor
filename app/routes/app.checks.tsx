@@ -9,6 +9,7 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { useT, useLang, dateLocale, trMsg, type TKey } from "../i18n";
+import { AttrBadge } from "../components/attribution";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -73,10 +74,13 @@ export default function Checks() {
                       return (
                         <IndexTable.Row id={c.id} key={c.id} position={i}>
                           <IndexTable.Cell>
-                            <InlineStack gap="300" blockAlign="center" wrap={false}>
-                              <Lamp level={lv} label={LABEL[lv]} />
-                              <Button variant="plain" url={`https://admin.shopify.com/store/${storeHandle}/orders/${oid}`} target="_top">{c.orderName || oid}</Button>
-                            </InlineStack>
+                            <BlockStack gap="100">
+                              <InlineStack gap="300" blockAlign="center" wrap={false}>
+                                <Lamp level={lv} label={LABEL[lv]} />
+                                <Button variant="plain" url={`https://admin.shopify.com/store/${storeHandle}/orders/${oid}`} target="_top">{c.orderName || oid}</Button>
+                              </InlineStack>
+                              <AttrBadge a={c.attribution} />
+                            </BlockStack>
                           </IndexTable.Cell>
                           <IndexTable.Cell><Badge tone={TONE[own]}>{tr("checks.scoreBadge", { level: LABEL[own], n: c.score })}</Badge></IndexTable.Cell>
                           <IndexTable.Cell><Badge tone={TONE[net]}>{c.networkShops ? tr("checks.netShops", { level: LABEL[net], n: c.networkShops }) : LABEL.green}</Badge></IndexTable.Cell>

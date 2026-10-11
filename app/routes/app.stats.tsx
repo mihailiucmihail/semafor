@@ -8,6 +8,8 @@ import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import { enrichFromShopify } from "../semafor/recovery.server";
 import { popupLeadMap } from "../semafor/popup.server";
+import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
+import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers } from "../semafor/entries.server";
@@ -107,13 +109,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     days, f, since: firstAttempt?.createdAt ?? null,
     kpi: { attempts: attempts.filter((a) => a.event !== "cart").length, devices: checkoutDevs.length, completedDevices: checkoutDevs.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
     orders, suspicious, devices, storeHandle,
+    attr: await (async () => { await backfillAttribution(db, admin as any, shop); return attributionSummary(db, shop.id, 30); })(),
   };
 };
 
 const initials = (s: string) => (s.split(/[\s@.]+/).filter(Boolean).slice(0, s.includes("@") ? 1 : 2).map((w) => w[0]).join("") || "?").toUpperCase();
 
 export default function Stats() {
-  const { days, f, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
+  const { days, f, since, kpi, orders, suspicious, devices, storeHandle, attr } = useLoaderData<typeof loader>();
   const [sp, setSp] = useSearchParams();
   const filterBy = (v: string) => { const n = new URLSearchParams(sp); if (!v || f === v) n.delete("f"); else n.set("f", v); setSp(n); setTimeout(() => document.getElementById("sf-attempts")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300); };
   const tr = useT();
@@ -143,6 +146,8 @@ export default function Stats() {
                 <Kpi icon={AlertTriangleIcon} label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} onClick={() => filterBy("hopping")} active={f === "hopping"} />
               </InlineGrid>
             </BlockStack>
+
+            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300"><AttrKpi s={attr} /></InlineGrid>
 
             <Card>
               <BlockStack gap="300">
