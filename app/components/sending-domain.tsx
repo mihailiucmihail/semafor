@@ -97,7 +97,7 @@ export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, h
               </div>
             )}
             {!verified && <Text as="p" variant="bodySm" tone="subdued">{tr("dom.nameNote")}</Text>}
-            {err && <Banner tone="critical">{tr(`dom.err.${err}` as TKey)}{f.data?.detail ? ` (${f.data.detail})` : ""}</Banner>}
+            {err && <Banner tone="critical">{tr(`dom.err.${err}` as TKey)}{f.data?.detail && err !== "limit" ? ` (${f.data.detail})` : ""}</Banner>}
             <InlineStack gap="200" wrap>
               {!verified && <Button variant="primary" loading={busy("domainVerify")} onClick={() => f.submit({ intent: "domainVerify" }, { method: "post" })}>{tr("dom.verify")}</Button>}
               <Button tone="critical" variant="plain" onClick={() => setConfirm(true)}>{tr("dom.disconnect")}</Button>
@@ -105,7 +105,7 @@ export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, h
             {!verified && <Text as="p" variant="bodySm" tone="subdued">{tr("dom.dnsTime")}</Text>}
           </BlockStack>
         )}
-        {!d && err && <Banner tone="critical">{tr(`dom.err.${err}` as TKey)}{f.data?.detail ? ` (${f.data.detail})` : ""}</Banner>}
+        {!d && err && <Banner tone="critical">{tr(`dom.err.${err}` as TKey)}{f.data?.detail && err !== "limit" ? ` (${f.data.detail})` : ""}</Banner>}
 
         <Box>
           <InlineStack gap="300" blockAlign="center" wrap>

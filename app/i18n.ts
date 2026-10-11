@@ -557,6 +557,7 @@ const D = {
   "dom.err.invalid": { en: "That doesn't look like a domain. Enter e.g. yourstore.com.", ro: "Nu pare un domeniu. Scrie de ex. magazinul-tau.ro." },
   "dom.err.public": { en: "Public e-mail domains (Gmail, Yahoo, Outlook …) can't be used — use your store's own domain.", ro: "Domeniile publice de e-mail (Gmail, Yahoo, Outlook …) nu se pot folosi — folosește domeniul magazinului." },
   "dom.err.shopify": { en: "myshopify.com can't be used — use your store's own domain.", ro: "myshopify.com nu se poate folosi — folosește domeniul propriu al magazinului." },
+  "dom.err.limit": { en: "We can't add new sending domains right now. Our team has been notified — try again later or write to support. Until then e-mails go from the Semafor address.", ro: "Momentan nu putem adăuga domenii noi de trimitere. Echipa a fost anunțată — încearcă mai târziu sau scrie la suport. Până atunci e-mailurile pleacă de la adresa Semafor." },
   "dom.err.taken": { en: "This domain is already connected to another store in Semafor.", ro: "Acest domeniu este deja conectat la alt magazin în Semafor." },
   "dom.err.exists": { en: "This domain is already set up in Semafor's sending service. Contact Semafor support to move it to your store.", ro: "Acest domeniu este deja configurat în serviciul de trimitere Semafor. Scrie la suportul Semafor ca să-l mutăm la magazinul tău." },
   "dom.err.noKey": { en: "E-mail sending isn't configured yet (Semafor).", ro: "Trimiterea e-mailurilor nu este încă configurată (Semafor)." },

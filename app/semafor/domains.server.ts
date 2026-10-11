@@ -20,7 +20,7 @@ const REGION = "eu-west-1";
 
 import { cleanDomain, checkDomainAllowed } from "../../core/domain";
 export { cleanDomain, checkDomainAllowed };
-export type DomainError = "invalid" | "public" | "shopify" | "taken" | "exists" | "noKey" | "api";
+export type DomainError = "invalid" | "public" | "shopify" | "taken" | "exists" | "noKey" | "api" | "limit";
 export class DomainProblem extends Error { constructor(public code: DomainError, msg?: string) { super(msg || code); } }
 
 async function resend(path: string, init: RequestInit = {}) {
@@ -77,6 +77,10 @@ export async function connectDomain(shop: { id: string; domain: string; settings
     const st = toState(one.ok ? one.j : found);
     await store(shop, st, actor);
     return st;
+  }
+  if (/domain limit/i.test(msg)) {
+    console.error("[semafor] Resend domain limit reached — upgrade the Resend plan", { shop: shop.domain, name });
+    throw new DomainProblem("limit", msg);
   }
   throw new DomainProblem("api", `Resend ${r.status}: ${msg || JSON.stringify(r.j).slice(0, 200)}`);
 }
