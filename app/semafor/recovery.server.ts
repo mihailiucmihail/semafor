@@ -416,6 +416,7 @@ export async function sendMail(m: { to: string; subject: string; html: string; f
       ...(m.unsubscribeUrl ? { headers: { "List-Unsubscribe": `<${m.unsubscribeUrl}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}) }),
   });
   const j: any = await r.json().catch(() => ({}));
+  if (!m.subject.startsWith("Semafor: limita")) setTimeout(() => import("./quota.server").then((q) => q.quotaAlert()).catch(() => {}), 5_000);
   if (!r.ok) throw new Error(`Resend ${r.status}: ${j?.message || JSON.stringify(j).slice(0, 200)}`);
   return String(j?.id || "");
 }

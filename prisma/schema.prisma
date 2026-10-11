@@ -298,3 +298,10 @@ model PopupLead {
   @@index([shopId, email])
   @@index([shopId, createdAt])
 }
+
+// small app-wide flags (e.g. "quota alert already e-mailed today")
+model AppKv {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

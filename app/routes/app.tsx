@@ -8,7 +8,9 @@ import semaforStyles from "../styles/semafor.css?url";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
-import { refreshPlan } from "../semafor/plan.server";
+import { refreshPlan, isOwnerShop } from "../semafor/plan.server";
+import { mailQuota } from "../semafor/quota.server";
+import { Banner, Box, Text } from "@shopify/polaris";
 import { can } from "../../core/plans";
 import { LangProvider, t } from "../i18n";
 import { shopLang, rememberLangHints } from "../i18n.server";
@@ -22,11 +24,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request) };
+  // Resend plan limits are global for all shops — only the app owner sees (and can act on) this warning
+  const quota = isOwnerShop(session.shop) ? await mailQuota().catch(() => null) : null;
+  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null };
 };
 
 export default function App() {
-  const { apiKey, pro, basic, lang } = useLoaderData<typeof loader>();
+  const { apiKey, pro, basic, lang, quota } = useLoaderData<typeof loader>();
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <LangProvider lang={lang}>
@@ -40,6 +44,14 @@ export default function App() {
           <Link to="/app/settings">{t(lang, "nav.settings")}</Link>
           <Link to="/app/plan">{t(lang, "nav.plan")}</Link>
         </NavMenu>
+        {quota && (
+          <Box paddingBlockStart="400" paddingInline="400">
+            <Banner tone={quota.level === "full" ? "critical" : "warning"} title={t(lang, quota.level === "full" ? "quota.fullTitle" : "quota.warnTitle")}
+              action={{ content: t(lang, "quota.upgrade"), url: "https://resend.com/settings/billing", target: "_blank" }}>
+              <Text as="p">{t(lang, "quota.body", { day: quota.day, dayLimit: quota.dayLimit || "∞", month: quota.month, monthLimit: quota.monthLimit || "∞" })}</Text>
+            </Banner>
+          </Box>
+        )}
         <Outlet />
       </LangProvider>
     </AppProvider>
