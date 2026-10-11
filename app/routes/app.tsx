@@ -11,6 +11,10 @@ import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 import { refreshPlan, isOwnerShop } from "../semafor/plan.server";
 import { mailQuota } from "../semafor/quota.server";
 import { ensurePopupConfig } from "../semafor/popup.server";
+import { pushCheckoutMetafield } from "../semafor/entries.server";
+
+/** Re-sync the checkout blocklist (metafields are wiped on uninstall) — at most every 10 minutes per shop. */
+const blockSynced = new Map<string, number>();
 import { Banner, Box, Text } from "@shopify/polaris";
 import { can } from "../../core/plans";
 import { LangProvider, t } from "../i18n";
@@ -25,6 +29,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
+  if (Date.now() - (blockSynced.get(shop.id) || 0) > 10 * 60_000) {
+    blockSynced.set(shop.id, Date.now());
+    pushCheckoutMetafield(admin as any, shop.id).catch((e) => console.error("[semafor] blocklist sync", e));
+  }
   await ensurePopupConfig(admin as any, shop as any).catch((e) => console.error("[semafor] ensurePopupConfig", e));
   // Resend plan limits are global for all shops — only the app owner sees (and can act on) this warning
   const quota = isOwnerShop(session.shop) ? await mailQuota().catch(() => null) : null;
