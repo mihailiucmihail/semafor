@@ -89,7 +89,7 @@ ${meta(first) || first.price ? `<tr><td style="padding:0 0 4px;${d === "minimal"
  * Full e-mail HTML for a design. The result still contains {{placeholders}} (first_name, recovery_url,
  * discount_code, valid_until, total, shop_name, product_block …) that render() fills per buyer.
  */
-export function buildEmail(d: DesignId, c: Copy, b: Brand) {
+export function buildEmail(d: DesignId, c: Copy, b: Brand, opts: { codeBox?: boolean } = {}) {
   const L = look(d, b.accent);
   const pad = d === "modern" ? "26px 28px 6px" : "18px 32px 6px";
   const btn = `<a href="{{recovery_url}}" style="display:inline-block;background:${L.accent};color:#ffffff;text-decoration:none;padding:15px 30px;font-family:${SANS};font-size:13px;font-weight:600;letter-spacing:${d === "elegant" ? ".16em" : ".06em"};text-transform:${d === "minimal" ? "none" : "uppercase"};border-radius:${L.btnRadius}">${txt(c.button)}</a>`;
@@ -101,7 +101,10 @@ export function buildEmail(d: DesignId, c: Copy, b: Brand) {
     ? `{{#discount}}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:26px 0 8px;border-top:1px solid ${L.line};border-bottom:1px solid ${L.line}"><tr><td style="padding:26px 8px 24px;text-align:center">
 <div style="font-family:${numFont};font-size:46px;line-height:1;font-weight:${d === "elegant" ? "400" : "300"};letter-spacing:.02em;color:${L.ink}">{{discount_pct}}%</div>
 ${discText ? `<div style="margin:10px auto 0;max-width:360px;font-family:${SANS};font-size:12px;line-height:1.6;letter-spacing:.06em;color:${L.muted}">${txt(discText)}</div>` : ""}
-<div style="margin-top:16px"><span style="display:inline-block;padding:9px 18px;border:1px solid ${L.ink};border-radius:${d === "modern" ? "999px" : "0"};font-family:${SANS};font-size:12px;letter-spacing:.24em;color:${L.ink}">{{discount_code}}</span></div>
+<div style="margin-top:16px">${opts.codeBox
+  // welcome e-mail: the code is the point of the e-mail → big, in a dashed box
+  ? `<span style="display:inline-block;padding:14px 28px;border:2px dashed ${L.discBorder};background:${L.discBg};border-radius:${d === "modern" ? "14px" : "4px"};font-family:${numFont};font-size:24px;font-weight:600;letter-spacing:.16em;color:${L.ink}">{{discount_code}}</span>`
+  : `<span style="display:inline-block;padding:9px 18px;border:1px solid ${L.ink};border-radius:${d === "modern" ? "999px" : "0"};font-family:${SANS};font-size:12px;letter-spacing:.24em;color:${L.ink}">{{discount_code}}</span>`}</div>
 </td></tr></table>{{/discount}}`
     : "";
   const existing = c.existing

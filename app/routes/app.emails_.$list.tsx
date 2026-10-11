@@ -40,7 +40,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     : [];
   const orderOf = new Map<string, any>();
   for (const e of emails) {
-    const first = sent.filter((s) => s.email.toLowerCase() === e).sort((a, b) => +a.createdAt - +b.createdAt)[0];
+    // "ordered after our e-mail" counts from the first reminder, not from the pop-up welcome e-mail
+    const first = sent.filter((s) => s.email.toLowerCase() === e && s.kind !== "welcome").sort((a, b) => +a.createdAt - +b.createdAt)[0];
+    if (!first) continue;
     const d = done.find((x) => String(x.email).toLowerCase() === e && +x.createdAt > +first.createdAt);
     if (d) orderOf.set(e, d);
   }
@@ -66,7 +68,7 @@ export default function EmailList() {
   const tr = useT();
   const lang = useLang();
   const fmt = (d: any) => new Date(d).toLocaleString(dateLocale(lang), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-  const kindLabel = (k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : tr("common.manual"));
+  const kindLabel = (k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : k === "welcome" ? tr("client.kind.welcome") : tr("common.manual"));
   const isPeople = list === "sent" || list === "recovered";
   const count = isPeople ? people.length : rows.length;
   const tabs: ListKind[] = ["sent", "recovered", "skipped", "failed"];

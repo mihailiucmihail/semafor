@@ -74,7 +74,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const names = orderIds.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orderIds } }, select: { orderId: true, orderName: true } })) as any[]) : [];
   const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
   // recovery e-mails per buyer: how many were sent and whether she came back / ordered after the first one
-  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent", createdAt: { gt: new Date(+since - 7 * DAY) } }, select: { deviceId: true, email: true, kind: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
+  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent", kind: { not: "welcome" }, createdAt: { gt: new Date(+since - 7 * DAY) } }, select: { deviceId: true, email: true, kind: true, createdAt: true }, orderBy: { createdAt: "asc" } })) as any[];
   const byDev = new Map<string, any[]>(), byMail = new Map<string, any[]>();
   for (const x of sends) {
     (byDev.get(x.deviceId) ?? byDev.set(x.deviceId, []).get(x.deviceId)!).push(x);

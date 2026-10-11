@@ -1,6 +1,6 @@
 // Storefront pop-up: default texts per language and the config the theme app embed reads.
 // Shared by the admin page (live preview) and the server (metafield the embed reads).
-import { DEFAULT_POPUP, POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts } from './settings.ts';
+import { DEFAULT_POPUP, POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts, type WelcomeTexts } from './settings.ts';
 
 export const POPUP_TEXT_KEYS: Array<keyof PopupTexts> = [
   'bigLabel', 'bigSub', 'eyebrow', 'heading', 'text', 'placeholder', 'button', 'note', 'decline',
@@ -84,17 +84,85 @@ export const POPUP_DEFAULT_TEXTS: Record<PopupLang, PopupTexts> = {
   },
 };
 
+/** Pop-up defaults that would promise an e-mail, replaced when the welcome e-mail is OFF. */
+export const POPUP_NO_EMAIL_TEXTS: Partial<Record<PopupLang, Partial<PopupTexts>>> = {
+  ro: {
+    text: 'Abonează-te la noutățile {shop} și primești {pct}% reducere la prima comandă. Codul apare imediat, gata de folosit.',
+    note: 'Te poți dezabona oricând.',
+    successText: 'Iată codul tău — îl poți folosi chiar acum:',
+  },
+};
+
+export const WELCOME_KEYS: Array<keyof WelcomeTexts> = ['subject', 'heading', 'text', 'codeLabel', 'button', 'note'];
+export const WELCOME_DEFAULT_TEXTS: Record<PopupLang, WelcomeTexts> = {
+  ro: {
+    subject: 'Reducerea ta de bun venit: {pct}% la {shop}',
+    heading: 'Bine ai venit! Iată reducerea ta de {pct}%',
+    text: 'Mulțumim că te-ai abonat la noutățile {shop}. Codul de mai jos îți oferă {pct}% reducere la prima comandă — îl poți folosi oricând.',
+    codeLabel: 'codul tău de bun venit',
+    button: 'Aplică reducerea',
+    note: 'Reducerea se aplică automat când apeși butonul. Codul se poate folosi o singură dată.',
+  },
+  de: {
+    subject: 'Dein Willkommensrabatt: {pct} % bei {shop}',
+    heading: 'Willkommen! Hier ist dein Rabatt von {pct} %',
+    text: 'Schön, dass du die Neuigkeiten von {shop} abonniert hast. Mit dem Code unten erhältst du {pct} % Rabatt auf deine erste Bestellung – einlösbar, wann immer du möchtest.',
+    codeLabel: 'dein Willkommenscode',
+    button: 'Rabatt anwenden',
+    note: 'Mit einem Klick auf den Button wird der Rabatt automatisch angewendet. Der Code ist einmal einlösbar.',
+  },
+  pl: {
+    subject: 'Twój rabat powitalny: {pct}% w {shop}',
+    heading: 'Witaj! Oto Twój rabat {pct}%',
+    text: 'Dziękujemy za zapis na nowości {shop}. Kod poniżej daje {pct}% rabatu na pierwsze zamówienie — możesz go użyć, kiedy zechcesz.',
+    codeLabel: 'Twój kod powitalny',
+    button: 'Zastosuj rabat',
+    note: 'Rabat zostanie naliczony automatycznie po kliknięciu przycisku. Kod można wykorzystać jeden raz.',
+  },
+  en: {
+    subject: 'Your welcome discount: {pct}% off at {shop}',
+    heading: "Welcome! Here's your {pct}% discount",
+    text: 'Thanks for subscribing to {shop} news. The code below gives you {pct}% off your first order — use it whenever you like.',
+    codeLabel: 'your welcome code',
+    button: 'Apply my discount',
+    note: 'The discount is applied automatically when you tap the button. The code can be used once.',
+  },
+};
+
+export function welcomeTexts(p: Pick<PopupSettings, 'welcomeTexts'>, lang: PopupLang): WelcomeTexts {
+  return { ...WELCOME_DEFAULT_TEXTS[lang], ...((p.welcomeTexts ?? {})[lang] ?? {}) };
+}
+export function welcomeOverrides(lang: PopupLang, t: Partial<WelcomeTexts>): Partial<WelcomeTexts> {
+  const out: Partial<WelcomeTexts> = {};
+  for (const k of WELCOME_KEYS) {
+    const v = t[k];
+    if (typeof v === 'string' && v !== WELCOME_DEFAULT_TEXTS[lang][k]) out[k] = v.slice(0, 1000);
+  }
+  return out;
+}
+
+/** Default pop-up texts; without the welcome e-mail they don't promise an e-mail. */
+export function popupDefaults(lang: PopupLang, welcome = true): PopupTexts {
+  return { ...POPUP_DEFAULT_TEXTS[lang], ...(welcome ? {} : POPUP_NO_EMAIL_TEXTS[lang] ?? {}) };
+}
+/** true when pop-up texts say the code comes by e-mail (warn when the welcome e-mail is off). */
+export function promisesEmail(t: Partial<PopupTexts>): boolean {
+  return /(pe e-mail|per e-?mail|e-mailem|by e-?mail|to your inbox|ți-am trimis|wysłaliśmy|haben wir dir)/i.test([t.text, t.note, t.successText].filter(Boolean).join(' '));
+}
+
 /** Texts of one language as the merchant sees them in the editor (defaults + overrides, placeholders kept). */
-export function popupTexts(p: Pick<PopupSettings, 'texts'>, lang: PopupLang): PopupTexts {
-  return { ...POPUP_DEFAULT_TEXTS[lang], ...((p.texts ?? {})[lang] ?? {}) };
+export function popupTexts(p: Pick<PopupSettings, 'texts'> & { welcome?: boolean }, lang: PopupLang): PopupTexts {
+  return { ...popupDefaults(lang, p.welcome !== false), ...((p.texts ?? {})[lang] ?? {}) };
 }
 
 /** Only the fields that differ from the defaults (what is stored). */
-export function textOverrides(lang: PopupLang, t: Partial<PopupTexts>): Partial<PopupTexts> {
+/** Only what differs from the defaults (either variant, with or without the welcome e-mail) is stored. */
+export function textOverrides(lang: PopupLang, t: Partial<PopupTexts>, welcome = true): Partial<PopupTexts> {
   const out: Partial<PopupTexts> = {};
+  const def = popupDefaults(lang, welcome);
   for (const k of POPUP_TEXT_KEYS) {
     const v = t[k];
-    if (typeof v === 'string' && v !== POPUP_DEFAULT_TEXTS[lang][k]) out[k] = v.slice(0, 600);
+    if (typeof v === 'string' && v !== def[k] && v !== POPUP_DEFAULT_TEXTS[lang][k] && v !== popupDefaults(lang, false)[k]) out[k] = v.slice(0, 600);
   }
   return out;
 }
@@ -103,7 +171,10 @@ export function textOverrides(lang: PopupLang, t: Partial<PopupTexts>): Partial<
 export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
   const n = (v: unknown, d: number, min: number, max: number) => { const x = Math.round(Number(v)); return Number.isFinite(x) ? Math.min(max, Math.max(min, x)) : d; };
   const texts: PopupSettings['texts'] = {};
-  for (const l of POPUP_LANGS) { const o = textOverrides(l, (p.texts ?? {})[l] ?? {}); if (Object.keys(o).length) texts[l] = o; }
+  const welcome = p.welcome !== false;
+  for (const l of POPUP_LANGS) { const o = textOverrides(l, (p.texts ?? {})[l] ?? {}, welcome); if (Object.keys(o).length) texts[l] = o; }
+  const welcomeTexts: PopupSettings['welcomeTexts'] = {};
+  for (const l of POPUP_LANGS) { const o = welcomeOverrides(l, (p.welcomeTexts ?? {})[l] ?? {}); if (Object.keys(o).length) welcomeTexts[l] = o; }
   const img = String(p.imageUrl ?? '').trim();
   return {
     enabled: !!p.enabled,
@@ -120,6 +191,8 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
     design: POPUP_DESIGNS.includes(p.design as any) ? (p.design as PopupSettings['design']) : 'classic',
     imageUrl: /^https:\/\//i.test(img) ? img.slice(0, 1000) : '',
     texts,
+    welcome,
+    welcomeTexts,
   };
 }
 

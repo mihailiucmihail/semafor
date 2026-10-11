@@ -10,8 +10,10 @@ import { requireFeature, planOf } from "../semafor/plan.server";
 import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, type CodeCheck } from "../semafor/popup.server";
 import db from "../db.server";
 import { can } from "../../core/plans";
-import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts } from "../../core/settings";
-import { POPUP_DEFAULT_TEXTS, PCT_CHOICES, autoCode, buildPopupConfig, cleanPopup, popupTexts } from "../../core/popup";
+import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts, type WelcomeTexts } from "../../core/settings";
+import { PCT_CHOICES, WELCOME_KEYS, autoCode, buildPopupConfig, cleanPopup, popupTexts, popupDefaults, promisesEmail, welcomeTexts } from "../../core/popup";
+import { sendWelcome } from "../semafor/welcome.server";
+import { senderOf, MAIL_DOMAIN, mailReady } from "../semafor/recovery.server";
 import { Kpi, SectionHead } from "../components/semafor-ui";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
 // the storefront files themselves → the preview is exactly what visitors see
@@ -19,6 +21,7 @@ import popupCss from "../../extensions/semafor-popup/assets/popup.css?raw";
 import popupJs from "../../extensions/semafor-popup/assets/popup.js?raw";
 
 type Texts = Record<PopupLang, PopupTexts>;
+type WTexts = Record<PopupLang, WelcomeTexts>;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, redirect } = await authenticate.admin(request);
@@ -35,11 +38,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try { const j: any = await (await admin.graphql(`query { shop { name } }`)).json(); shopName = j?.data?.shop?.name || ""; } catch { /* ignore */ }
   const [stats, code] = await Promise.all([popupStats(shop.id, 30), checkDiscountCode(admin as any, p.code)]);
   const texts = Object.fromEntries(POPUP_LANGS.map((l) => [l, popupTexts(p, l)])) as Texts;
+  const wtexts = Object.fromEntries(POPUP_LANGS.map((l) => [l, welcomeTexts(p, l)])) as WTexts;
+  const sender = await senderOf(session.shop, shop.settings.recovery);
   const plan = planOf(shop);
   const handle = session.shop.replace(/\.myshopify\.com$/, "");
   const apiKey = process.env.SHOPIFY_API_KEY || "";
   return {
-    popup: p, texts, shopName, stats, code,
+    popup: p, texts, wtexts, shopName, stats, code,
+    mail: { ready: mailReady(), sender, semaforDomain: !!MAIL_DOMAIN && sender.endsWith("@" + MAIL_DOMAIN) },
     seenAt: shop.settings.popupSeenAt ?? null,
     recovery: { pro: can(plan, "recovery"), auto: !!shop.settings.recovery.enabled },
     editorUrl: `https://${session.shop}/admin/themes/current/editor?context=apps&template=index&activateAppId=${apiKey}/semafor-popup`,
@@ -52,6 +58,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "popup", redirect);
   const fd = await request.formData();
+  if (fd.get("intent") === "welcomeTest" || fd.get("intent") === "welcomePreview") {
+    const preview = fd.get("intent") === "welcomePreview";
+    const to = String(fd.get("to") || "").trim();
+    if (!preview && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { welcome: true, ok: false, error: "invalid" };
+    try {
+      const draft = cleanPopup(JSON.parse(String(fd.get("payload") || "{}")));
+      const out = await sendWelcome({ shop, admin: admin as any, to: to || "preview@example.com", locale: String(fd.get("lang") || "en"), host: null, deviceId: "test", popup: draft, test: !preview, preview });
+      return { welcome: true, ok: true, sent: !preview, to, html: out.html.replace(/https?:\/\/[^"'\s>]*\/unsub\?t=[^"'\s>]*/g, "#"), subject: out.subject };
+    } catch (e: any) { return { welcome: true, ok: false, error: String(e?.message || e).slice(0, 300) }; }
+  }
   if (fd.get("intent") === "checkCode") return { check: true, code: await checkDiscountCode(admin as any, String(fd.get("code") || "").trim().toUpperCase()) };
   let input: Partial<PopupSettings>;
   try { input = JSON.parse(String(fd.get("payload") || "{}")); } catch { return { ok: false, pushError: "bad payload" }; }
@@ -141,6 +157,19 @@ export default function PopupPage() {
   const lang = useLang();
   const [p, setP] = useState<PopupSettings>(data.popup as PopupSettings);
   const [texts, setTexts] = useState<Texts>(data.texts as Texts);
+  const [wtexts, setWtexts] = useState<WTexts>(data.wtexts as WTexts);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const welcomeFetcher = useFetcher<typeof action>();
+  const wres: any = welcomeFetcher.data;
+  /** Toggling the welcome e-mail swaps the untouched pop-up texts between "code comes by e-mail" and "code shown here". */
+  const setWelcome = (on: boolean) => {
+    setP((x) => ({ ...x, welcome: on }));
+    setTexts((cur) => Object.fromEntries(POPUP_LANGS.map((l) => {
+      const from = popupDefaults(l, !on), to = popupDefaults(l, on);
+      return [l, Object.fromEntries(Object.entries(cur[l]).map(([k, v]) => [k, v === (from as any)[k] ? (to as any)[k] : v]))];
+    })) as Texts);
+  };
   const [tab, setTab] = useState(0);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [state, setState] = useState<"form" | "success">("form");
@@ -154,7 +183,8 @@ export default function PopupPage() {
   useEffect(() => { if (fetcher.state === "idle" && res?.savedCode) setP((x) => ({ ...x, code: res.savedCode })); }, [fetcher.state, res]);
   const codeInfo: CodeCheck = (codeFetcher.data as any)?.code ?? res?.code ?? data.code;
 
-  const draft = useMemo(() => ({ ...p, texts }), [p, texts]);
+  const draft = useMemo(() => ({ ...p, texts, welcomeTexts: wtexts }), [p, texts, wtexts]);
+  const promiseWarn = !p.welcome && POPUP_LANGS.some((l) => promisesEmail(texts[l]));
   const cfg = useMemo(() => { const c = cleanPopup({ ...draft, enabled: true }); if (c.codeMode === "auto" && draft.code?.startsWith(c.code)) c.code = draft.code; return buildPopupConfig(c, data.shopName); }, [draft, data.shopName]);
   const save = useCallback(() => fetcher.submit({ payload: JSON.stringify(draft) }, { method: "post" }), [fetcher, draft]);
   const checkCode = () => codeFetcher.submit({ intent: "checkCode", code: p.code }, { method: "post" });
@@ -312,10 +342,53 @@ export default function PopupPage() {
                     </BlockStack>
                   ))}
                   <InlineStack align="start">
-                    <Button variant="plain" onClick={() => setTexts((x) => ({ ...x, [tl]: { ...POPUP_DEFAULT_TEXTS[tl] } }))}>{tr("popup.textsReset")}</Button>
+                    <Button variant="plain" onClick={() => setTexts((x) => ({ ...x, [tl]: { ...popupDefaults(tl, p.welcome) } }))}>{tr("popup.textsReset")}</Button>
                   </InlineStack>
                 </BlockStack>
               </Box>
+            </Card>
+
+            {/* welcome e-mail */}
+            <Card>
+              <BlockStack gap="300">
+                <SectionHead title={tr("popup.welcomeHeading")} description={tr("popup.welcomeDesc")} />
+                <Checkbox label={tr("popup.welcomeToggle")} checked={p.welcome} onChange={setWelcome} />
+                {promiseWarn && <Banner tone="warning">{tr("popup.welcomePromiseWarn")}</Banner>}
+                {p.welcome && (
+                  <BlockStack gap="200">
+                    <Text as="p" variant="bodySm" tone="subdued">{tr("popup.welcomeSender", { sender: data.mail.sender || "—" })}</Text>
+                    {data.mail.semaforDomain && <Text as="p" variant="bodySm" tone="subdued">{tr("popup.welcomeOwnDomain")}</Text>}
+                    {!data.mail.ready && <Banner tone="info">{tr("client.sendingSoon")}</Banner>}
+                    <Box>
+                      <Button variant="plain" disclosure={welcomeOpen ? "up" : "down"} onClick={() => setWelcomeOpen((v) => !v)}>{tr("popup.welcomeEdit", { lang: LANG_NAME[tl] })}</Button>
+                    </Box>
+                    <Collapsible id="sf-pp-welcome" open={welcomeOpen}>
+                      <BlockStack gap="300">
+                        <Tabs tabs={POPUP_LANGS.map((l) => ({ id: "w-" + l, content: LANG_NAME[l] }))} selected={tab} onSelect={setTab} />
+                        {WELCOME_KEYS.map((k) => (
+                          <TextField key={k} label={tr(`popup.w.${k}` as TKey)} value={wtexts[tl][k]} multiline={k === "text" || k === "note" ? 2 : undefined} autoComplete="off"
+                            onChange={(v) => setWtexts((x) => ({ ...x, [tl]: { ...x[tl], [k]: v } }))} />
+                        ))}
+                        <InlineStack gap="200" blockAlign="end">
+                          <div style={{ flex: 1, minWidth: 200 }}><TextField label={tr("popup.welcomeTestTo")} type="email" value={testTo} onChange={setTestTo} autoComplete="email" placeholder="you@example.com" /></div>
+                          <Button onClick={() => welcomeFetcher.submit({ intent: "welcomePreview", payload: JSON.stringify(draft), lang: tl }, { method: "post" })} loading={welcomeFetcher.state !== "idle" && welcomeFetcher.formData?.get("intent") === "welcomePreview"}>{tr("client.preview")}</Button>
+                          <Button disabled={!data.mail.ready} onClick={() => welcomeFetcher.submit({ intent: "welcomeTest", payload: JSON.stringify(draft), lang: tl, to: testTo }, { method: "post" })} loading={welcomeFetcher.state !== "idle" && welcomeFetcher.formData?.get("intent") === "welcomeTest"}>{tr("common.sendTest")}</Button>
+                        </InlineStack>
+                        {wres && !wres.ok && <Banner tone="critical">{wres.error === "invalid" ? tr("emails.msg.invalidEmail") : wres.error}</Banner>}
+                        {wres?.ok && wres.sent && <Banner tone="success">{tr("popup.welcomeTestSent", { to: wres.to })}</Banner>}
+                        {wres?.ok && wres.html && (
+                          <BlockStack gap="100">
+                            <Text as="p" variant="bodySm" tone="subdued">{tr("common.subjectPrefix")}<b>{wres.subject}</b></Text>
+                            <Box borderColor="border" borderWidth="025" borderRadius="200" overflowX="hidden" overflowY="hidden">
+                              <iframe title="welcome" sandbox="" srcDoc={wres.html} style={{ width: "100%", height: 620, border: 0 }} />
+                            </Box>
+                          </BlockStack>
+                        )}
+                      </BlockStack>
+                    </Collapsible>
+                  </BlockStack>
+                )}
+              </BlockStack>
             </Card>
 
             <Card>

@@ -56,11 +56,18 @@ export interface PopupSettings {
   imageUrl: string;
   /** Merchant overrides per storefront language (only fields that differ from the defaults). */
   texts: Partial<Record<PopupLang, Partial<PopupTexts>>>;
+  /** E-mail the code to the subscriber right after the subscription (Semafor sends it). */
+  welcome: boolean;
+  /** Overrides of the welcome e-mail texts per language. */
+  welcomeTexts: Partial<Record<PopupLang, Partial<WelcomeTexts>>>;
 }
+
+/** Texts of the welcome e-mail ({shop}, {pct} placeholders). */
+export interface WelcomeTexts { subject: string; heading: string; text: string; codeLabel: string; button: string; note: string }
 
 export const DEFAULT_POPUP: PopupSettings = {
   enabled: false, mode: 'smart', delay: 10, cartDelay: 4, exitIntent: true, hideDays: 14,
-  codeMode: 'auto', code: 'WELCOME15', pct: 15, design: 'classic', imageUrl: '', texts: {},
+  codeMode: 'auto', code: 'WELCOME15', pct: 15, design: 'classic', imageUrl: '', texts: {}, welcome: true, welcomeTexts: {},
 };
 
 export interface RecoverySettings {

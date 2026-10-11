@@ -25,7 +25,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureTemplates(shop.id);
   const templates = (await db.emailTemplate.findMany({ where: { shopId: shop.id }, orderBy: [{ locale: "asc" }, { purpose: "asc" }, { name: "asc" }] })) as any[];
   const since = new Date(Date.now() - 30 * DAY);
-  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, select: { status: true, kind: true, email: true, createdAt: true } })) as any[];
+  // recovery KPIs: the pop-up welcome e-mail is listed under "sent" but doesn't count here
+  const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, createdAt: { gt: since }, kind: { not: "welcome" } }, select: { status: true, kind: true, email: true, createdAt: true } })) as any[];
   const sent = sends.filter((s) => s.status === "sent");
   // recovered = an e-mail we wrote to placed an order (checkout completed) after our e-mail
   const emails = [...new Set(sent.map((s) => s.email.toLowerCase()))];

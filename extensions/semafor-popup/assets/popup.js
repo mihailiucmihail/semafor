@@ -226,7 +226,7 @@
   function submit(source) {
     return function (email, done) {
       if (designMode) { setTimeout(function () { done(null, cfg.code); }, 300); return; }
-      var body = JSON.stringify({ email: email, deviceId: dev, source: source, locale: lang, pageUrl: String(W.location.href).slice(0, 500), consent: true });
+      var body = JSON.stringify({ email: email, deviceId: dev, source: source, locale: lang, host: W.location.host, pageUrl: String(W.location.href).slice(0, 500), consent: true });
       fetch(proxy + '/popup', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: body })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (j) {

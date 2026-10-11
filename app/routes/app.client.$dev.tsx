@@ -38,7 +38,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   };
 };
 
-const KINDS = ["manual", "auto1", "auto2", "auto3"];
+const KINDS = ["manual", "auto1", "auto2", "auto3", "welcome"];
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
   const { session, admin, redirect } = await authenticate.admin(request);

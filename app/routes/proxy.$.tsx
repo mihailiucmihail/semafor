@@ -2,13 +2,15 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { getShop } from "../semafor/shop.server";
 import { EMAIL_RE, deviceKnown, markEmbedSeen, popupAllowed, subscribeLead } from "../semafor/popup.server";
+import { welcomeAfterSubscribe } from "../semafor/welcome.server";
 
 /**
  * App proxy (storefront → Shopify → Semafor, HMAC-signed by Shopify): https://<store>/apps/semafor/<path>
  * arrives here as /proxy/<path>. Used by the "Semafor pop-up" theme app embed:
  *   GET  /apps/semafor/ping     — the embed is on (shown in the admin)
  *   GET  /apps/semafor/status   — ?d=<deviceId> → { known } (browser already linked to an e-mail → no pop-up)
- *   POST /apps/semafor/popup    — { email, deviceId, source, locale, pageUrl, consent } → { ok, code }
+ *   POST /apps/semafor/popup    — { email, deviceId, source, locale, host, pageUrl, consent } → { ok, code }
+ *                                 (+ the welcome e-mail with the code, sent in the background)
  */
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
@@ -67,11 +69,14 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "?";
   if (limited(`d:${shop.id}:${deviceId}`, 6) || limited(`i:${shop.id}:${ip}`, 30)) return json({ ok: false, error: "rate" }, 429);
 
+  const locale = cut(b?.locale, 10)?.toLowerCase() ?? null;
   const out = await subscribeLead(admin, shop, {
     email, deviceId,
     source: b?.source === "cart" ? "cart" : "site",
-    locale: cut(b?.locale, 10)?.toLowerCase() ?? null,
+    locale,
     pageUrl: cut(b?.pageUrl, 500),
   });
+  // the code by e-mail (once per e-mail within 30 days; background, errors only logged)
+  if (admin) welcomeAfterSubscribe({ shop, admin, to: email, locale, host: cut(b?.host, 120), deviceId });
   return json({ ok: true, code: out.code });
 };

@@ -657,7 +657,8 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     if (seen.has(em)) continue; // one buyer on several devices → one e-mail
     seen.add(em);
     if (await isOptedOut(shop.id, em)) continue;
-    const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since } }, orderBy: { createdAt: "asc" } })) as any[];
+    // the pop-up welcome e-mail is not a reminder: it doesn't count for the reminder sequence
+    const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since }, kind: { not: "welcome" } }, orderBy: { createdAt: "asc" } })) as any[];
     if (prev.some((p) => p.status === "skipped" && (p.error === "a comandat între timp" || p.error === "fără produse în coș"))) continue;
     const has = (k: string) => prev.some((p) => p.kind === k && p.status === "sent");
     const failed = (k: string) => prev.filter((p) => p.kind === k && p.status === "failed").length;
@@ -758,7 +759,7 @@ export async function blastFirst(shop: { id: string; domain: string; settings: u
     if (completed.has(em) || seen.has(em)) continue;
     seen.add(em);
     if (await isOptedOut(shop.id, em)) { res.optedOut++; continue; }
-    if (await db.emailSend.count({ where: { shopId: shop.id, email: { equals: d.email, mode: "insensitive" }, status: "sent" } })) { res.already++; continue; }
+    if (await db.emailSend.count({ where: { shopId: shop.id, email: { equals: d.email, mode: "insensitive" }, status: "sent", kind: { not: "welcome" } } })) { res.already++; continue; }
     if (await orderedSince(admin as any, d.email, d.first)) { res.ordered++; continue; }
     const ctx = await deviceContext(shop.id, deviceId);
     if (!ctx) continue;
