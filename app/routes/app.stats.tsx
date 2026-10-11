@@ -21,6 +21,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "checkout_stats", redirect);
   await enrichFromShopify(admin as any, shop.id, 14).catch(() => 0);
+  const f = new URL(request.url).searchParams.get("f") || "";
   const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("d")) || 30));
   const since = new Date(Date.now() - days * DAY);
 
@@ -87,7 +88,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const orderedAfter = d.completed && +(lastAt.get(d.id) ?? 0) > +first;
     return { count: all.length, kinds: all.map((x) => x.kind), last: all[all.length - 1].createdAt, back, orderedAfter };
   };
-  const devices = [...all].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
+  const pick = f === "black" ? black : f === "slipped" ? slipped : f === "hopping" ? hopping : f === "ordered" ? all.filter((d) => d.completed) : all;
+  const devices = [...pick].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
     matched: d.matched, mail: mailInfo(d),
@@ -96,7 +98,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
   return {
-    days, since: firstAttempt?.createdAt ?? null,
+    days, f, since: firstAttempt?.createdAt ?? null,
     kpi: { attempts: attempts.length, devices: all.length, completedDevices: all.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
     orders, suspicious, devices, storeHandle,
   };
@@ -105,8 +107,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 const initials = (s: string) => (s.split(/[\s@.]+/).filter(Boolean).slice(0, s.includes("@") ? 1 : 2).map((w) => w[0]).join("") || "?").toUpperCase();
 
 export default function Stats() {
-  const { days, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
-  const [, setSp] = useSearchParams();
+  const { days, f, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
+  const [sp, setSp] = useSearchParams();
+  const filterBy = (v: string) => { const n = new URLSearchParams(sp); if (!v || f === v) n.delete("f"); else n.set("f", v); setSp(n); setTimeout(() => document.getElementById("sf-attempts")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300); };
   const tr = useT();
   const lang = useLang();
   const loc = dateLocale(lang);
@@ -120,7 +123,7 @@ export default function Stats() {
             <InlineStack align="space-between" blockAlign="center" gap="300">
               <Text as="p" tone="subdued">{since ? tr("stats.trackingSince", { date: new Date(since).toLocaleString(loc) }) : tr("stats.noAttemptsYet")}</Text>
               <Box minWidth="200px">
-                <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => setSp({ d: v })}
+                <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => { const n = new URLSearchParams(sp); n.set("d", v); setSp(n); }}
                   options={[{ label: tr("stats.today"), value: "1" }, { label: tr("stats.d7"), value: "7" }, { label: tr("stats.d30"), value: "30" }, { label: tr("stats.d90"), value: "90" }]} />
               </Box>
             </InlineStack>
@@ -128,10 +131,10 @@ export default function Stats() {
             <BlockStack gap="300">
               <SectionHead title={tr("stats.checkout")} />
               <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
-                <Kpi icon={PersonIcon} label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} />
-                <Kpi icon={ShieldPersonIcon} label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} />
-                <Kpi icon={ShieldNoneIcon} label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} />
-                <Kpi icon={AlertTriangleIcon} label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} />
+                <Kpi icon={PersonIcon} label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} onClick={() => filterBy("ordered")} active={f === "ordered"} />
+                <Kpi icon={ShieldPersonIcon} label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} onClick={() => filterBy("black")} active={f === "black"} />
+                <Kpi icon={ShieldNoneIcon} label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} onClick={() => filterBy("slipped")} active={f === "slipped"} />
+                <Kpi icon={AlertTriangleIcon} label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} onClick={() => filterBy("hopping")} active={f === "hopping"} />
               </InlineGrid>
             </BlockStack>
 
@@ -177,8 +180,13 @@ export default function Stats() {
               )}
             </Card>
 
+            <div id="sf-attempts" />
             <Card padding="0">
-              <Box padding="400"><SectionHead title={tr("stats.allAttempts")} description={tr("stats.allAttemptsHint")} /></Box>
+              <Box padding="400">
+                <SectionHead title={f ? tr(`stats.filter.${f}` as TKey) : tr("stats.allAttempts")} description={tr("stats.allAttemptsHint")}>
+                  {f ? <Button variant="plain" onClick={() => filterBy("")}>{tr("stats.showAll")}</Button> : null}
+                </SectionHead>
+              </Box>
               {devices.length === 0 ? (
                 <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
               ) : (
