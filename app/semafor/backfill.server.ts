@@ -56,3 +56,31 @@ export async function backfill(admin: AdminClient, shop: { id: string; domain: s
   console.log(`[semafor] backfill ${shop.domain}`, out);
   return out;
 }
+
+const lastCatchUp = new Map<string, number>();
+/**
+ * Safety net for lost orders/create webhooks: checks the newest orders that have no verdict yet.
+ * Called when the admin opens the dashboard (throttled to once per 30 s per shop) and from orders/* webhooks.
+ */
+export async function catchUpOrders(admin: AdminClient, shop: { id: string; domain: string; country: string; settings: ShopSettings }, n = 10) {
+  const last = lastCatchUp.get(shop.id) || 0;
+  if (Date.now() - last < 30_000) return 0;
+  lastCatchUp.set(shop.id, Date.now());
+  const r = await admin.graphql(Q, { variables: { n } });
+  const j: any = await r.json();
+  if (j.errors) throw new Error(j.errors.map((e: any) => e.message).join("; "));
+  const orders = (j.data?.orders?.nodes ?? []) as any[];
+  if (!orders.length) return 0;
+  const done = await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: orders.map((o) => o.id) } }, select: { orderId: true } });
+  const seen = new Set(done.map((d: any) => d.orderId));
+  let n2 = 0;
+  for (const o of orders) {
+    if (seen.has(o.id)) continue;
+    try {
+      await checkOrder({ db, secret: SECRET, shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: shop.settings, order: toOrderLike(o), admin, skipCancel: true });
+      n2++;
+    } catch (e) { console.error("[semafor] catch-up", o.name, e); }
+  }
+  if (n2) console.log(`[semafor] catch-up ${shop.domain}: checked ${n2} order(s) the webhook missed`);
+  return n2;
+}

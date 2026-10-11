@@ -3,7 +3,7 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { getShop, SECRET } from "../semafor/shop.server";
 import { checkOrder } from "../semafor/check-order.server";
-import { fetchOrder } from "../semafor/backfill.server";
+import { fetchOrder, catchUpOrders } from "../semafor/backfill.server";
 
 /**
  * orders/paid, orders/cancelled, orders/fulfilled: something changed on one order of a customer.
@@ -16,6 +16,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!s) return new Response();
   const p: any = payload;
   queueMicrotask(async () => {
+    // safety net: if orders/create never arrived for this (or another recent) order, check it now
+    try { await catchUpOrders(admin as any, s as any); } catch (e) { console.error("[semafor] catch-up", e); }
     try {
       const cid = p?.customer?.id; const email = p?.email;
       if (!cid && !email) return;

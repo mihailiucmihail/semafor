@@ -11,14 +11,20 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
+import { catchUpOrders } from "../semafor/backfill.server";
 import { createEntry, deleteEntry, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
 import { shopLang } from "../i18n.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  // orders whose orders/create webhook was lost still get a verdict before the numbers below are read
+  await Promise.race([
+    catchUpOrders(admin as any, shop as any).catch((e) => console.error("[semafor] catch-up", e)),
+    new Promise((r) => setTimeout(r, 5000)),
+  ]);
   const q = new URL(request.url).searchParams.get("q")?.trim() || "";
   const entries = await db.blockEntry.findMany({
     where: { shopId: shop.id, ...(q ? { identifiers: { some: { OR: [{ raw: { contains: q, mode: "insensitive" } }, { normalized: { contains: q.toLowerCase() } }] } } } : {}) },
