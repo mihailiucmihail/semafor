@@ -38,14 +38,18 @@ export interface PopupTexts {
 
 export interface PopupSettings {
   enabled: boolean;
-  /** "site": any page after `delay` s · "cart": only with items in the cart, `cartDelay` s after add-to-cart / cart open */
-  mode: 'site' | 'cart';
+  /** "smart" (default): any page after `delay` s for newcomers, plus a re-offer when an unknown visitor opens a cart
+   *  without a discount (`cartDelay` s, once per session, even after dismissing) ·
+   *  "site": any page after `delay` s · "cart": only with items in the cart, `cartDelay` s after add-to-cart / cart open */
+  mode: 'smart' | 'site' | 'cart';
   delay: number;
   cartDelay: number;
   /** Also open on exit intent (desktop, mouse leaving to the top) when the cart has items — once per page. */
   exitIntent: boolean;
   /** Days the pop-up stays hidden after "no thanks" / close. */
   hideDays: number;
+  /** "auto": Semafor creates / keeps the code WELCOME<pct> in Shopify · "own": the merchant's existing `code` */
+  codeMode: 'auto' | 'own';
   code: string;
   pct: number;
   design: PopupDesign;
@@ -55,8 +59,8 @@ export interface PopupSettings {
 }
 
 export const DEFAULT_POPUP: PopupSettings = {
-  enabled: false, mode: 'site', delay: 10, cartDelay: 4, exitIntent: true, hideDays: 14,
-  code: 'BUNVENIT15', pct: 15, design: 'classic', imageUrl: '', texts: {},
+  enabled: false, mode: 'smart', delay: 10, cartDelay: 4, exitIntent: true, hideDays: 14,
+  codeMode: 'auto', code: 'WELCOME15', pct: 15, design: 'classic', imageUrl: '', texts: {},
 };
 
 export interface RecoverySettings {

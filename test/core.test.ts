@@ -159,8 +159,11 @@ test('popup: defaults, clamping and stored overrides', () => {
   const s = settingsOf({});
   assert.equal(s.popup.enabled, false);
   assert.equal(s.popup.cartDelay, 4);
-  assert.equal(s.popup.code, 'BUNVENIT15');
-  const p = cleanPopup({ enabled: true, mode: 'cart', delay: 9999, cartDelay: -3, hideDays: 0, code: ' bun venit15 ', design: 'nope' as any, imageUrl: 'http://x', texts: { ro: { ...POPUP_DEFAULT_TEXTS.ro, heading: 'Salut' } } });
+  assert.equal(s.popup.mode, 'smart');
+  assert.equal(s.popup.code, 'WELCOME15');
+  assert.equal(cleanPopup({ pct: 20 }).code, 'WELCOME20');
+  assert.equal(cleanPopup({ codeMode: 'own', code: 'bunvenit15', pct: 15 }).code, 'BUNVENIT15');
+  const p = cleanPopup({ enabled: true, mode: 'cart', codeMode: 'own', delay: 9999, cartDelay: -3, hideDays: 0, code: ' bun venit15 ', design: 'nope' as any, imageUrl: 'http://x', texts: { ro: { ...POPUP_DEFAULT_TEXTS.ro, heading: 'Salut' } } });
   assert.equal(p.mode, 'cart');
   assert.equal(p.delay, 300);
   assert.equal(p.cartDelay, 0);
@@ -179,4 +182,14 @@ test('popup: storefront config fills {shop} and {pct} in every language', () => 
   assert.match(cfg.texts.de.text, /20 % Rabatt/);
   assert.ok(!/\{(shop|pct)\}/.test(JSON.stringify(cfg)));
   assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'pl', 'ro']);
+});
+
+// ── skip reasons read as sentences (app/i18n.ts trMsg) ──
+import { trMsg } from '../app/i18n.ts';
+test('skip reasons: plain sentences in both languages', () => {
+  assert.equal(trMsg('ro', 'out_of_stock: MIA – Dark Cherry'), 'Nu am trimis: produsul din coș nu mai e pe stoc (MIA – Dark Cherry).');
+  assert.equal(trMsg('en', 'out_of_stock: MIA – Dark Cherry'), 'Not sent: the item in the cart is out of stock (MIA – Dark Cherry).');
+  assert.match(trMsg('ro', 'a comandat între timp'), /^Nu am trimis: /);
+  assert.match(trMsg('en', 'fără produse în coș'), /^Not sent: /);
+  assert.equal(trMsg('en', 'Client necunoscut'), 'Unknown customer');
 });

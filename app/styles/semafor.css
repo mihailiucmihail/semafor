@@ -168,8 +168,8 @@
 .sf-pp-embed-icon.ok svg { fill: var(--sf-green); }
 @media (max-width: 640px) { .sf-pp-embed { grid-template-columns: auto minmax(0, 1fr); } .sf-pp-embed > :last-child { grid-column: 1 / -1; } }
 
-.sf-pp-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p-space-300); }
-@media (max-width: 640px) { .sf-pp-modes { grid-template-columns: 1fr; } }
+.sf-pp-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--p-space-300); }
+@media (max-width: 760px) { .sf-pp-modes { grid-template-columns: 1fr; } }
 .sf-pp-mode {
   display: grid; grid-template-columns: auto 1fr; gap: 4px var(--p-space-300); align-items: center; text-align: left;
   padding: var(--p-space-400); border-radius: var(--p-border-radius-300); cursor: pointer; font: inherit; color: inherit;
@@ -202,3 +202,9 @@
 
 .sf-pp-stage { position: relative; width: 100%; overflow: hidden; border-radius: var(--p-border-radius-200); background: var(--p-color-bg-surface-secondary); }
 .sf-pp-device { box-shadow: 0 0 0 1px var(--p-color-border-secondary); }
+
+.sf-pp-chip { min-width: 56px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--p-color-border); background: var(--p-color-bg-surface); font: inherit; font-weight: 650; font-variant-numeric: tabular-nums; cursor: pointer; color: var(--p-color-text); transition: background .15s, border-color .15s, color .15s; }
+.sf-pp-chip:hover { border-color: var(--p-color-border-hover); background: var(--p-color-bg-surface-hover); }
+.sf-pp-chip.active { background: var(--p-color-bg-fill-brand); border-color: var(--p-color-bg-fill-brand); color: var(--p-color-text-brand-on-bg-fill); }
+.sf-pp-chip:focus-visible { outline: 2px solid var(--p-color-border-focus); outline-offset: 2px; }
+.sf-pp-mode-title .Polaris-Badge { vertical-align: middle; margin-left: 4px; }

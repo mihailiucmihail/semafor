@@ -107,12 +107,15 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
   const img = String(p.imageUrl ?? '').trim();
   return {
     enabled: !!p.enabled,
-    mode: p.mode === 'cart' ? 'cart' : 'site',
+    mode: p.mode === 'cart' || p.mode === 'site' ? p.mode : 'smart',
     delay: n(p.delay, DEFAULT_POPUP.delay, 0, 300),
     cartDelay: n(p.cartDelay, DEFAULT_POPUP.cartDelay, 0, 120),
     exitIntent: p.exitIntent !== false,
     hideDays: n(p.hideDays, DEFAULT_POPUP.hideDays, 1, 365),
-    code: String(p.code ?? DEFAULT_POPUP.code).trim().replace(/\s+/g, '').toUpperCase().slice(0, 60),
+    codeMode: p.codeMode === 'own' ? 'own' : 'auto',
+    code: p.codeMode === 'own'
+      ? String(p.code ?? DEFAULT_POPUP.code).trim().replace(/\s+/g, '').toUpperCase().slice(0, 60)
+      : autoCode(n(p.pct, DEFAULT_POPUP.pct, 1, 100)),
     pct: n(p.pct, DEFAULT_POPUP.pct, 1, 100),
     design: POPUP_DESIGNS.includes(p.design as any) ? (p.design as PopupSettings['design']) : 'classic',
     imageUrl: /^https:\/\//i.test(img) ? img.slice(0, 1000) : '',
@@ -120,8 +123,12 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
   };
 }
 
+/** Code Semafor creates for a percentage (auto mode). */
+export const autoCode = (pct: number) => `WELCOME${Math.round(pct)}`;
+export const PCT_CHOICES = [5, 10, 15, 20, 25];
+
 export type PopupConfig = {
-  v: 1; enabled: boolean; mode: 'site' | 'cart'; delay: number; cartDelay: number; exitIntent: boolean; hideDays: number;
+  v: 1; enabled: boolean; mode: 'smart' | 'site' | 'cart'; delay: number; cartDelay: number; exitIntent: boolean; hideDays: number;
   code: string; design: string; image: string; texts: Record<PopupLang, PopupTexts>;
 };
 

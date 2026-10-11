@@ -370,6 +370,7 @@ const D = {
   "emails.combine": { en: "The email discount combines with the store's other discounts (e.g. on 2–3 products)", ro: "Reducerea din e-mail se cumulează cu alte reduceri ale magazinului (ex. la 2–3 produse)" },
   "emails.combineHelp": { en: "Unchecked (recommended): they don't add up — Shopify applies the bigger discount for the customer. Checked: they add up (the store's automatic discount must also allow combining).", ro: "Nebifat (recomandat): nu se adună — Shopify aplică reducerea cea mai mare pentru clientă. Bifat: se adună (reducerea automată a magazinului trebuie și ea să permită combinarea)." },
   "emails.onlyConsent": { en: "Only customers who opted in to emails", ro: "Doar clienților care au bifat abonarea la e-mailuri" },
+  "emails.stockNote": { en: "We don't send reminders when the item in the cart is out of stock — you'll see these under Skipped.", ro: "Nu trimitem reamintiri când produsul din coș nu mai e pe stoc — le vezi la „Sărite”." },
   "emails.onlyConsentHelp": { en: "Recommended for the EU (Germany: reminder emails without consent may be considered unsolicited advertising).", ro: "Recomandat pentru UE (Germania: e-mailurile de reamintire fără acord pot fi considerate publicitate nesolicitată)." },
   "emails.fromName": { en: "Sender name", ro: "Nume expeditor" },
   "emails.fromNameHelp": { en: "Empty = store name from Shopify.", ro: "Gol = numele magazinului din Shopify." },
@@ -545,9 +546,21 @@ const D = {
   "popup.on": { en: "On", ro: "Pornit" },
   "popup.off": { en: "Off", ro: "Oprit" },
   "popup.whenHeading": { en: "When it appears", ro: "Când apare" },
-  "popup.modeSite": { en: "On any page", ro: "Pe orice pagină" },
+  "popup.modeSmart": { en: "Smart", ro: "Inteligent" },
+  "popup.modeSmartDesc": { en: "New visitors see it on any page after a few seconds. Visitors we don't know yet who open the cart without a discount get the offer again (once per visit) — so you capture the email before checkout.", ro: "Vizitatorii noi îl văd pe orice pagină după câteva secunde. Vizitatorii pe care încă nu-i cunoaștem și deschid coșul fără reducere primesc oferta din nou (o dată pe vizită) — așa afli e-mailul înainte de checkout." },
+  "popup.recommended": { en: "Recommended", ro: "Recomandat" },
+  "popup.cartDelaySmart": { en: "In the cart: show after (seconds)", ro: "În coș: apare după (secunde)" },
+  "popup.discountDescSimple": { en: "Choose the welcome discount. Semafor creates the code in Shopify for you.", ro: "Alege reducerea de bun venit. Semafor creează singur codul în Shopify." },
+  "popup.pctOther": { en: "Other", ro: "Alt procent" },
+  "popup.autoWill": { en: "Code {code} will be created when you save: {pct}% off the whole order, once per customer, no end date.", ro: "Codul {code} se creează la salvare: {pct}% din toată comanda, o dată per client, fără dată de expirare." },
+  "popup.autoActive": { en: "Active in Shopify: {pct}% off the whole order, once per customer, no end date.", ro: "Activ în Shopify: {pct}% din toată comanda, o dată per client, fără dată de expirare." },
+  "popup.autoError": { en: "The discount code could not be created: {error}", ro: "Codul de reducere nu a putut fi creat: {error}" },
+  "popup.advanced": { en: "Advanced: use my own discount code", ro: "Avansat: folosește codul meu de reducere" },
+  "popup.ownCode": { en: "Use an existing code instead of the automatic one", ro: "Folosește un cod existent în locul celui automat" },
+  "popup.ownCodeHelp": { en: "The code must already exist in Shopify → Discounts. Keep the percentage above equal to the code's, so the texts are right.", ro: "Codul trebuie să existe deja în Shopify → Reduceri. Păstrează procentul de mai sus egal cu cel al codului, ca textele să fie corecte." },
+  "popup.modeSite": { en: "Any page after N seconds", ro: "Orice pagină după N secunde" },
   "popup.modeSiteDesc": { en: "Appears on every page after a few seconds. Best for growing your list with new visitors.", ro: "Apare pe orice pagină după câteva secunde. Ideal pentru a strânge abonați dintre vizitatorii noi." },
-  "popup.modeCart": { en: "In the cart", ro: "În coș" },
+  "popup.modeCart": { en: "Only in the cart", ro: "Doar în coș" },
   "popup.modeCartDesc": { en: "Appears only when the cart has products: after add-to-cart, in the cart drawer or on the cart page. Best for getting the email of people about to buy.", ro: "Apare doar când coșul are produse: după adăugarea în coș, în sertarul coșului sau pe pagina coșului. Ideal pentru a afla e-mailul celor care sunt gata să cumpere." },
   "popup.delay": { en: "Show after (seconds)", ro: "Apare după (secunde)" },
   "popup.cartDelay": { en: "Show after adding to cart (seconds)", ro: "Apare după adăugarea în coș (secunde)" },
@@ -635,9 +648,6 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^Șablonul nu există\.$/, "Template not found."],
   [/^Limita zilnică de (\d+) e-mailuri a fost atinsă\.$/, "Daily limit of $1 emails reached."],
   [/^Reducere: /, "Discount: "],
-  [/^a comandat între timp$/, "ordered in the meantime"],
-  [/^fără acord de marketing$/, "no marketing consent"],
-  [/^fără produse în coș$/, "no products in the cart"],
   [/^funcția nu este încă publicată$/, "function not published yet"],
   [/^dezactivată în Setări → Plăți$/, "disabled in Settings → Payments"],
   [/^orderId lipsă$/, "orderId missing"],
@@ -652,9 +662,18 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^schimbă datele$/, "changing details"],
 ];
 
+/** Why an e-mail was not sent (EmailSend.error of "skipped" rows, and the error of a blocked manual send), as a plain sentence. */
+const SKIP_MSG: Array<[RegExp, { en: string; ro: string }]> = [
+  [/^out_of_stock: (.+)$/, { en: "Not sent: the item in the cart is out of stock ($1).", ro: "Nu am trimis: produsul din coș nu mai e pe stoc ($1)." }],
+  [/^a comandat între timp$/, { en: "Not sent: the customer has placed an order in the meantime.", ro: "Nu am trimis: clientul a plasat între timp o comandă." }],
+  [/^fără acord de marketing$/, { en: "Not sent: the customer hasn't agreed to marketing emails (setting “Only customers who opted in to emails”).", ro: "Nu am trimis: clientul nu a acceptat e-mailuri de marketing (setarea „Doar clienților care au bifat abonarea la e-mailuri”)." }],
+  [/^fără produse în coș$/, { en: "Not sent: we don't know which products were in the cart.", ro: "Nu am trimis: nu știm ce produse erau în coș." }],
+];
+
 /** Translates a known Romanian server message for display; unknown messages are returned unchanged. */
 export function trMsg(lang: Lang, msg: string | null | undefined): string {
   const s = String(msg ?? "");
+  for (const [re, m] of SKIP_MSG) if (re.test(s)) return s.replace(re, m[lang]);
   if (lang === "ro" || !s) return s;
   for (const [re, en] of SERVER_MSG) if (re.test(s)) return s.replace(re, en);
   return s;

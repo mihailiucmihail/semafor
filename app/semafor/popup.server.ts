@@ -7,7 +7,7 @@
  */
 import db from "../db.server";
 import { can } from "../../core/plans";
-import { buildPopupConfig } from "../../core/popup";
+import { buildPopupConfig, autoCode } from "../../core/popup";
 import type { PopupSettings, ShopSettings } from "../../core/settings";
 import { planOf } from "./plan.server";
 import { isOptedOut } from "./recovery.server";
@@ -59,6 +59,47 @@ export async function checkDiscountCode(admin: Admin, code: string): Promise<Cod
   } catch (e: any) {
     return { exists: false, error: String(e?.message || e).slice(0, 200) };
   }
+}
+
+/**
+ * Auto mode: makes sure Shopify has the pop-up code for `pct` — WELCOME<pct>, a basic code discount,
+ * pct % off the whole order, once per customer, no end date, combinable only with shipping discounts.
+ * A code Semafor created earlier is updated (percentage, re-activated); a merchant's own code with the same name is
+ * reused only when it already gives the same active percentage, otherwise a variant name is used.
+ */
+export async function ensurePopupDiscount(admin: Admin, pct: number): Promise<{ code: string; action: "created" | "updated" | "reused" }> {
+  const base = autoCode(pct);
+  const title = `Semafor pop-up ${pct}%`;
+  const gets = { value: { percentage: pct / 100 }, items: { all: true } };
+  for (const code of [base, `${base}S`, `${base}-SMF`]) {
+    const d = await gql(admin, `query($code:String!){ codeDiscountNodeByCode(code:$code){ id codeDiscount{ __typename
+      ... on DiscountCodeBasic { title status customerGets{ value{ __typename ... on DiscountPercentage { percentage } } } } } } }`, { code });
+    const n = d?.codeDiscountNodeByCode;
+    if (!n) {
+      const r = await gql(admin, `mutation($d: DiscountCodeBasicInput!){ discountCodeBasicCreate(basicCodeDiscount:$d){ codeDiscountNode{ id } userErrors{ field message } } }`, {
+        d: { title, code, startsAt: new Date().toISOString(), endsAt: null, appliesOncePerCustomer: true, context: { all: "ALL" }, customerGets: gets,
+          combinesWith: { orderDiscounts: false, productDiscounts: false, shippingDiscounts: true } },
+      });
+      const errs = r?.discountCodeBasicCreate?.userErrors ?? [];
+      if (errs.length) throw new Error(errs.map((e: any) => e.message).join("; "));
+      return { code, action: "created" };
+    }
+    const c = n.codeDiscount || {};
+    const have = typeof c.customerGets?.value?.percentage === "number" ? Math.round(c.customerGets.value.percentage * 100) : null;
+    if (c.__typename === "DiscountCodeBasic" && String(c.title || "").startsWith("Semafor pop-up")) {
+      if (have !== pct || c.status !== "ACTIVE") {
+        const r = await gql(admin, `mutation($id: ID!, $d: DiscountCodeBasicInput!){ discountCodeBasicUpdate(id:$id, basicCodeDiscount:$d){ codeDiscountNode{ id } userErrors{ field message } } }`, {
+          id: n.id, d: { title, customerGets: gets, endsAt: null, appliesOncePerCustomer: true, ...(c.status !== "ACTIVE" ? { startsAt: new Date().toISOString() } : {}) },
+        });
+        const errs = r?.discountCodeBasicUpdate?.userErrors ?? [];
+        if (errs.length) throw new Error(errs.map((e: any) => e.message).join("; "));
+        return { code, action: "updated" };
+      }
+      return { code, action: "reused" };
+    }
+    if (have === pct && c.status === "ACTIVE") return { code, action: "reused" };
+  }
+  throw new Error(`code ${base} is taken`);
 }
 
 /** Latest pop-up e-mail of a browser (device id shared with the pixel). */

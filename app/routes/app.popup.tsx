@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Card, BlockStack, InlineStack, InlineGrid, Text, Checkbox, TextField, Button, ButtonGroup, Banner, Badge, Box, Divider, Tabs, Icon } from "@shopify/polaris";
-import { EmailIcon, CartIcon, OrderIcon, ExternalIcon, CheckCircleIcon, AlertCircleIcon } from "@shopify/polaris-icons";
+import { Page, Card, BlockStack, InlineStack, InlineGrid, Text, Checkbox, TextField, Button, ButtonGroup, Banner, Badge, Box, Divider, Tabs, Icon, Collapsible } from "@shopify/polaris";
+import { EmailIcon, CartIcon, OrderIcon, ExternalIcon, CheckCircleIcon, AlertCircleIcon, MagicIcon } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { requireFeature, planOf } from "../semafor/plan.server";
-import { pushPopupConfig, checkDiscountCode, popupStats, type CodeCheck } from "../semafor/popup.server";
+import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, type CodeCheck } from "../semafor/popup.server";
+import db from "../db.server";
 import { can } from "../../core/plans";
 import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts } from "../../core/settings";
-import { POPUP_DEFAULT_TEXTS, buildPopupConfig, cleanPopup, popupTexts } from "../../core/popup";
+import { POPUP_DEFAULT_TEXTS, PCT_CHOICES, autoCode, buildPopupConfig, cleanPopup, popupTexts } from "../../core/popup";
 import { Kpi, SectionHead } from "../components/semafor-ui";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
 // the storefront files themselves → the preview is exactly what visitors see
@@ -23,7 +24,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin, redirect } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "popup", redirect);
-  const p = shop.settings.popup;
+  let p = shop.settings.popup;
+  // first visit: a store that already has the classic BUNVENIT15 code keeps using it (advanced → own code)
+  const raw = (await db.shop.findUnique({ where: { id: shop.id }, select: { settings: true } }))?.settings as any;
+  if (!raw?.popup) {
+    const own = await checkDiscountCode(admin as any, "BUNVENIT15");
+    if (own.exists && own.status === "ACTIVE") p = { ...p, codeMode: "own", code: "BUNVENIT15", pct: own.pct || p.pct };
+  }
   let shopName = "";
   try { const j: any = await (await admin.graphql(`query { shop { name } }`)).json(); shopName = j?.data?.shop?.name || ""; } catch { /* ignore */ }
   const [stats, code] = await Promise.all([popupStats(shop.id, 30), checkDiscountCode(admin as any, p.code)]);
@@ -49,10 +56,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   let input: Partial<PopupSettings>;
   try { input = JSON.parse(String(fd.get("payload") || "{}")); } catch { return { ok: false, pushError: "bad payload" }; }
   const popup = cleanPopup(input);
+  let codeError: string | null = null;
+  if (popup.codeMode === "auto") {
+    try { popup.code = (await ensurePopupDiscount(admin as any, popup.pct)).code; }
+    catch (e: any) { codeError = String(e?.message || e).slice(0, 300); console.error("[semafor] popup discount", codeError); }
+  }
   const next = await saveSettings(shop.id, { popup }, (session as any).email || session.shop);
   let pushError: string | null = null;
   try { await pushPopupConfig(admin as any, { ...shop, settings: next }); } catch (e: any) { pushError = String(e?.message || e).slice(0, 300); console.error("[semafor] popup push", pushError); }
-  return { ok: true, pushError, code: await checkDiscountCode(admin as any, popup.code) };
+  return { ok: true, pushError, codeError, savedCode: popup.code, code: await checkDiscountCode(admin as any, popup.code) };
 };
 
 /** Small swatches for the design picker (the real palettes live in popup.css). */
@@ -132,21 +144,25 @@ export default function PopupPage() {
   const [tab, setTab] = useState(0);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [state, setState] = useState<"form" | "success">("form");
+  const [advanced, setAdvanced] = useState(p.codeMode === "own");
+  const [otherPct, setOtherPct] = useState(!PCT_CHOICES.includes(Number(p.pct)));
   const set = <K extends keyof PopupSettings>(k: K, v: PopupSettings[K]) => setP((x) => ({ ...x, [k]: v }));
   const tl = POPUP_LANGS[tab];
 
   const res: any = fetcher.data;
   useEffect(() => { if (fetcher.state === "idle" && res?.ok && !res.pushError) app.toast.show(tr("popup.saved")); }, [fetcher.state, res, app, tr]);
+  useEffect(() => { if (fetcher.state === "idle" && res?.savedCode) setP((x) => ({ ...x, code: res.savedCode })); }, [fetcher.state, res]);
   const codeInfo: CodeCheck = (codeFetcher.data as any)?.code ?? res?.code ?? data.code;
 
   const draft = useMemo(() => ({ ...p, texts }), [p, texts]);
-  const cfg = useMemo(() => buildPopupConfig(cleanPopup({ ...draft, enabled: true }), data.shopName), [draft, data.shopName]);
+  const cfg = useMemo(() => { const c = cleanPopup({ ...draft, enabled: true }); if (c.codeMode === "auto" && draft.code?.startsWith(c.code)) c.code = draft.code; return buildPopupConfig(c, data.shopName); }, [draft, data.shopName]);
   const save = useCallback(() => fetcher.submit({ payload: JSON.stringify(draft) }, { method: "post" }), [fetcher, draft]);
   const checkCode = () => codeFetcher.submit({ intent: "checkCode", code: p.code }, { method: "post" });
 
   const seen = data.seenAt ? new Date(data.seenAt) : null;
   const seenRecent = !!seen && Date.now() - +seen < 3 * 86_400_000;
-  const code = (p.code || "").trim().toUpperCase();
+  const auto = p.codeMode !== "own";
+  const code = auto ? (res?.savedCode && (res.savedCode as string).startsWith(autoCode(p.pct)) ? res.savedCode : autoCode(p.pct)) : (p.code || "").trim().toUpperCase();
 
   return (
     <Page fullWidth>
@@ -194,18 +210,17 @@ export default function PopupPage() {
               <BlockStack gap="400">
                 <SectionHead title={tr("popup.whenHeading")} />
                 <div className="sf-pp-modes" role="radiogroup">
-                  {(["site", "cart"] as const).map((m) => (
+                  {(["smart", "site", "cart"] as const).map((m) => (
                     <button key={m} type="button" role="radio" aria-checked={p.mode === m} className={`sf-pp-mode${p.mode === m ? " active" : ""}`} onClick={() => set("mode", m)}>
-                      <span className="sf-pp-mode-icon"><Icon source={m === "site" ? EmailIcon : CartIcon} /></span>
-                      <span className="sf-pp-mode-title">{tr(m === "site" ? "popup.modeSite" : "popup.modeCart")}</span>
-                      <span className="sf-pp-mode-desc">{tr(m === "site" ? "popup.modeSiteDesc" : "popup.modeCartDesc")}</span>
+                      <span className="sf-pp-mode-icon"><Icon source={m === "smart" ? MagicIcon : m === "site" ? EmailIcon : CartIcon} /></span>
+                      <span className="sf-pp-mode-title">{tr(m === "smart" ? "popup.modeSmart" : m === "site" ? "popup.modeSite" : "popup.modeCart")}{m === "smart" && <> <Badge tone="success">{tr("popup.recommended")}</Badge></>}</span>
+                      <span className="sf-pp-mode-desc">{tr(m === "smart" ? "popup.modeSmartDesc" : m === "site" ? "popup.modeSiteDesc" : "popup.modeCartDesc")}</span>
                     </button>
                   ))}
                 </div>
                 <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                  {p.mode === "site"
-                    ? <TextField label={tr("popup.delay")} type="number" min={0} max={300} value={String(p.delay)} onChange={(v) => set("delay", Number(v))} autoComplete="off" />
-                    : <TextField label={tr("popup.cartDelay")} type="number" min={0} max={120} value={String(p.cartDelay)} onChange={(v) => set("cartDelay", Number(v))} autoComplete="off" helpText={tr("popup.cartDelayHelp")} />}
+                  {p.mode !== "cart" && <TextField label={tr("popup.delay")} type="number" min={0} max={300} value={String(p.delay)} onChange={(v) => set("delay", Number(v))} autoComplete="off" />}
+                  {p.mode !== "site" && <TextField label={tr(p.mode === "smart" ? "popup.cartDelaySmart" : "popup.cartDelay")} type="number" min={0} max={120} value={String(p.cartDelay)} onChange={(v) => set("cartDelay", Number(v))} autoComplete="off" helpText={tr("popup.cartDelayHelp")} />}
                   <TextField label={tr("popup.hideDays")} type="number" min={1} max={365} value={String(p.hideDays)} onChange={(v) => set("hideDays", Number(v))} autoComplete="off" />
                 </InlineGrid>
                 <Checkbox label={tr("popup.exitIntent")} checked={p.exitIntent} onChange={(v) => set("exitIntent", v)} />
@@ -216,19 +231,44 @@ export default function PopupPage() {
             {/* discount */}
             <Card>
               <BlockStack gap="400">
-                <SectionHead title={tr("popup.discountHeading")} description={tr("popup.discountDesc")} />
-                <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
-                  <TextField label={tr("popup.code")} value={p.code} onChange={(v) => set("code", v.toUpperCase().replace(/\s+/g, ""))} onBlur={checkCode} autoComplete="off" monospaced />
-                  <TextField label={tr("popup.pct")} type="number" min={1} max={100} suffix="%" value={String(p.pct)} onChange={(v) => set("pct", Number(v))} autoComplete="off" />
-                </InlineGrid>
-                {code && codeInfo && (
-                  !codeInfo.exists
-                    ? <Banner tone="critical" action={{ content: tr("popup.openDiscounts"), url: data.discountsUrl, target: "_blank" }}>{tr("popup.codeMissing", { code })}</Banner>
-                    : codeInfo.status && codeInfo.status !== "ACTIVE"
-                      ? <Banner tone="warning" action={{ content: tr("popup.openDiscounts"), url: data.discountsUrl, target: "_blank" }}>{tr("popup.codeInactive", { code, status: codeInfo.status })}</Banner>
-                      : <InlineStack gap="200" blockAlign="center"><Badge tone="success">{code}</Badge><Text as="span" variant="bodySm" tone="subdued">{tr("popup.codeOk", { title: codeInfo.title || code })}</Text></InlineStack>
-                )}
-                {codeInfo?.exists && codeInfo.pct != null && codeInfo.pct !== Number(p.pct) && <Banner tone="info">{tr("popup.codePct", { pct: codeInfo.pct, shown: p.pct })}</Banner>}
+                <SectionHead title={tr("popup.discountHeading")} description={tr("popup.discountDescSimple")} />
+                <InlineStack gap="200" blockAlign="center">
+                  {PCT_CHOICES.map((x) => (
+                    <button key={x} type="button" className={`sf-pp-chip${!otherPct && Number(p.pct) === x ? " active" : ""}`} aria-pressed={!otherPct && Number(p.pct) === x} onClick={() => { setOtherPct(false); set("pct", x); }}>{x}%</button>
+                  ))}
+                  <button type="button" className={`sf-pp-chip${otherPct ? " active" : ""}`} aria-pressed={otherPct} onClick={() => setOtherPct(true)}>{tr("popup.pctOther")}</button>
+                  {otherPct && <div style={{ width: 96 }}><TextField label={tr("popup.pct")} labelHidden type="number" min={1} max={90} suffix="%" value={String(p.pct)} onChange={(v) => set("pct", Number(v))} autoComplete="off" /></div>}
+                </InlineStack>
+                {auto ? (
+                  <BlockStack gap="150">
+                    <InlineStack gap="200" blockAlign="center">
+                      <Badge tone={codeInfo?.exists && codeInfo.pct === Number(p.pct) ? "success" : "info"}>{code}</Badge>
+                      <Text as="span" variant="bodySm" tone="subdued">{codeInfo?.exists && codeInfo.pct === Number(p.pct) ? tr("popup.autoActive", { pct: p.pct }) : tr("popup.autoWill", { code, pct: p.pct })}</Text>
+                    </InlineStack>
+                    {res?.codeError && <Banner tone="critical">{tr("popup.autoError", { error: res.codeError })}</Banner>}
+                  </BlockStack>
+                ) : null}
+                <Box>
+                  <Button variant="plain" disclosure={advanced ? "up" : "down"} onClick={() => setAdvanced((v) => !v)}>{tr("popup.advanced")}</Button>
+                </Box>
+                <Collapsible id="sf-pp-own" open={advanced}>
+                  <BlockStack gap="300">
+                    <Checkbox label={tr("popup.ownCode")} checked={!auto} onChange={(v) => set("codeMode", v ? "own" : "auto")} helpText={tr("popup.ownCodeHelp")} />
+                    {!auto && (
+                      <>
+                        <TextField label={tr("popup.code")} value={p.code} onChange={(v) => set("code", v.toUpperCase().replace(/\s+/g, ""))} onBlur={checkCode} autoComplete="off" monospaced />
+                        {code && codeInfo && (
+                          !codeInfo.exists
+                            ? <Banner tone="critical" action={{ content: tr("popup.openDiscounts"), url: data.discountsUrl, target: "_blank" }}>{tr("popup.codeMissing", { code })}</Banner>
+                            : codeInfo.status && codeInfo.status !== "ACTIVE"
+                              ? <Banner tone="warning" action={{ content: tr("popup.openDiscounts"), url: data.discountsUrl, target: "_blank" }}>{tr("popup.codeInactive", { code, status: codeInfo.status })}</Banner>
+                              : <InlineStack gap="200" blockAlign="center"><Badge tone="success">{code}</Badge><Text as="span" variant="bodySm" tone="subdued">{tr("popup.codeOk", { title: codeInfo.title || code })}</Text></InlineStack>
+                        )}
+                        {codeInfo?.exists && codeInfo.pct != null && codeInfo.pct !== Number(p.pct) && <Banner tone="info">{tr("popup.codePct", { pct: codeInfo.pct, shown: p.pct })}</Banner>}
+                      </>
+                    )}
+                  </BlockStack>
+                </Collapsible>
               </BlockStack>
             </Card>
 

@@ -249,6 +249,44 @@ export function cartPermalink(base: string, items: Array<{ variantId?: string | 
   return parts.length ? `${base.replace(/\/$/, "")}/cart/${parts.join(",")}` : `${base.replace(/\/$/, "")}/cart`;
 }
 
+/**
+ * Out-of-stock rule for every reminder (automatic, manual, one-off): we don't remind about something she can't buy.
+ * A variant counts as unavailable when Shopify says it is not available for sale (tracked inventory at 0 with
+ * "stop selling", which availableForSale already accounts for), the variant was deleted or the product is not active.
+ * Decision: skip when ALL items are unavailable, or when the first (main) item is — the e-mail is built around it.
+ * If some other item is sold out but the main one is available, the e-mail still goes.
+ * Returns the label of the blocking item ("MIA – Dark Cherry"), or null to send. Unknown variants count as available;
+ * if Shopify can't be asked (e.g. read_products not yet approved) we don't block.
+ */
+export async function stockBlock(admin: Admin, items: Array<{ title?: string | null; variant?: string | null; variantId?: string | null }>): Promise<string | null> {
+  if (!items.length) return null;
+  const gid = (v: unknown) => { const id = String(v || "").split("/").pop(); return id && /^\d+$/.test(id) ? `gid://shopify/ProductVariant/${id}` : null; };
+  const ids = [...new Set(items.map((i) => gid(i.variantId)).filter(Boolean) as string[])];
+  if (!ids.length) return null;
+  let nodes: any[];
+  try {
+    const d = await gql(admin, `query($ids:[ID!]!){ nodes(ids:$ids){ ... on ProductVariant { id title availableForSale product{ title status } } } }`, { ids });
+    nodes = d?.nodes ?? [];
+  } catch (e: any) { console.error("[semafor] stock check", e?.message || e); return null; }
+  const byId = new Map<string, any>(); ids.forEach((id, k) => byId.set(id, nodes[k] ?? null));
+  const unavailable = (it: (typeof items)[number]) => {
+    const id = gid(it.variantId); if (!id) return false;
+    const n = byId.get(id);
+    if (n === null) return true; // variant / product deleted
+    if (!n) return false;
+    return n.availableForSale === false || (n.product?.status && n.product.status !== "ACTIVE");
+  };
+  const label = (it: (typeof items)[number]) => {
+    const n = byId.get(gid(it.variantId) || "");
+    const title = it.title || n?.product?.title || "";
+    const variant = it.variant || (n?.title && n.title !== "Default Title" ? n.title : "");
+    return variant && !title.includes(variant) ? `${title} – ${variant}` : title;
+  };
+  if (unavailable(items[0])) return label(items[0]);
+  if (items.every(unavailable)) return label(items[0]);
+  return null;
+}
+
 /** Up to 5 photos of the product behind a variant (for the gallery in the e-mail). */
 export async function productImages(admin: Admin, variantId: string | null | undefined): Promise<string[]> {
   const id = String(variantId || "").split("/").pop();
@@ -466,6 +504,16 @@ export async function sendRecovery(i: SendInput) {
   }
   // never send a reminder that shows no product
   if (!ctx.items.length && i.kind !== "manual") throw new Error("NO_ITEMS");
+  // never remind about a product that is sold out (checked before any discount code is created)
+  if (!i.preview) {
+    const blocked = await stockBlock(i.admin, ctx.items as any);
+    if (blocked) {
+      const reason = `out_of_stock: ${blocked}`.slice(0, 480);
+      const dup = await db.emailSend.findFirst({ where: { shopId: i.shopId, email: ctx.email, kind: i.kind, status: "skipped", error: reason, createdAt: { gt: new Date(Date.now() - DAY) } }, select: { id: true } });
+      if (!dup) await db.emailSend.create({ data: { shopId: i.shopId, deviceId: i.deviceId, checkoutToken: ctx.checkoutToken, email: ctx.email, templateId: i.templateId, subject: "-", kind: i.kind, status: "skipped", error: reason } });
+      throw new Error(reason);
+    }
+  }
   // more photos of the (first) bag for the gallery
   if (ctx.items[0] && !(ctx.items[0] as any).images) (ctx.items[0] as any).images = await productImages(i.admin, (ctx.items[0] as any).variantId);
   const tpl = await db.emailTemplate.findFirst({ where: { id: i.templateId, shopId: i.shopId } });
@@ -676,6 +724,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
       sent++;
     } catch (e: any) {
       if (e?.message === "NO_ITEMS") await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "fără produse în coș" } });
+      else if (String(e?.message || "").startsWith("out_of_stock:")) { /* recorded as skipped by sendRecovery; checked again next pass */ }
       else console.error("[semafor] recovery send failed", e?.message || e);
     }
   }
@@ -701,7 +750,7 @@ export async function blastFirst(shop: { id: string; domain: string; settings: u
     if (r.event === "completed") { d.done = true; if (r.email) completed.add(r.email.toLowerCase()); }
     devs.set(r.deviceId, d);
   }
-  const res = { candidates: 0, sent: 0, ordered: 0, noConsent: 0, optedOut: 0, already: 0, failed: 0, noItems: 0, byLang: {} as Record<string, number> };
+  const res = { candidates: 0, sent: 0, ordered: 0, noConsent: 0, optedOut: 0, already: 0, failed: 0, noItems: 0, outOfStock: 0, byLang: {} as Record<string, number> };
   const seen = new Set<string>();
   for (const [deviceId, d] of devs) {
     if (!d.email || d.done) continue;
@@ -726,7 +775,7 @@ export async function blastFirst(shop: { id: string; domain: string; settings: u
     try {
       await sendRecovery({ shopId: shop.id, shopDomain: shop.domain, admin: admin as any, deviceId, templateId: tpl.id, pct: 0, validHours: 24, kind: "auto1", settings: s });
       res.sent++;
-    } catch (e: any) { if (e?.message === "NO_ITEMS") res.noItems = (res.noItems || 0) + 1; else { res.failed++; console.error("[semafor] blast", e?.message || e); } }
+    } catch (e: any) { if (e?.message === "NO_ITEMS") res.noItems = (res.noItems || 0) + 1; else if (String(e?.message || "").startsWith("out_of_stock:")) res.outOfStock++; else { res.failed++; console.error("[semafor] blast", e?.message || e); } }
     await new Promise((r) => setTimeout(r, 700)); // stay well under the provider's rate limit
   }
   return res;

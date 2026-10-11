@@ -154,17 +154,25 @@
     if (Date.now() - lastPing > DAY) { lsSet('_smf_pp_ping', String(Date.now())); try { fetch(proxy + '/ping', { credentials: 'same-origin', keepalive: true }).catch(function () {}); } catch (e) { /* ignore */ } }
   }
 
+  /** Never show: logged-in customer, checkout / account pages, subscribed or known browser. */
   function knownLocally() {
     if (B.customer) return true;
     if (/\/(checkouts?|account)(\/|$)/.test(W.location.pathname)) return true;
     var s = readState();
     if (s && (s.s === 'subscribed' || s.s === 'known')) return true;
-    if (s && s.s === 'dismissed' && Date.now() - (s.at || 0) < (cfg.hideDays || 14) * DAY) return true;
     // the store's previous theme pop-up already collected this visitor
     try { var old = JSON.parse(lsGet('mhl_welcome_popup') || 'null'); if (old && old.state === 'subscribed') return true; } catch (e) { /* ignore */ }
     return false;
   }
+  /** Closed / "no thanks" within hideDays. */
+  function dismissedRecently() {
+    var s = readState();
+    return !!(s && s.s === 'dismissed' && Date.now() - (s.at || 0) < (cfg.hideDays || 14) * DAY);
+  }
+  var smart = cfg.mode !== 'site' && cfg.mode !== 'cart';
   if (!designMode && knownLocally()) return;
+  // site / cart modes: a dismissal silences everything; smart: only the timed pop-up (the cart re-offer still runs)
+  if (!designMode && !smart && dismissedRecently()) return;
 
   // assets: stylesheet + display font, injected once
   function assets() {
@@ -187,7 +195,23 @@
     } catch (e) { if (!done) { done = true; clearTimeout(timer); cb(false); } }
   }
 
-  var opened = false, ui = null, prevOverflow = '';
+  /** true when the cart already has a discount (code, automatic or line discount) — then no cart re-offer. */
+  function cartHasDiscount(cb) {
+    if (/(?:^|;\s*)discount_code=[^;]+/.test(D.cookie)) return cb(true);
+    try {
+      fetch('/cart.js', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (c) {
+          if (c && typeof c.item_count === 'number') cartCount = c.item_count;
+          var has = !!c && ((c.cart_level_discount_applications || []).length > 0 || Number(c.total_discount) > 0 ||
+            (c.items || []).some(function (i) { return (i.line_level_discount_allocations || []).length > 0 || (i.discounts || []).length > 0 || Number(i.total_discount) > 0; }));
+          cb(has);
+        })
+        .catch(function () { cb(false); });
+    } catch (e) { cb(false); }
+  }
+
+  var ui = null, siteShown = false, prevOverflow = '';
   function onKey(e) { if (e.key === 'Escape' || e.key === 'Esc') close(true); }
   function close(remember) {
     if (!ui) return;
@@ -213,8 +237,7 @@
     };
   }
   function show(source) {
-    if (opened) return;
-    opened = true;
+    if (ui) return false;
     ui = render(cfg, lang, { onSubmit: submit(source), onClose: close });
     D.body.appendChild(ui.root);
     prevOverflow = D.documentElement.style.overflow;
@@ -222,23 +245,43 @@
     D.addEventListener('keydown', onKey);
     requestAnimationFrame(function () { requestAnimationFrame(function () { if (ui) ui.root.classList.add('is-visible'); }); });
     setTimeout(function () { if (ui) ui.focus(); }, 450);
+    return true;
   }
+  /** Timed pop-up / cart-mode pop-up: once per page, not after a recent dismissal. */
   function open(source) {
-    if (opened) return;
-    if (designMode) return show(source);
-    if (knownLocally()) return;
-    serverKnown(function (known) { if (!known) show(source); });
+    if (siteShown || ui) return;
+    if (designMode) { siteShown = true; show(source); return; }
+    if (knownLocally() || dismissedRecently()) return;
+    serverKnown(function (known) { if (!known && !siteShown && show(source)) siteShown = true; });
+  }
+  /** Smart mode: unknown visitor opens a cart without a discount → offer again (once per session, even after a dismissal). */
+  function reoffer() {
+    if (ui || ssGet('_smf_pp_cart') || knownLocally() || cartCount <= 0) return;
+    cartHasDiscount(function (has) {
+      if (has || cartCount <= 0) return;
+      serverKnown(function (known) {
+        if (known || ui || ssGet('_smf_pp_cart')) return;
+        if (show('cart')) ssSet('_smf_pp_cart', '1');
+      });
+    });
   }
 
-  if (designMode) { setTimeout(function () { open(cfg.mode); }, 400); return; }
+  if (designMode) { setTimeout(function () { open(smart ? 'site' : cfg.mode); }, 400); return; }
 
   // ── triggers ──
   var cartCount = Number(B.cartCount) || 0;
   var cartTimer = null;
-  function scheduleCart() {
-    if (cfg.mode !== 'cart' || opened || cartCount <= 0) return;
-    clearTimeout(cartTimer);
-    cartTimer = setTimeout(function () { open('cart'); }, Math.max(0, Number(cfg.cartDelay) || 0) * 1000);
+  /** The cart was opened / changed. how: "add" (add-to-cart) or "open" (cart page, drawer, open event). */
+  function cartActivity(how) {
+    if (cartCount <= 0) return;
+    if (cfg.mode === 'cart') {
+      if (siteShown) return;
+      clearTimeout(cartTimer);
+      cartTimer = setTimeout(function () { open('cart'); }, Math.max(0, Number(cfg.cartDelay) || 0) * 1000);
+    } else if (smart && how === 'open') {
+      clearTimeout(cartTimer);
+      cartTimer = setTimeout(reoffer, Math.max(0, Number(cfg.cartDelay) || 0) * 1000);
+    }
   }
   function seenCartUrl(url, body) {
     url = String(url || '');
@@ -246,7 +289,8 @@
     var added = /\/cart\/add/.test(url);
     if (body && typeof body.item_count === 'number') cartCount = body.item_count;
     else if (added) cartCount = Math.max(cartCount, 1);
-    if (added || /\/cart\/(change|update)/.test(url)) scheduleCart();
+    if (added) cartActivity('add');
+    else if (/\/cart\/(change|update)/.test(url)) cartActivity('change');
   }
   // listen to the theme's AJAX cart calls (fetch + XHR) without changing them
   try {
@@ -265,7 +309,10 @@
   } catch (e) { /* ignore */ }
   // common theme events (Dawn and many premium themes)
   ['cart:open', 'cart-drawer:open', 'theme:cart:open', 'cart:opened', 'cart:updated', 'cart:refresh', 'cart:change', 'theme:cart:change', 'ajaxProduct:added', 'product:added', 'cart:item-added', 'on:cart:add', 'cart:added'].forEach(function (n) {
-    D.addEventListener(n, function () { if (/add/i.test(n)) cartCount = Math.max(cartCount, 1); scheduleCart(); });
+    D.addEventListener(n, function () {
+      if (/add/i.test(n)) { cartCount = Math.max(cartCount, 1); cartActivity('add'); }
+      else cartActivity(/open/i.test(n) ? 'open' : 'change');
+    });
   });
   // cart drawer becoming visible
   try {
@@ -273,19 +320,19 @@
     var isOpen = function (el) { return el.hasAttribute('open') || /(^|\s)(active|is-active|is-open|open|drawer--is-open)(\s|$)/.test(el.className || '') || el.getAttribute('aria-hidden') === 'false'; };
     Array.prototype.forEach.call(drawers, function (el) {
       var was = isOpen(el);
-      new MutationObserver(function () { var now = isOpen(el); if (now && !was) scheduleCart(); was = now; }).observe(el, { attributes: true, attributeFilter: ['class', 'open', 'aria-hidden'] });
+      new MutationObserver(function () { var now = isOpen(el); if (now && !was) { if (cartCount <= 0) cartCount = 1; cartActivity('open'); } was = now; }).observe(el, { attributes: true, attributeFilter: ['class', 'open', 'aria-hidden'] });
     });
   } catch (e) { /* ignore */ }
 
-  if (cfg.mode === 'site') setTimeout(function () { open('site'); }, Math.max(0, Number(cfg.delay) || 0) * 1000);
-  else if (B.pageType === 'cart' && cartCount > 0) scheduleCart();
+  if (cfg.mode !== 'cart') setTimeout(function () { open('site'); }, Math.max(0, Number(cfg.delay) || 0) * 1000);
+  if (B.pageType === 'cart' && cartCount > 0) cartActivity('open');
 
   // exit intent (desktop): the mouse leaves through the top while the cart has items — once
   if (cfg.exitIntent && W.matchMedia && W.matchMedia('(pointer: fine)').matches) {
     var armedAt = Date.now() + 3000;
     var onOut = function (e) {
-      if (opened || Date.now() < armedAt || cartCount <= 0) return;
-      if (!e.relatedTarget && e.clientY <= 0) { D.removeEventListener('mouseout', onOut); open(cfg.mode); }
+      if (ui || Date.now() < armedAt || cartCount <= 0) return;
+      if (!e.relatedTarget && e.clientY <= 0) { D.removeEventListener('mouseout', onOut); if (smart) reoffer(); else open(cfg.mode); }
     };
     D.addEventListener('mouseout', onOut);
   }
