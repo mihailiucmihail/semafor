@@ -219,3 +219,17 @@ test('attribution: last touch wins, windows, codes', () => {
   assert.equal(d.codeSource, 'email');
   assert.equal(d.touches.length, 1);
 });
+
+// ── own sending domain (core/domain.ts) ──
+import { cleanDomain, checkDomainAllowed } from '../core/domain.ts';
+test('sending domain: clean + refuse public / myshopify', () => {
+  assert.equal(cleanDomain('https://www.Mihailiuc.ro/path?x=1'), 'mihailiuc.ro');
+  assert.equal(cleanDomain('info@mihailiuc.de'), 'mihailiuc.de');
+  assert.equal(cleanDomain('send.example.com:443'), 'send.example.com');
+  assert.equal(cleanDomain('not a domain'), null);
+  assert.equal(checkDomainAllowed('gmail.com'), 'public');
+  assert.equal(checkDomainAllowed('yahoo.co.uk'), 'public');
+  assert.equal(checkDomainAllowed('mail.ru'), 'public');
+  assert.equal(checkDomainAllowed('x.myshopify.com'), 'shopify');
+  assert.equal(checkDomainAllowed('mihailiuc.ro'), null);
+});

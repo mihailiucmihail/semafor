@@ -16,6 +16,8 @@ import { defaultTemplates } from "../semafor/recovery-templates";
 import { useT, t, trMsg, type TKey } from "../i18n";
 import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { AttrKpi } from "../components/attribution";
+import { SendingDomainCard } from "../components/sending-domain";
+import { connectDomain, refreshDomain, verifyDomain, disconnectDomain, primaryHost, DomainProblem } from "../semafor/domains.server";
 import { shopLang } from "../i18n.server";
 
 const DAY = 86_400_000;
@@ -42,6 +44,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     sender: await senderOf(session.shop, shop.settings.recovery),
     shopName: (await shopIdentity(admin as any)).name,
     sample: await sampleItems(admin as any, shop.id),
+    // own sending domain: status refreshed from Resend at most every 2 minutes while not verified
+    domain: await (async () => {
+      const d = shop.settings.sendingDomain;
+      if (d?.id && d.status !== "verified" && Date.now() - +new Date(d.checkedAt) > 120_000) return refreshDomain(shop).catch(() => d);
+      return d ?? null;
+    })(),
+    domainSuggest: shop.settings.sendingDomain ? "" : await primaryHost(admin as any),
+    helpUrl: `${(process.env.SHOPIFY_APP_URL || "").replace(/\/$/, "")}/help/sending-domain?lang=${shopLang(shop, request)}`,
   };
 };
 
@@ -52,6 +62,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const fd = await request.formData();
   const intent = String(fd.get("intent"));
   const lang = shopLang(shop, request);
+  if (intent === "domainConnect" || intent === "domainVerify" || intent === "domainRemove") {
+    const actor = (session as any).email || session.shop;
+    try {
+      if (intent === "domainConnect") {
+        const d = await connectDomain(shop, String(fd.get("domain") || ""), actor);
+        return { domain: d, domainMsg: d?.status === "verified" ? "dom.toastVerified" : "dom.toastConnected" };
+      }
+      if (intent === "domainVerify") {
+        const d = await verifyDomain(shop, actor);
+        return { domain: d, domainMsg: d?.status === "verified" ? "dom.toastVerified" : "dom.toastPending" };
+      }
+      await disconnectDomain(shop, actor);
+      return { domain: null, domainMsg: "dom.toastRemoved" };
+    } catch (e: any) {
+      if (e instanceof DomainProblem) return { domain: shop.settings.sendingDomain ?? null, domainError: e.code, detail: e.code === "api" ? String(e.message).slice(0, 160) : "" };
+      console.error("[semafor] sending domain", e);
+      return { domain: shop.settings.sendingDomain ?? null, domainError: "api", detail: String(e?.message || e).slice(0, 160) };
+    }
+  }
   if (intent === "settings") {
     const r = JSON.parse(String(fd.get("recovery")));
     await saveSettings(shop.id, { recovery: { ...shop.settings.recovery, ...r } }, (session as any).email || session.shop);
@@ -149,7 +178,7 @@ function copyFor(locale: string, purpose: string) {
 }
 
 export default function Emails() {
-  const { recovery, templates, stats, resend, sender, shopName, sample, attr } = useLoaderData<typeof loader>();
+  const { recovery, templates, stats, resend, sender, shopName, sample, attr, domain, domainSuggest, helpUrl } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
@@ -182,6 +211,9 @@ export default function Emails() {
   const navigate = useNavigate();
   const setList = (k: string) => navigate(`/app/emails/${k}`);
   const shownName = look.fromName || shopName;
+  // sender preview: the own address once it matches the verified, linked domain (as senderOf() decides on save)
+  const ownOk = !!domain && domain.status === "verified" && !!r.fromEmail && r.fromEmail.toLowerCase().endsWith("@" + domain.name);
+  const shownSender = ownOk ? r.fromEmail.toLowerCase() : sender;
   const [editLive, setEditLive] = useState<any>(null);
   useEffect(() => { const t = setTimeout(() => setEditLive(edit), 400); return () => clearTimeout(t); }, [edit]);
   const preview = useMemo(() => (editLive ? previewOf(editLive, brand, items, shownName, { p2: r.pct2, p3: r.pct3 }) : null), [editLive, brand, items, shownName, r.pct2, r.pct3]);
@@ -220,7 +252,7 @@ export default function Emails() {
               <BlockStack gap="300">
                 <InlineStack align="space-between"><Text as="h2" variant="headingMd">{tr("emails.automation")}</Text>{r.enabled ? <Badge tone="success">{tr("emails.on")}</Badge> : <Badge>{tr("emails.off")}</Badge>}</InlineStack>
                 {resend
-                  ? <Banner tone="success">{tr("emails.resendA")}<b>{shownName || tr("emails.shopNamePh")} &lt;{sender}&gt;</b>{tr("emails.resendB", { to: r.replyTo || tr("emails.shopEmail") })}</Banner>
+                  ? <Banner tone="success">{tr("emails.resendA")}<b>{shownName || tr("emails.shopNamePh")} &lt;{shownSender}&gt;</b>{tr("emails.resendB", { to: r.replyTo || tr("emails.shopEmail") })}</Banner>
                   : <Banner tone="info">{tr("emails.soon")}</Banner>}
                 <FormLayout>
                   <Checkbox label={tr("emails.enable")} checked={r.enabled} onChange={(v) => setR({ ...r, enabled: v })} />
@@ -260,6 +292,10 @@ export default function Emails() {
                 <Text as="p" variant="bodySm" tone="subdued">{tr("emails.langNote")}</Text>
               </BlockStack>
             </Card>
+            <Box paddingBlockStart="400">
+              <SendingDomainCard domain={domain as any} suggest={domainSuggest} fromEmail={r.fromEmail || ""} helpUrl={helpUrl}
+                onSuggestFrom={(email) => setR((x: any) => (x.fromEmail ? x : { ...x, fromEmail: email }))} />
+            </Box>
         </Layout.Section>
 
         <Layout.Section variant="oneThird">

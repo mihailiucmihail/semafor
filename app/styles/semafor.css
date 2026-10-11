@@ -208,3 +208,14 @@
 .sf-pp-chip.active { background: var(--p-color-bg-fill-brand); border-color: var(--p-color-bg-fill-brand); color: var(--p-color-text-brand-on-bg-fill); }
 .sf-pp-chip:focus-visible { outline: 2px solid var(--p-color-border-focus); outline-offset: 2px; }
 .sf-pp-mode-title .Polaris-Badge { vertical-align: middle; margin-left: 4px; }
+
+/* ── own sending domain: DNS records (wraps; scrolls inside its own box on narrow screens) ── */
+.sf-dns { border: 1px solid var(--p-color-border-secondary); border-radius: var(--p-border-radius-200); overflow-x: auto; }
+.sf-dns-row { display: grid; grid-template-columns: 72px minmax(140px, 1fr) minmax(200px, 2fr) 64px 48px; gap: var(--p-space-300); align-items: start; padding: var(--p-space-300); border-top: 1px solid var(--p-color-border-secondary); min-width: 560px; font-size: 0.8125rem; }
+.sf-dns-row:first-child { border-top: 0; }
+.sf-dns-head { background: var(--p-color-bg-surface-secondary); font-weight: 600; color: var(--p-color-text-secondary); }
+.sf-dns-val { display: flex; gap: var(--p-space-200); align-items: flex-start; min-width: 0; }
+.sf-dns-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.sf-dns-text code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; background: var(--p-color-bg-surface-secondary); padding: 2px 6px; border-radius: 4px; }
+.sf-dns-sub { font-size: 0.75rem; color: var(--p-color-text-secondary); overflow-wrap: anywhere; }
+.sf-guide-steps { margin: 0; padding-left: 1.25rem; display: grid; gap: 2px; }

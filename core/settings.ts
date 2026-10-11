@@ -19,10 +19,24 @@ export interface ShopSettings {
   shopCountry?: string | null;
   /** Storefront pop-up (e-mail capture with a discount) — see core/popup.ts. */
   popup: PopupSettings;
+  /** The merchant's own sending domain, added to Semafor's Resend account (app/semafor/domains.server.ts).
+   *  Kept outside `recovery` so saving the e-mail settings form never overwrites its status. */
+  sendingDomain?: SendingDomain | null;
+  /** Verified domain this shop unlinked (kept in Resend) — the same shop may link it again without DNS changes. */
+  sendingDomainPrev?: string | null;
   /** Tag orders brought by Semafor (pop-up / reminder e-mail) — "Semafor · Pop-up" … */
   tagAttributed: boolean;
   /** Last time the storefront pop-up embed pinged Semafor (ISO) — tells the admin page the embed is on. */
   popupSeenAt?: string | null;
+}
+
+export interface DnsRecord { record?: string; type: string; name: string; value: string; priority?: number | null; ttl?: string | null; status?: string | null }
+export interface SendingDomain {
+  id: string; name: string;
+  /** Resend: not_started | pending | verified | failed | temporary_failure */
+  status: string;
+  records: DnsRecord[];
+  checkedAt: string;
 }
 
 export type PopupDesign = 'classic' | 'winter' | 'spring' | 'summer' | 'autumn';

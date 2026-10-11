@@ -7,7 +7,7 @@
  *  - runs the automatic 1st / 2nd reminder every 5 minutes.
  */
 import { can } from "../../core/plans";
-import { planOf } from "./plan.server";
+import { planOf, isOwnerShop } from "./plan.server";
 import db from "../db.server";
 import { unauthenticated } from "../shopify.server";
 import { settingsOf, type RecoverySettings } from "../../core/settings";
@@ -354,6 +354,8 @@ export const DAILY_LIMIT = Number(process.env.SEMAFOR_DAILY_LIMIT) || 300;
 export function mailReady() { return !!process.env.RESEND_API_KEY && !!MAIL_DOMAIN; }
 
 let verifiedCache: { at: number; domains: Set<string> } | null = null;
+/** After a domain was verified / removed: read the list again on the next send. */
+export function invalidateVerified() { verifiedCache = null; }
 /** Domains verified in Semafor's Resend account (cached 10 min). */
 export async function verifiedDomains(): Promise<Set<string>> {
   const key = process.env.RESEND_API_KEY;
@@ -372,13 +374,23 @@ function shopSlug(shopDomain: string) {
   return shopDomain.replace(/\.myshopify\.com$/, "").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40) || "shop";
 }
 
-/** The From address actually used for a shop. */
+/**
+ * The From address actually used for a shop: its own address only when the domain is verified in Semafor's Resend
+ * account AND belongs to this shop (linked on the Emails page) — a shop can never send as another shop's domain.
+ * The owner's stores may use any verified domain (mihailiuc.ro was verified before linking existed).
+ */
 export async function senderOf(shopDomain: string, s: Pick<RecoverySettings, "fromEmail">) {
   const own = (s.fromEmail || "").trim().toLowerCase();
-  if (own && own.includes("@")) {
+  if (own && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(own)) {
     const dom = own.split("@")[1];
     const ok = await verifiedDomains();
-    if ([...ok].some((d) => dom === d || dom.endsWith("." + d))) return own;
+    const verified = [...ok].find((d) => dom === d || dom.endsWith("." + d));
+    if (verified) {
+      if (isOwnerShop(shopDomain)) return own;
+      const row = await db.shop.findUnique({ where: { domain: shopDomain }, select: { settings: true } }).catch(() => null);
+      const linked = String((row?.settings as any)?.sendingDomain?.name || "").toLowerCase();
+      if (linked && linked === verified) return own;
+    }
   }
   return MAIL_DOMAIN ? `${shopSlug(shopDomain)}@${MAIL_DOMAIN}` : "";
 }
