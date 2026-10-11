@@ -178,7 +178,6 @@
   function assets() {
     if (D.getElementById('smf-pp-css')) return;
     var l = D.createElement('link'); l.id = 'smf-pp-css'; l.rel = 'stylesheet'; l.href = B.css; D.head.appendChild(l);
-    var f = D.createElement('link'); f.rel = 'stylesheet'; f.href = 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap'; D.head.appendChild(f);
   }
   assets();
 
