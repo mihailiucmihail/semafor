@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, Divider, Thumbnail } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, InlineGrid, Text, Badge, Select, Button, Banner, Box, Divider, Thumbnail, Avatar } from "@shopify/polaris";
+import { EmailIcon, PhoneIcon, LocationIcon, GlobeIcon } from "@shopify/polaris-icons";
+import { Dot, IdLine, SectionHead } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
@@ -76,54 +78,43 @@ export default function Client() {
     : <Badge tone="warning">{tr("client.consentNo")}</Badge>;
   const name = [ctx.firstName, ctx.lastName].filter(Boolean).join(" ") || ctx.email || tr("common.customer");
 
+  const phone = (ctx as any).phone || ctx.steps.map((x: any) => x.phone).find(Boolean) || "";
+  const initials = (name.split(/[\s@.]+/).filter(Boolean).slice(0, name.includes("@") ? 1 : 2).map((w: string) => w[0]).join("") || "?").toUpperCase();
+
   return (
-    <Page backAction={{ content: tr("nav.stats"), url: "/app/stats" }} title={name} subtitle={[ctx.city, ctx.country, locale.toUpperCase()].filter(Boolean).join(" · ")}>
+    <Page fullWidth backAction={{ content: tr("nav.stats"), url: "/app/stats" }} title={name} subtitle={[ctx.city, ctx.country, locale.toUpperCase()].filter(Boolean).join(", ")}
+      titleMetadata={ctx.completed ? <Badge tone="success">{tr("common.ordered")}</Badge> : <Badge tone="attention">{tr(`stopped.${stoppedStep(ctx.events)}` as TKey)}</Badge>}>
       <TitleBar title={name} />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <Card>
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">{tr("client.steps")}</Text>
-                  {ctx.completed ? <Badge tone="success">{tr("common.ordered")}</Badge> : <Badge tone="attention">{tr(`stopped.${stoppedStep(ctx.events)}` as TKey)}</Badge>}
-                </InlineStack>
-                <BlockStack gap="200">
-                  {ctx.steps.map((s: any, i: number) => (
-                    <InlineStack key={i} gap="300" blockAlign="start" wrap={false}>
-                      <Box minWidth="130px"><Text as="span" tone="subdued" variant="bodySm">{fmt(s.at, lang)}</Text></Box>
-                      <BlockStack gap="050">
-                        <Text as="span" fontWeight="semibold">{i + 1}. {STEP_LABEL[s.event] ? tr(`step.${s.event}` as TKey) : s.event}</Text>
-                        <Text as="span" variant="bodySm" tone="subdued">{[s.email, s.phone, s.name, s.city].filter(Boolean).join(" · ")}</Text>
-                      </BlockStack>
-                    </InlineStack>
-                  ))}
-                </BlockStack>
+              <BlockStack gap="400">
+                <SectionHead title={tr("client.steps")} />
+                <ol className="sf-timeline">
+                  {ctx.steps.map((s: any, i: number) => {
+                    const last = i === ctx.steps.length - 1;
+                    return (
+                      <li key={i}>
+                        <Dot level={last ? (ctx.completed ? "green" : "yellow") : "none"} />
+                        <InlineStack align="space-between" gap="200" blockAlign="start">
+                          <BlockStack gap="050">
+                            <Text as="span" fontWeight="semibold">{STEP_LABEL[s.event] ? tr(`step.${s.event}` as TKey) : s.event}</Text>
+                            {[s.email, s.phone, s.name, s.city].some(Boolean) && <Text as="span" variant="bodySm" tone="subdued"><span className="sf-break">{[s.email, s.phone, s.name, s.city].filter(Boolean).join(", ")}</span></Text>}
+                          </BlockStack>
+                          <Text as="span" tone="subdued" variant="bodySm"><span className="sf-nowrap sf-num">{fmt(s.at, lang)}</span></Text>
+                        </InlineStack>
+                      </li>
+                    );
+                  })}
+                </ol>
                 {!ctx.completed && <Text as="p" variant="bodySm" tone="subdued">{tr("client.lastStep", { date: fmt(ctx.lastAt, lang) })}</Text>}
               </BlockStack>
             </Card>
 
-            {ctx.items?.length > 0 && (
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">{tr("client.inCart")}</Text>
-                  {ctx.items.map((it: any, i: number) => (
-                    <InlineStack key={i} gap="300" blockAlign="center">
-                      {it.image ? <Thumbnail source={it.image} alt="" size="small" /> : null}
-                      <Text as="span">{it.title}{it.qty > 1 ? ` × ${it.qty}` : ""}</Text>
-                    </InlineStack>
-                  ))}
-                  {ctx.total != null && <Text as="p" fontWeight="semibold">{tr("client.total", { total: ctx.total, currency: ctx.currency })}</Text>}
-                </BlockStack>
-              </Card>
-            )}
-
             <Card>
-              <BlockStack gap="300">
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd">{tr("client.sendEmail")}</Text>
-                  {ctx.email ? consentBadge : null}
-                </InlineStack>
+              <BlockStack gap="400">
+                <SectionHead title={tr("client.sendEmail")}>{ctx.email ? consentBadge : null}</SectionHead>
                 {!ctx.email ? (
                   <Banner tone="info">{tr("client.noEmail")}</Banner>
                 ) : (
@@ -131,14 +122,14 @@ export default function Client() {
                     {!ready.resend && <Banner tone="info">{tr("client.sendingSoon")}</Banner>}
                     {!(ctx.acceptsMarketing || consent === "SUBSCRIBED") && <Banner tone="warning">{tr("client.noConsentWarn")}</Banner>}
                     <Text as="p">{tr("client.to")}<b>{ctx.email}</b></Text>
-                    <Select label={tr("common.template")} value={tpl} onChange={setTpl} options={sorted.map((t: any) => ({ label: `${t.name}`, value: t.id }))} />
-                    <InlineStack gap="300">
-                      <Box minWidth="200px"><Select label={tr("client.discount")} value={pct} onChange={setPct} options={[{ label: tr("client.noDiscount"), value: "0" }, ...[5, 10, 15, 20, 25].map((p) => ({ label: `${p}%`, value: String(p) }))]} /></Box>
-                      <Box minWidth="200px"><Select label={tr("client.valid")} value={hours} onChange={setHours} disabled={pct === "0"} options={[{ label: tr("client.todayOnly"), value: "today" }, { label: tr("common.h24"), value: "24" }, { label: tr("common.h48"), value: "48" }, { label: tr("common.d7"), value: "168" }]} /></Box>
-                    </InlineStack>
-                    <InlineStack gap="200">
+                    <InlineGrid columns={{ xs: 1, md: 3 }} gap="300">
+                      <Select label={tr("common.template")} value={tpl} onChange={setTpl} options={sorted.map((t: any) => ({ label: `${t.name}`, value: t.id }))} />
+                      <Select label={tr("client.discount")} value={pct} onChange={setPct} options={[{ label: tr("client.noDiscount"), value: "0" }, ...[5, 10, 15, 20, 25].map((p) => ({ label: `${p}%`, value: String(p) }))]} />
+                      <Select label={tr("client.valid")} value={hours} onChange={setHours} disabled={pct === "0"} options={[{ label: tr("client.todayOnly"), value: "today" }, { label: tr("common.h24"), value: "24" }, { label: tr("common.h48"), value: "48" }, { label: tr("common.d7"), value: "168" }]} />
+                    </InlineGrid>
+                    <InlineStack gap="200" align="end">
                       <Button onClick={() => fetcher.submit({ intent: "preview", templateId: tpl, pct, hours: String(hoursNum) }, { method: "post" })} loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "preview"}>{tr("client.preview")}</Button>
-                      <Button variant="primary" disabled={!ready.resend || !ready.from} onClick={() => fetcher.submit({ intent: "send", templateId: tpl, pct, hours: String(hoursNum) }, { method: "post" })} loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "send"}>{tr("common.sendNow")}</Button>
+                      <Button variant="primary" icon={EmailIcon} disabled={!ready.resend || !ready.from} onClick={() => fetcher.submit({ intent: "send", templateId: tpl, pct, hours: String(hoursNum) }, { method: "post" })} loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "send"}>{tr("common.sendNow")}</Button>
                     </InlineStack>
                     {d && !d.ok && <Banner tone="critical">{d.error}</Banner>}
                     {d && d.ok && (
@@ -157,15 +148,16 @@ export default function Client() {
 
             {sends.length > 0 && (
               <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">{tr("client.sentList")}</Text>
-                  {sends.map((s: any) => (
+                <BlockStack gap="300">
+                  <SectionHead title={tr("client.sentList")} />
+                  {sends.map((s: any, i: number) => (
                     <BlockStack key={s.id} gap="200">
+                      {i > 0 && <Divider />}
                       <InlineStack gap="300" blockAlign="center">
-                        <Box minWidth="130px"><Text as="span" variant="bodySm" tone="subdued">{fmt(s.createdAt, lang)}</Text></Box>
                         <Badge tone={s.status === "sent" ? "success" : s.status === "failed" ? "critical" : undefined}>{s.status === "sent" ? tr("client.status.sent") : s.status === "failed" ? tr("client.status.failed") : tr("client.status.skipped")}</Badge>
-                        <Text as="span" variant="bodySm">{KINDS.includes(s.kind) ? tr(`client.kind.${s.kind}` as TKey) : s.kind} · {s.subject}{s.discountCode ? ` · ${s.discountCode}` : ""}{s.error ? ` · ${trMsg(lang, s.error)}` : ""}</Text>
+                        <Text as="span" variant="bodySm" tone="subdued"><span className="sf-num">{fmt(s.createdAt, lang)}</span></Text>
                       </InlineStack>
+                      <Text as="p" variant="bodySm"><span className="sf-break">{KINDS.includes(s.kind) ? tr(`client.kind.${s.kind}` as TKey) : s.kind} · {s.subject}{s.discountCode ? ` · ${s.discountCode}` : ""}{s.error ? ` · ${trMsg(lang, s.error)}` : ""}</span></Text>
                       {s.view && (
                         <Box borderColor="border" borderWidth="025" borderRadius="200" overflowX="hidden" overflowY="hidden">
                           <iframe title={s.subject} srcDoc={s.view} loading="lazy" style={{ width: "100%", height: 620, border: 0 }} />
@@ -176,7 +168,44 @@ export default function Client() {
                 </BlockStack>
               </Card>
             )}
-            <Divider />
+          </BlockStack>
+        </Layout.Section>
+
+        <Layout.Section variant="oneThird">
+          <BlockStack gap="400">
+            <Card>
+              <BlockStack gap="300">
+                <InlineStack gap="300" blockAlign="center" wrap={false}>
+                  <Avatar size="lg" initials={initials} name={name} />
+                  <BlockStack gap="050">
+                    <Text as="h2" variant="headingMd"><span className="sf-break">{name}</span></Text>
+                    {ctx.email ? consentBadge : null}
+                  </BlockStack>
+                </InlineStack>
+                <Divider />
+                <BlockStack gap="150">
+                  {ctx.email && <IdLine icon={EmailIcon} label={tr("kind.email")}>{ctx.email}</IdLine>}
+                  {phone && <IdLine icon={PhoneIcon} label={tr("kind.phone")}>{phone}</IdLine>}
+                  {(ctx.city || ctx.country) && <IdLine icon={LocationIcon} label={tr("kind.address")}>{[ctx.city, ctx.country].filter(Boolean).join(", ")}</IdLine>}
+                  <IdLine icon={GlobeIcon} label={tr("emails.colLang")}>{locale.toUpperCase()}</IdLine>
+                </BlockStack>
+              </BlockStack>
+            </Card>
+
+            {ctx.items?.length > 0 && (
+              <Card>
+                <BlockStack gap="300">
+                  <Text as="h2" variant="headingSm">{tr("client.inCart")}</Text>
+                  {ctx.items.map((it: any, i: number) => (
+                    <InlineStack key={i} gap="300" blockAlign="center" wrap={false}>
+                      {it.image ? <Thumbnail source={it.image} alt="" size="small" /> : null}
+                      <Text as="span"><span className="sf-break">{it.title}{it.qty > 1 ? ` × ${it.qty}` : ""}</span></Text>
+                    </InlineStack>
+                  ))}
+                  {ctx.total != null && <><Divider /><Text as="p" fontWeight="semibold">{tr("client.total", { total: ctx.total, currency: ctx.currency })}</Text></>}
+                </BlockStack>
+              </Card>
+            )}
           </BlockStack>
         </Layout.Section>
       </Layout>

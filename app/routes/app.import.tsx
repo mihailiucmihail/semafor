@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Text, TextField, Button, Banner, List } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, Text, TextField, Button, Banner, List, DropZone } from "@shopify/polaris";
+import { ImportIcon } from "@shopify/polaris-icons";
+import { SectionHead } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
@@ -58,35 +60,55 @@ export default function Import() {
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [csv, setCsv] = useState("");
+  const [fileName, setFileName] = useState("");
   const tr = useT();
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("import.imported", { n: fetcher.data.imported })); }, [fetcher.state, fetcher.data, app, tr]);
   const d = fetcher.data;
+  const onDrop = (_all: File[], accepted: File[]) => {
+    const f = accepted[0]; if (!f) return;
+    const rd = new FileReader(); rd.onload = () => { setCsv(String(rd.result || "")); setFileName(f.name); }; rd.readAsText(f);
+  };
+  const lines = csv.trim() ? csv.trim().split(/\r?\n/).length - 1 : 0;
   return (
-    <Page narrowWidth>
+    <Page fullWidth>
       <TitleBar title={tr("import.title")} />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
             <Card>
-              <BlockStack gap="300">
-                <Text as="p">{tr("import.intro")}</Text>
-                <List type="bullet">
-                  <List.Item><code>email</code>, <code>phone</code> / <code>telefon</code></List.Item>
-                  <List.Item><code>first_name</code> + <code>last_name</code> {tr("import.or")} <code>name</code></List.Item>
-                  <List.Item><code>address</code> / <code>adresa</code>, <code>city</code> / <code>oras</code></List.Item>
-                  <List.Item><code>reason</code> / <code>motiv</code> (refuz_colet, chargeback, return_fraud, abuse, other), <code>note</code></List.Item>
-                </List>
-                <TextField label="CSV" value={csv} onChange={setCsv} multiline={12} autoComplete="off" monospaced placeholder={"email,phone,name,reason\nion@example.com,0743000000,Ion Popescu,refuz_colet"} />
-                <Button variant="primary" loading={fetcher.state !== "idle"} disabled={!csv.trim()} onClick={() => fetcher.submit({ csv }, { method: "post" })}>{tr("import.button")}</Button>
+              <BlockStack gap="400">
+                <SectionHead title={tr("import.title")} description={tr("import.lead")} />
+                <DropZone accept=".csv,text/csv,text/plain" type="file" allowMultiple={false} onDrop={onDrop} label={tr("import.dropLabel")} labelHidden>
+                  <DropZone.FileUpload actionTitle={tr("import.dropAction")} actionHint={fileName || tr("import.dropHint")} />
+                </DropZone>
+                <TextField label={tr("import.pasteLabel")} value={csv} onChange={setCsv} multiline={12} autoComplete="off" monospaced placeholder={"email,phone,name,reason\nion@example.com,0743000000,Ion Popescu,refuz_colet"}
+                  helpText={lines > 0 ? tr("import.rows", { n: lines }) : undefined} />
+                <InlineStack align="end">
+                  <Button variant="primary" icon={ImportIcon} loading={fetcher.state !== "idle"} disabled={!csv.trim()} onClick={() => fetcher.submit({ csv }, { method: "post" })}>{tr("import.button")}</Button>
+                </InlineStack>
               </BlockStack>
             </Card>
             {d && !d.ok && <Banner tone="critical">{(d as any).error}</Banner>}
             {d && d.ok && (
-              <Banner tone={d.skipped.length ? "warning" : "success"} title={tr("import.imported", { n: d.imported })}>
+              <Banner tone={d.skipped.length ? "warning" : "success"} title={tr("import.imported", { n: d.imported })} action={{ content: tr("nav.blacklist"), url: "/app" }}>
                 {d.skipped.length ? <>{tr("import.skipped", { n: d.skipped.length })}<List>{d.skipped.slice(0, 20).map((s, i) => <List.Item key={i}>{s}</List.Item>)}</List></> : null}
               </Banner>
             )}
           </BlockStack>
+        </Layout.Section>
+        <Layout.Section variant="oneThird">
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingSm">{tr("import.columns")}</Text>
+              <Text as="p" variant="bodySm" tone="subdued">{tr("import.intro")}</Text>
+              <List type="bullet">
+                <List.Item><code>email</code>, <code>phone</code> / <code>telefon</code></List.Item>
+                <List.Item><code>first_name</code> + <code>last_name</code> {tr("import.or")} <code>name</code></List.Item>
+                <List.Item><code>address</code> / <code>adresa</code>, <code>city</code> / <code>oras</code></List.Item>
+                <List.Item><code>reason</code> / <code>motiv</code> (refuz_colet, chargeback, return_fraud, abuse, other), <code>note</code></List.Item>
+              </List>
+            </BlockStack>
+          </Card>
         </Layout.Section>
       </Layout>
     </Page>

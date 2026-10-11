@@ -4,6 +4,7 @@ import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
+import semaforStyles from "../styles/semafor.css?url";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
@@ -12,7 +13,7 @@ import { can } from "../../core/plans";
 import { LangProvider, t } from "../i18n";
 import { shopLang, rememberLangHints } from "../i18n.server";
 
-export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
+export const links = () => [{ rel: "stylesheet", href: polarisStyles }, { rel: "stylesheet", href: semaforStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);

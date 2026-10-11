@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Select, Button, Banner, Box, TextField, Checkbox, FormLayout, IndexTable, InlineGrid, Divider } from "@shopify/polaris";
+import { EmailIcon, OrderIcon, ClockIcon, AlertCircleIcon, EditIcon, DeleteIcon, PlusIcon } from "@shopify/polaris-icons";
+import { Kpi, SectionHead } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
@@ -191,18 +193,19 @@ export default function Emails() {
   const saveTemplate = () => fetcher.submit({ intent: "save", id: edit.id, name: edit.name, locale: edit.locale, purpose: edit.purpose, subject: edit.subject, html: edit.html || "", design: edit.design, copy: JSON.stringify(edit.copy || null) }, { method: "post" });
 
   return (
-    <Page title={tr("emails.pageTitle")}>
+    <Page fullWidth title={tr("emails.pageTitle")}>
       <TitleBar title={tr("nav.emails")} />
       <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
-            <InlineGrid columns={{ xs: 2, md: 4 }} gap="300">
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.sent30")}</Text><Text as="p" variant="heading2xl">{stats.sent}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.customers", { n: stats.people })}</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.orderedAfter")}</Text><Text as="p" variant="heading2xl" tone="success">{stats.recovered}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.pctContacted", { p: stats.people ? Math.round((stats.recovered / stats.people) * 100) : 0 })}</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.skipped")}</Text><Text as="p" variant="heading2xl">{stats.skipped}</Text><Text as="p" variant="bodySm" tone="subdued">{tr("emails.skippedHint")}</Text></BlockStack></Card>
-              <Card><BlockStack gap="100"><Text as="p" tone="subdued">{tr("emails.errors")}</Text><Text as="p" variant="heading2xl" tone={stats.failed ? "critical" : undefined}>{stats.failed}</Text></BlockStack></Card>
+        <Layout.Section variant="fullWidth">
+            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
+              <Kpi icon={EmailIcon} label={tr("emails.sent30")} value={stats.sent} hint={tr("emails.customers", { n: stats.people })} />
+              <Kpi icon={OrderIcon} label={tr("emails.orderedAfter")} value={stats.recovered} tone={stats.recovered ? "success" : undefined} hint={tr("emails.pctContacted", { p: stats.people ? Math.round((stats.recovered / stats.people) * 100) : 0 })} />
+              <Kpi icon={ClockIcon} label={tr("emails.skipped")} value={stats.skipped} hint={tr("emails.skippedHint")} />
+              <Kpi icon={AlertCircleIcon} label={tr("emails.errors")} value={stats.failed} tone={stats.failed ? "critical" : undefined} />
             </InlineGrid>
+        </Layout.Section>
 
+        <Layout.Section>
             <Card>
               <BlockStack gap="300">
                 <InlineStack align="space-between"><Text as="h2" variant="headingMd">{tr("emails.automation")}</Text>{r.enabled ? <Badge tone="success">{tr("emails.on")}</Badge> : <Badge>{tr("emails.off")}</Badge>}</InlineStack>
@@ -245,7 +248,10 @@ export default function Emails() {
                 <Text as="p" variant="bodySm" tone="subdued">{tr("emails.langNote")}</Text>
               </BlockStack>
             </Card>
+        </Layout.Section>
 
+        <Layout.Section variant="oneThird">
+          <BlockStack gap="400">
             <Card>
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">{tr("emails.blastHeading")}</Text>
@@ -265,28 +271,29 @@ export default function Emails() {
                 <Text as="h2" variant="headingMd">{tr("emails.lookHeading")}</Text>
                 <Text as="p" tone="subdued">{tr("emails.lookText")}</Text>
                 <FormLayout>
-                  <FormLayout.Group>
                     <TextField label={tr("emails.brandName")} value={r.brandName} onChange={(v) => setR({ ...r, brandName: v })} autoComplete="off" placeholder={shopName} helpText={tr("emails.brandNameHelp")} />
                     <TextField label={tr("emails.tagline")} value={r.brandTagline} onChange={(v) => setR({ ...r, brandTagline: v })} autoComplete="off" placeholder={tr("emails.taglinePh")} />
-                  </FormLayout.Group>
-                  <FormLayout.Group>
                     <TextField label={tr("emails.logo")} value={r.logoUrl} onChange={(v) => setR({ ...r, logoUrl: v.trim() })} autoComplete="off" placeholder="https://cdn.shopify.com/…/logo.png" helpText={tr("emails.logoHelp")} />
                     <TextField label={tr("emails.accent")} value={r.accent} onChange={(v) => setR({ ...r, accent: v.trim() })} autoComplete="off" placeholder="#2a1a12" prefix={<span style={{ display: "inline-block", width: 14, height: 14, borderRadius: 3, background: /^#[0-9a-f]{3,8}$/i.test(r.accent) ? r.accent : "#ddd", border: "1px solid #ccc" }} />} helpText={tr("emails.accentHelp")} />
-                  </FormLayout.Group>
                 </FormLayout>
                 <InlineStack><Button variant="primary" loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "settings"} onClick={() => fetcher.submit({ intent: "settings", recovery: JSON.stringify(r) }, { method: "post" })}>{tr("emails.saveLook")}</Button></InlineStack>
                 {resend && (
-                  <InlineStack gap="200" blockAlign="end" wrap>
-                    <Box minWidth="260px"><TextField label={tr("emails.testTo")} value={testTo} onChange={setTestTo} autoComplete="email" placeholder={tr("emails.testToPh")} /></Box>
-                    <Box minWidth="240px"><Select label={tr("common.template")} value={testTpl} onChange={setTestTpl} options={[{ label: tr("emails.firstTpl"), value: "" }, ...templates.map((t: any) => ({ label: `${t.name} · ${designName(t.design)}`, value: t.id }))]} /></Box>
-                    <Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>{tr("common.sendTest")}</Button>
-                  </InlineStack>
+                  <BlockStack gap="200">
+                    <Divider />
+                    <TextField label={tr("emails.testTo")} value={testTo} onChange={setTestTo} autoComplete="email" placeholder={tr("emails.testToPh")} />
+                    <Select label={tr("common.template")} value={testTpl} onChange={setTestTpl} options={[{ label: tr("emails.firstTpl"), value: "" }, ...templates.map((t: any) => ({ label: `${t.name} · ${designName(t.design)}`, value: t.id }))]} />
+                    <InlineStack><Button loading={fetcher.state !== "idle" && fetcher.formData?.get("intent") === "test"} disabled={!testTo} onClick={() => fetcher.submit({ intent: "test", to: testTo, templateId: testTpl }, { method: "post" })}>{tr("common.sendTest")}</Button></InlineStack>
+                  </BlockStack>
                 )}
                 {(fetcher.data as any)?.test && <Banner tone={(fetcher.data as any).ok ? "success" : "critical"}>{(fetcher.data as any).test}</Banner>}
                 <Text as="p" variant="bodySm" tone="subdued">{tr("emails.testNote", { p: items[0] ? ` (${items[0].title})` : "" })}</Text>
               </BlockStack>
             </Card>
+          </BlockStack>
+        </Layout.Section>
 
+        <Layout.Section variant="fullWidth">
+          <BlockStack gap="400">
             <Card>
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">{tr("emails.designs")}</Text>
@@ -317,20 +324,22 @@ export default function Emails() {
             </Card>
 
             <Card padding="0">
-              <Box padding="400"><InlineStack align="space-between" blockAlign="center"><Text as="h2" variant="headingMd">{tr("emails.templates")}</Text>
-                <Button variant="primary" onClick={newTemplate}>{tr("emails.newTpl")}</Button></InlineStack></Box>
+              <Box padding="400"><SectionHead title={tr("emails.templates")}>
+                <Button variant="primary" icon={PlusIcon} onClick={newTemplate}>{tr("emails.newTpl")}</Button></SectionHead></Box>
+              <div className="sf-table sf-lg-hide-2 sf-md-hide-5">
               <IndexTable resourceName={{ singular: tr("emails.resTpl"), plural: tr("emails.resTpls") }} itemCount={templates.length} selectable={false} headings={[{ title: tr("common.name") }, { title: tr("emails.colDesign") }, { title: tr("emails.colLang") }, { title: tr("emails.colPurpose") }, { title: tr("common.subject") }, { title: "" }]}>
                 {templates.map((t: any, i: number) => (
                   <IndexTable.Row id={t.id} key={t.id} position={i}>
                     <IndexTable.Cell><Text as="span" fontWeight="semibold">{t.name}</Text></IndexTable.Cell>
                     <IndexTable.Cell>{designName(t.design)}</IndexTable.Cell>
-                    <IndexTable.Cell>{t.locale.toUpperCase()}</IndexTable.Cell>
+                    <IndexTable.Cell><Badge size="small">{t.locale.toUpperCase()}</Badge></IndexTable.Cell>
                     <IndexTable.Cell>{purposeLabel(t.purpose)}</IndexTable.Cell>
-                    <IndexTable.Cell><Text as="span" variant="bodySm">{t.subject}</Text></IndexTable.Cell>
-                    <IndexTable.Cell><InlineStack gap="200"><Button size="slim" onClick={() => setEdit({ ...t, copy: t.copy || null })}>{tr("common.edit")}</Button><Button size="slim" tone="critical" variant="plain" onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })}>{tr("common.delete")}</Button></InlineStack></IndexTable.Cell>
+                    <IndexTable.Cell><Text as="span" variant="bodySm"><span className="sf-clamp2 sf-break">{t.subject}</span></Text></IndexTable.Cell>
+                    <IndexTable.Cell><InlineStack gap="100" align="end" wrap={false}><Button size="slim" icon={EditIcon} onClick={() => setEdit({ ...t, copy: t.copy || null })}>{tr("common.edit")}</Button><Button size="slim" icon={DeleteIcon} tone="critical" variant="tertiary" accessibilityLabel={`${tr("common.delete")}: ${t.name}`} onClick={() => fetcher.submit({ intent: "delete", id: t.id }, { method: "post" })} /></InlineStack></IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
               </IndexTable>
+              </div>
             </Card>
 
             {edit && (

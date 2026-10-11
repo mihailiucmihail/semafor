@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, Text, Select, Checkbox, TextField, Button, FormLayout, Banner } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, Text, Select, Checkbox, TextField, Button, FormLayout, Banner, Badge, Icon, Divider } from "@shopify/polaris";
+import { CheckCircleIcon, AlertCircleIcon } from "@shopify/polaris-icons";
+import { Lamp } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
@@ -47,65 +49,91 @@ export default function Settings() {
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
+  const allOk = (webhooks as any[]).every((w) => w.ok);
+  const save = () => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork) }, { method: "post" });
+
   return (
-    <Page narrowWidth>
+    <Page fullWidth>
       <TitleBar title={tr("nav.settings")} />
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
+      <BlockStack gap="500">
+        <Layout>
+          <Layout.AnnotatedSection title={tr("settings.ordersHeading")} description={tr("settings.ordersDesc")}>
             <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">{tr("settings.ordersHeading")}</Text>
+              <BlockStack gap="400">
                 {!basic && <Banner tone="info" action={{ content: tr("settings.seePlans"), url: "/app/plan" }}>{tr("settings.freeBanner")}</Banner>}
-                <FormLayout>
-                  <Select label={tr("settings.yellowLabel")} disabled={!basic} value={basic ? s.yellowAction : "tag"} onChange={(v) => setS({ ...s, yellowAction: v as any })}
-                    options={[
-                      { label: tr("settings.yellowTag"), value: "tag" },
-                      { label: tr("settings.yellowPrepaid"), value: "prepaid" },
-                      { label: tr("settings.yellowBlock"), value: "block" },
-                    ]} helpText={tr("settings.yellowHelp")} />
-                  <Checkbox label={tr("settings.cancelRed")} disabled={!basic} checked={basic && s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText={tr("settings.cancelRedHelp")} />
-                </FormLayout>
+                <InlineStack gap="300" blockAlign="start" wrap={false}>
+                  <Lamp level="yellow" label={tr("level.yellow")} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Select label={tr("settings.yellowLabel")} disabled={!basic} value={basic ? s.yellowAction : "tag"} onChange={(v) => setS({ ...s, yellowAction: v as any })}
+                      options={[
+                        { label: tr("settings.yellowTag"), value: "tag" },
+                        { label: tr("settings.yellowPrepaid"), value: "prepaid" },
+                        { label: tr("settings.yellowBlock"), value: "block" },
+                      ]} helpText={tr("settings.yellowHelp")} />
+                  </div>
+                </InlineStack>
+                <Divider />
+                <InlineStack gap="300" blockAlign="start" wrap={false}>
+                  <Lamp level="red" label={tr("level.red")} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Checkbox label={tr("settings.cancelRed")} disabled={!basic} checked={basic && s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText={tr("settings.cancelRedHelp")} />
+                  </div>
+                </InlineStack>
               </BlockStack>
             </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.networkHeading")} description={tr("settings.networkDesc")}>
             <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">{tr("settings.networkHeading")}</Text>
-                <Checkbox label={tr("settings.networkLabel")} checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })}
-                  helpText={tr("settings.networkHelp")} />
-              </BlockStack>
+              <Checkbox label={tr("settings.networkLabel")} checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })} helpText={tr("settings.networkHelp")} />
             </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.thresholdsHeading")} description={tr("settings.thresholdsDesc")}>
             <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">{tr("settings.thresholdsHeading")}</Text>
+              <FormLayout>
                 <FormLayout.Group>
                   <TextField label={tr("settings.blockFrom")} type="number" value={s.block} onChange={(v) => setS({ ...s, block: v })} autoComplete="off" helpText={tr("settings.blockHelp")} />
                   <TextField label={tr("settings.warnFrom")} type="number" value={s.warn} onChange={(v) => setS({ ...s, warn: v })} autoComplete="off" helpText={tr("settings.warnHelp")} />
                 </FormLayout.Group>
-              </BlockStack>
+              </FormLayout>
             </Card>
-            <Card>
-              <BlockStack gap="200">
-                <Text as="h2" variant="headingMd">{tr("settings.connHeading")}</Text>
-                {(webhooks as any[]).map((w) => (
-                  <Text as="p" key={w.topic} tone={w.ok ? "success" : "critical"}>
-                    {w.ok ? "✓" : "✗"} {topicLabel(w.topic)}
-                    {w.ok ? tr("settings.active") : tr("settings.error", { e: trMsg(lang, w.error) })}
-                  </Text>
-                ))}
-              </BlockStack>
-            </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.connHeading")} description={tr("settings.connDesc")}>
             <Card>
               <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">{tr("settings.langHeading")}</Text>
-                <Select label={tr("settings.langLabel")} value={s.uiLang || lang} onChange={(v) => setS({ ...s, uiLang: v as "en" | "ro" })}
-                  options={[{ label: "English", value: "en" }, { label: "Română", value: "ro" }]} helpText={tr("settings.langHelp")} />
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h3" variant="headingSm">{allOk ? tr("settings.connAllOk") : tr("settings.connSomeErr")}</Text>
+                  <Badge tone={allOk ? "success" : "critical"}>{allOk ? tr("settings.connActive") : tr("settings.connError")}</Badge>
+                </InlineStack>
+                <BlockStack gap="200">
+                  {(webhooks as any[]).map((w) => (
+                    <div className="sf-conn" key={w.topic}>
+                      <Icon source={w.ok ? CheckCircleIcon : AlertCircleIcon} tone={w.ok ? "success" : "critical"} />
+                      <BlockStack gap="050">
+                        <Text as="span">{topicLabel(w.topic)}</Text>
+                        {!w.ok && <Text as="span" variant="bodySm" tone="critical">{trMsg(lang, w.error)}</Text>}
+                      </BlockStack>
+                    </div>
+                  ))}
+                </BlockStack>
               </BlockStack>
             </Card>
-            <Button variant="primary" loading={fetcher.state !== "idle"} onClick={() => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork) }, { method: "post" })}>{tr("common.save")}</Button>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.langHeading")} description={tr("settings.langHelp")}>
+            <Card>
+              <Select label={tr("settings.langLabel")} value={s.uiLang || lang} onChange={(v) => setS({ ...s, uiLang: v as "en" | "ro" })}
+                options={[{ label: "English", value: "en" }, { label: "Română", value: "ro" }]} />
+            </Card>
+          </Layout.AnnotatedSection>
+        </Layout>
+        <Divider />
+        <InlineStack align="end">
+          <Button variant="primary" size="large" loading={fetcher.state !== "idle"} onClick={save}>{tr("common.save")}</Button>
+        </InlineStack>
+      </BlockStack>
     </Page>
   );
 }

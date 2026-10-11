@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
-import { Page, Card, BlockStack, InlineStack, Select, Button, Banner, TextField, Text } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, Select, Button, Banner, TextField } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
@@ -22,18 +22,21 @@ export default function TestEmail() {
   const [tpl, setTpl] = useState(templates[0]?.id || "");
   const tr = useT();
   return (
-    <Page title={tr("test.title")} backAction={{ url: "/app/emails" }}>
-      <Card>
-        <BlockStack gap="300">
-          <Text as="p" tone="subdued">{tr("test.intro")}</Text>
-          <TextField label={tr("test.sendTo")} value={to} onChange={setTo} autoComplete="email" />
-          <Select label={tr("common.template")} options={templates.map((t) => ({ label: `${t.name} · ${t.design}`, value: t.id }))} value={tpl} onChange={setTpl} />
-          <InlineStack>
-            <Button variant="primary" loading={f.state !== "idle"} disabled={!to} onClick={() => f.submit({ intent: "test", to, templateId: tpl }, { method: "post", action: "/app/emails" })}>{tr("common.sendTest")}</Button>
-          </InlineStack>
-          {f.data?.test && <Banner tone={f.data.ok ? "success" : "critical"}>{f.data.test}</Banner>}
-        </BlockStack>
-      </Card>
+    <Page fullWidth title={tr("test.title")} backAction={{ url: "/app/emails" }}>
+      <Layout>
+        <Layout.AnnotatedSection title={tr("test.title")} description={tr("test.intro")}>
+          <Card>
+            <BlockStack gap="300">
+              <TextField label={tr("test.sendTo")} value={to} onChange={setTo} autoComplete="email" />
+              <Select label={tr("common.template")} options={templates.map((t) => ({ label: `${t.name} · ${t.design}`, value: t.id }))} value={tpl} onChange={setTpl} />
+              <InlineStack align="end">
+                <Button variant="primary" loading={f.state !== "idle"} disabled={!to} onClick={() => f.submit({ intent: "test", to, templateId: tpl }, { method: "post", action: "/app/emails" })}>{tr("common.sendTest")}</Button>
+              </InlineStack>
+              {f.data?.test && <Banner tone={f.data.ok ? "success" : "critical"}>{f.data.test}</Banner>}
+            </BlockStack>
+          </Card>
+        </Layout.AnnotatedSection>
+      </Layout>
     </Page>
   );
 }

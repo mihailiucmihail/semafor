@@ -1,0 +1,144 @@
+/*
+ * Semafor admin UI layer — sits on top of Polaris. Only Polaris tokens for
+ * surfaces/text/spacing; the three signal colours are the brand motif and are
+ * used for status only (lamps, dots, the order-verdict strip).
+ */
+:root {
+  --sf-red: #e0301e;
+  --sf-yellow: #f0a800;
+  --sf-green: #12a150;
+  --sf-red-soft: rgba(224, 48, 30, 0.12);
+  --sf-yellow-soft: rgba(240, 168, 0, 0.16);
+  --sf-green-soft: rgba(18, 161, 80, 0.12);
+  --sf-housing: #1f2226;
+}
+
+/* ── tables: wrap instead of scrolling sideways ── */
+.sf-table .Polaris-IndexTable__TableCell {
+  white-space: normal;
+  vertical-align: top;
+  padding-top: var(--p-space-300);
+  padding-bottom: var(--p-space-300);
+}
+.sf-table .Polaris-IndexTable__TableHeading { white-space: nowrap; }
+.sf-table .Polaris-Badge { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+.sf-table .Polaris-IndexTable__TableRow:hover .sf-row-actions { opacity: 1; }
+.sf-break { overflow-wrap: anywhere; word-break: break-word; }
+.sf-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sf-nowrap { white-space: nowrap; }
+.sf-num { font-variant-numeric: tabular-nums; }
+
+/* hide secondary columns on narrower screens: put sf-lg-hide-N / sf-md-hide-N on the table wrapper */
+@media (max-width: 900px) {
+  .sf-lg-hide-2 th:nth-child(2), .sf-lg-hide-2 td:nth-child(2),
+  .sf-lg-hide-3 th:nth-child(3), .sf-lg-hide-3 td:nth-child(3),
+  .sf-lg-hide-4 th:nth-child(4), .sf-lg-hide-4 td:nth-child(4),
+  .sf-lg-hide-5 th:nth-child(5), .sf-lg-hide-5 td:nth-child(5),
+  .sf-lg-hide-6 th:nth-child(6), .sf-lg-hide-6 td:nth-child(6),
+  .sf-lg-hide-7 th:nth-child(7), .sf-lg-hide-7 td:nth-child(7) { display: none; }
+}
+@media (max-width: 640px) {
+  .sf-md-hide-2 th:nth-child(2), .sf-md-hide-2 td:nth-child(2),
+  .sf-md-hide-3 th:nth-child(3), .sf-md-hide-3 td:nth-child(3),
+  .sf-md-hide-4 th:nth-child(4), .sf-md-hide-4 td:nth-child(4),
+  .sf-md-hide-5 th:nth-child(5), .sf-md-hide-5 td:nth-child(5),
+  .sf-md-hide-6 th:nth-child(6), .sf-md-hide-6 td:nth-child(6),
+  .sf-md-hide-7 th:nth-child(7), .sf-md-hide-7 td:nth-child(7) { display: none; }
+}
+
+/* ── identity line: small icon + value ── */
+.sf-id { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.sf-id .Polaris-Icon { width: 16px; height: 16px; margin: 1px 0 0; flex: none; }
+.sf-id svg { fill: var(--p-color-icon-secondary); }
+
+/* ── traffic-light housing ── */
+.sf-lamp {
+  display: inline-flex; gap: 6px; padding: 6px 8px; border-radius: 999px;
+  background: var(--sf-housing);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 1px 2px rgba(0, 0, 0, 0.2);
+  flex: none;
+}
+.sf-lamp i { width: 14px; height: 14px; border-radius: 50%; display: block; opacity: 0.28; }
+.sf-lamp i.r { background: var(--sf-red); }
+.sf-lamp i.y { background: var(--sf-yellow); }
+.sf-lamp i.g { background: var(--sf-green); }
+.sf-lamp i.on { opacity: 1; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12), 0 0 12px 2px currentColor; }
+.sf-lamp i.r.on { color: var(--sf-red); }
+.sf-lamp i.y.on { color: var(--sf-yellow); }
+.sf-lamp i.g.on { color: var(--sf-green); }
+.sf-lamp--lg { gap: 10px; padding: 10px 14px; }
+.sf-lamp--lg i { width: 22px; height: 22px; }
+
+.sf-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.sf-dot.red { background: var(--sf-red); }
+.sf-dot.yellow { background: var(--sf-yellow); }
+.sf-dot.green { background: var(--sf-green); }
+.sf-dot.none { background: var(--p-color-border); }
+
+/* ── dashboard hero ── */
+.sf-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr); gap: var(--p-space-600); align-items: center; }
+.sf-hero-status { display: flex; gap: var(--p-space-400); align-items: center; min-width: 0; }
+.sf-hero-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--p-space-400); }
+.sf-metric { padding-left: var(--p-space-400); border-left: 1px solid var(--p-color-border-secondary); min-width: 0; }
+.sf-metric-value { font-size: 2rem; line-height: 1.1; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--p-color-text); }
+.sf-metric-value.red { color: var(--sf-red); }
+@media (max-width: 900px) {
+  .sf-hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .sf-hero-metrics { grid-template-columns: 1fr; }
+  .sf-metric { border-left: 0; padding-left: 0; }
+}
+
+/* ── order verdict strip (green / yellow / red share) ── */
+.sf-strip { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--p-color-bg-surface-secondary); gap: 2px; }
+.sf-strip span { display: block; height: 100%; min-width: 4px; }
+.sf-strip .g { background: var(--sf-green); }
+.sf-strip .y { background: var(--sf-yellow); }
+.sf-strip .r { background: var(--sf-red); }
+.sf-legend { display: flex; flex-wrap: wrap; gap: var(--p-space-200) var(--p-space-500); }
+.sf-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── KPI card icon tile ── */
+.sf-kpi-icon { width: 32px; height: 32px; border-radius: var(--p-border-radius-200); display: grid; place-items: center; background: var(--p-color-bg-surface-secondary); flex: none; }
+.sf-kpi-icon svg { fill: var(--p-color-icon); }
+.sf-kpi-icon.critical { background: var(--sf-red-soft); }
+.sf-kpi-icon.critical svg { fill: var(--sf-red); }
+.sf-kpi-icon.caution { background: var(--sf-yellow-soft); }
+.sf-kpi-icon.caution svg { fill: #a87400; }
+.sf-kpi-icon.success { background: var(--sf-green-soft); }
+.sf-kpi-icon.success svg { fill: var(--sf-green); }
+.sf-kpi-value { font-size: 1.75rem; line-height: 1.15; font-weight: 650; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
+.sf-kpi-value.critical { color: var(--sf-red); }
+.sf-kpi-value.caution { color: #a87400; }
+.sf-kpi-value.success { color: var(--sf-green); }
+
+/* ── plan cards ── */
+.sf-plan { position: relative; height: 100%; }
+.sf-plan > .Polaris-ShadowBevel { height: 100%; }
+.sf-plan--featured { border-radius: var(--p-border-radius-300); outline: 2px solid var(--p-color-border-emphasis); outline-offset: 1px; }
+.sf-plan-price { font-size: 2.25rem; line-height: 1; font-weight: 650; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; }
+.sf-plan-items { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--p-space-200); }
+.sf-plan-items li { display: flex; gap: var(--p-space-200); align-items: flex-start; }
+.sf-plan-items .Polaris-Icon { margin: 0; flex: none; }
+.sf-plan-items svg { fill: var(--sf-green); }
+
+/* ── checkout timeline (customer page) ── */
+.sf-timeline { list-style: none; margin: 0; padding: 0; }
+.sf-timeline li { position: relative; padding: 0 0 var(--p-space-400) var(--p-space-600); }
+.sf-timeline li::before { content: ""; position: absolute; left: 5px; top: 14px; bottom: -2px; width: 2px; background: var(--p-color-border-secondary); }
+.sf-timeline li:last-child { padding-bottom: 0; }
+.sf-timeline li:last-child::before { display: none; }
+.sf-timeline .sf-dot { position: absolute; left: 1px; top: 5px; width: 10px; height: 10px; box-shadow: 0 0 0 3px var(--p-color-bg-surface); }
+
+/* ── connection list (settings) ── */
+.sf-conn { display: flex; align-items: flex-start; gap: var(--p-space-200); }
+.sf-conn .Polaris-Icon { margin: 0; flex: none; }
+
+/* ── row action fade-in on pointer devices ── */
+@media (hover: hover) {
+  .sf-row-actions { opacity: 0.55; transition: opacity 120ms ease; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-row-actions { transition: none; }
+}

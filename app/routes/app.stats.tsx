@@ -1,6 +1,8 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link, Avatar, Button } from "@shopify/polaris";
+import { PersonIcon, ShieldNoneIcon, AlertTriangleIcon, ShieldPersonIcon, EmailIcon, PhoneIcon, OrderIcon } from "@shopify/polaris-icons";
+import { Kpi, SignalStrip, SectionHead, IdLine } from "../components/semafor-ui";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
@@ -100,120 +102,138 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
-function Kpi({ label, value, tone, hint }: { label: string; value: number | string; tone?: "critical" | "caution" | "success"; hint?: string }) {
-  return (
-    <Card>
-      <BlockStack gap="100">
-        <Text as="p" tone="subdued">{label}</Text>
-        <Text as="p" variant="heading2xl" tone={tone}>{value}</Text>
-        {hint && <Text as="p" variant="bodySm" tone="subdued">{hint}</Text>}
-      </BlockStack>
-    </Card>
-  );
-}
+const initials = (s: string) => (s.split(/[\s@.]+/).filter(Boolean).slice(0, s.includes("@") ? 1 : 2).map((w) => w[0]).join("") || "?").toUpperCase();
 
 export default function Stats() {
   const { days, since, kpi, orders, suspicious, devices, storeHandle } = useLoaderData<typeof loader>();
   const [, setSp] = useSearchParams();
-  const total = orders.green + orders.yellow + orders.red;
   const tr = useT();
   const lang = useLang();
   const loc = dateLocale(lang);
+  const short = (d: string | Date) => new Date(d).toLocaleString(loc, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   return (
-    <Page>
+    <Page fullWidth>
       <TitleBar title={tr("nav.stats")} />
       <Layout>
         <Layout.Section>
-          <BlockStack gap="400">
-            <InlineStack align="space-between" blockAlign="center">
+          <BlockStack gap="500">
+            <InlineStack align="space-between" blockAlign="center" gap="300">
               <Text as="p" tone="subdued">{since ? tr("stats.trackingSince", { date: new Date(since).toLocaleString(loc) }) : tr("stats.noAttemptsYet")}</Text>
-              <Box minWidth="180px">
+              <Box minWidth="200px">
                 <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => setSp({ d: v })}
                   options={[{ label: tr("stats.today"), value: "1" }, { label: tr("stats.d7"), value: "7" }, { label: tr("stats.d30"), value: "30" }, { label: tr("stats.d90"), value: "90" }]} />
               </Box>
             </InlineStack>
 
-            <Text as="h2" variant="headingMd">{tr("stats.checkout")}</Text>
-            <InlineGrid columns={{ xs: 2, md: 3 }} gap="300">
-              <Kpi label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} />
-              <Kpi label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} />
-              <Kpi label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} />
-              <Kpi label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} />
-            </InlineGrid>
+            <BlockStack gap="300">
+              <SectionHead title={tr("stats.checkout")} />
+              <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
+                <Kpi icon={PersonIcon} label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} />
+                <Kpi icon={ShieldPersonIcon} label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} />
+                <Kpi icon={ShieldNoneIcon} label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} />
+                <Kpi icon={AlertTriangleIcon} label={tr("stats.kpiHopping")} value={kpi.hopping} tone={kpi.hopping ? "caution" : undefined} hint={tr("stats.kpiHoppingHint")} />
+              </InlineGrid>
+            </BlockStack>
 
-            <Text as="h2" variant="headingMd">{tr("nav.checks")}</Text>
-            <InlineGrid columns={{ xs: 3 }} gap="300">
-              <Kpi label={tr("level.green")} value={orders.green} tone="success" hint={total ? `${Math.round((orders.green / total) * 100)}%` : undefined} />
-              <Kpi label={tr("level.yellow")} value={orders.yellow} tone={orders.yellow ? "caution" : undefined} />
-              <Kpi label={tr("level.red")} value={orders.red} tone={orders.red ? "critical" : undefined} />
-            </InlineGrid>
+            <Card>
+              <BlockStack gap="300">
+                <SectionHead title={tr("nav.checks")} description={tr("dash.checked", { n: orders.green + orders.yellow + orders.red })}>
+                  <Button variant="plain" url="/app/checks" icon={OrderIcon}>{tr("dash.viewChecks")}</Button>
+                </SectionHead>
+                <SignalStrip green={orders.green} yellow={orders.yellow} red={orders.red}
+                  labels={{ green: tr("level.green"), yellow: tr("level.yellow"), red: tr("level.red") }} emptyText={tr("stats.noChecks")} />
+              </BlockStack>
+            </Card>
 
-            <Text as="h2" variant="headingMd">{tr("stats.suspicious")}</Text>
             <Card padding="0">
+              <Box padding="400"><SectionHead title={tr("stats.suspicious")} description={tr("stats.suspiciousHint")} /></Box>
               {suspicious.length === 0 ? (
-                <Box padding="400"><Text as="p" tone="subdued">{tr("stats.noSuspicious")}</Text></Box>
+                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noSuspicious")}</Text></Box>
               ) : (
-                <IndexTable resourceName={{ singular: tr("stats.resDevice"), plural: tr("stats.resDevices") }} itemCount={suspicious.length} selectable={false}
-                  headings={[{ title: tr("stats.colDevice") }, { title: tr("stats.colTried") }, { title: tr("stats.colBlack") }, { title: tr("common.result") }, { title: tr("stats.colLast") }]}>
-                  {suspicious.map((s: any, i: number) => (
-                    <IndexTable.Row id={s.id + i} key={s.id + i} position={i}>
-                      <IndexTable.Cell><Text as="span" variant="bodySm">#{s.id}</Text></IndexTable.Cell>
-                      <IndexTable.Cell>
-                        <BlockStack gap="050">
-                          {[...s.emails, ...s.phones, ...s.names].slice(0, 8).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
-                        </BlockStack>
-                      </IndexTable.Cell>
-                      <IndexTable.Cell>{s.matched.length ? <Badge tone="critical">{s.matched.join(", ")}</Badge> : s.hopping ? <Badge tone="warning">{tr("stats.hopping")}</Badge> : "—"}</IndexTable.Cell>
-                      <IndexTable.Cell>{s.completed ? <Badge tone="critical">{tr("common.ordered")}</Badge> : <Badge>{tr("stats.notOrdered")}</Badge>}</IndexTable.Cell>
-                      <IndexTable.Cell>{new Date(s.last).toLocaleString(loc)}</IndexTable.Cell>
-                    </IndexTable.Row>
-                  ))}
-                </IndexTable>
+                <div className="sf-table sf-md-hide-5">
+                  <IndexTable resourceName={{ singular: tr("stats.resDevice"), plural: tr("stats.resDevices") }} itemCount={suspicious.length} selectable={false}
+                    headings={[{ title: tr("stats.colDevice") }, { title: tr("stats.colTried") }, { title: tr("stats.colBlack") }, { title: tr("common.result") }, { title: tr("stats.colLast") }]}>
+                    {suspicious.map((s: any, i: number) => (
+                      <IndexTable.Row id={s.id + i} key={s.id + i} position={i}>
+                        <IndexTable.Cell><Text as="span" variant="bodySm" tone="subdued">#{s.id}</Text></IndexTable.Cell>
+                        <IndexTable.Cell>
+                          <BlockStack gap="050">
+                            {s.names.slice(0, 3).map((x: string, k: number) => <Text key={"n" + k} as="span" variant="bodySm" fontWeight="semibold"><span className="sf-break">{x}</span></Text>)}
+                            {s.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
+                            {s.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                          </BlockStack>
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>
+                          {s.matched.length
+                            ? <BlockStack gap="100" inlineAlign="start">{s.matched.slice(0, 4).map((m: string, k: number) => <Badge key={k} tone="critical">{m}</Badge>)}</BlockStack>
+                            : s.hopping ? <Badge tone="warning">{tr("stats.hopping")}</Badge> : <Text as="span" tone="subdued">—</Text>}
+                        </IndexTable.Cell>
+                        <IndexTable.Cell>{s.completed ? <Badge tone="critical">{tr("common.ordered")}</Badge> : <Badge>{tr("stats.notOrdered")}</Badge>}</IndexTable.Cell>
+                        <IndexTable.Cell><Text as="span" variant="bodySm"><span className="sf-nowrap">{short(s.last)}</span></Text></IndexTable.Cell>
+                      </IndexTable.Row>
+                    ))}
+                  </IndexTable>
+                </div>
               )}
             </Card>
-            <Text as="h2" variant="headingMd">{tr("stats.allAttempts")}</Text>
+
             <Card padding="0">
+              <Box padding="400"><SectionHead title={tr("stats.allAttempts")} description={tr("stats.allAttemptsHint")} /></Box>
               {devices.length === 0 ? (
-                <Box padding="400"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
+                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
               ) : (
-                <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={devices.length} selectable={false}
-                  headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("stats.colReached") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]}>
-                  {devices.map((d: any, i: number) => {
-                    const step = tr(`stats.step.${d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : "started"}` as TKey);
-                    return (
-                      <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
-                        <IndexTable.Cell>
-                          <BlockStack gap="050">
-                            <Link url={`/app/client/${d.dev}`} removeUnderline><Text as="span" fontWeight="semibold">{d.names[0] || d.emails[0] || "—"}</Text></Link>
-                            {d.city && <Text as="span" variant="bodySm" tone="subdued">{d.city}</Text>}
-                            {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution">{tr("stats.otherNames", { list: d.names.slice(1).join(", ") })}</Text>}
-                          </BlockStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <BlockStack gap="050">
-                            {[...d.emails, ...d.phones].slice(0, 6).map((x: string, k: number) => <Text key={k} as="span" variant="bodySm">{x}</Text>)}
-                          </BlockStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell><BlockStack gap="050"><Text as="span">{step}</Text><Link url={`/app/client/${d.dev}`}>{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Link></BlockStack></IndexTable.Cell>
-                        <IndexTable.Cell>
-                          {d.mail ? (
+                <div className="sf-table sf-lg-hide-4 sf-md-hide-2 sf-md-hide-6">
+                  <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={devices.length} selectable={false}
+                    headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("stats.colReached") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]}>
+                    {devices.map((d: any, i: number) => {
+                      const stepKey = d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : "started";
+                      const step = tr(`stats.step.${stepKey}` as TKey);
+                      const title = d.names[0] || d.emails[0] || d.phones[0] || tr("common.customer");
+                      return (
+                        <IndexTable.Row id={d.id + i} key={d.id + i} position={i}>
+                          <IndexTable.Cell>
+                            <InlineStack gap="300" wrap={false} blockAlign="start">
+                              <Avatar size="sm" initials={initials(title)} name={title} />
+                              <BlockStack gap="050">
+                                <Link url={`/app/client/${d.dev}`} removeUnderline><Text as="span" fontWeight="semibold"><span className="sf-break">{title}</span></Text></Link>
+                                {d.city && <Text as="span" variant="bodySm" tone="subdued">{d.city}</Text>}
+                                {d.names.length > 1 && <Text as="span" variant="bodySm" tone="caution"><span className="sf-break">{tr("stats.otherNames", { list: d.names.slice(1).join(", ") })}</span></Text>}
+                              </BlockStack>
+                            </InlineStack>
+                          </IndexTable.Cell>
+                          <IndexTable.Cell>
                             <BlockStack gap="050">
-                              <InlineStack gap="100"><Badge tone="info">{tr(d.mail.count === 1 ? "stats.mailOne" : "stats.mailMany", { n: d.mail.count })}</Badge></InlineStack>
-                              <Text as="span" variant="bodySm" tone="subdued">{d.mail.kinds.map((k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : tr("common.manual"))).join(" · ")} · {tr("stats.mailLast", { date: new Date(d.mail.last).toLocaleString(loc, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) })}</Text>
-                              {d.mail.orderedAfter ? <Badge tone="success">{tr("stats.orderedAfter")}</Badge> : d.mail.back ? <Badge tone="attention">{tr("stats.cameBack")}</Badge> : null}
+                              {d.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
+                              {d.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                              {!d.emails.length && !d.phones.length && <Text as="span" tone="subdued">—</Text>}
                             </BlockStack>
-                          ) : <Text as="span" tone="subdued">—</Text>}
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          {d.orderId
-                            ? <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top" rel="noreferrer">{d.orderName || tr("stats.order")}</a>
-                            : d.matched.length ? <Badge tone="critical">{tr("stats.blackNoOrder")}</Badge> : <Badge>{tr("stats.abandoned")}</Badge>}
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>{new Date(d.last).toLocaleString(loc)}</IndexTable.Cell>
-                      </IndexTable.Row>
-                    );
-                  })}
-                </IndexTable>
+                          </IndexTable.Cell>
+                          <IndexTable.Cell>
+                            <BlockStack gap="050">
+                              <Text as="span" variant="bodySm" tone={d.completed ? "success" : undefined}>{step}</Text>
+                              <Link url={`/app/client/${d.dev}`}><Text as="span" variant="bodySm">{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Text></Link>
+                            </BlockStack>
+                          </IndexTable.Cell>
+                          <IndexTable.Cell>
+                            {d.mail ? (
+                              <BlockStack gap="100" inlineAlign="start">
+                                <Badge tone="info">{tr(d.mail.count === 1 ? "stats.mailOne" : "stats.mailMany", { n: d.mail.count })}</Badge>
+                                <Text as="span" variant="bodySm" tone="subdued">{d.mail.kinds.map((k: string) => (k === "auto1" ? "1" : k === "auto2" ? "2" : k === "auto3" ? "3" : tr("common.manual"))).join(", ")} · {tr("stats.mailLast", { date: new Date(d.mail.last).toLocaleString(loc, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) })}</Text>
+                                {d.mail.orderedAfter ? <Badge tone="success">{tr("stats.orderedAfter")}</Badge> : d.mail.back ? <Badge tone="attention">{tr("stats.cameBack")}</Badge> : null}
+                              </BlockStack>
+                            ) : <Text as="span" tone="subdued">—</Text>}
+                          </IndexTable.Cell>
+                          <IndexTable.Cell>
+                            {d.orderId
+                              ? <Button variant="plain" url={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top">{d.orderName || tr("stats.order")}</Button>
+                              : d.matched.length ? <Badge tone="critical">{tr("stats.blackNoOrder")}</Badge> : <Badge>{tr("stats.abandoned")}</Badge>}
+                          </IndexTable.Cell>
+                          <IndexTable.Cell><Text as="span" variant="bodySm"><span className="sf-nowrap">{short(d.last)}</span></Text></IndexTable.Cell>
+                        </IndexTable.Row>
+                      );
+                    })}
+                  </IndexTable>
+                </div>
               )}
             </Card>
             {kpi.attempts === 0 && <Banner tone="info">{tr("stats.appear")}</Banner>}
