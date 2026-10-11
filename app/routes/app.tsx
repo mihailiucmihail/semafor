@@ -29,11 +29,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
-  if (Date.now() - (blockSynced.get(shop.id) || 0) > 10 * 60_000) {
-    blockSynced.set(shop.id, Date.now());
+  // key includes the access token tail: a reinstall gets a new token → immediate re-sync (metafields were wiped)
+  const installKey = (session.accessToken || "").slice(-8);
+  const syncKey = shop.id + ":" + installKey;
+  if (Date.now() - (blockSynced.get(syncKey) || 0) > 10 * 60_000) {
+    blockSynced.set(syncKey, Date.now());
     pushCheckoutMetafield(admin as any, shop.id).catch((e) => console.error("[semafor] blocklist sync", e));
   }
-  await ensurePopupConfig(admin as any, shop as any).catch((e) => console.error("[semafor] ensurePopupConfig", e));
+  await ensurePopupConfig(admin as any, shop as any, installKey).catch((e) => console.error("[semafor] ensurePopupConfig", e));
   // Resend plan limits are global for all shops — only the app owner sees (and can act on) this warning
   const quota = isOwnerShop(session.shop) ? await mailQuota().catch(() => null) : null;
   return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null };

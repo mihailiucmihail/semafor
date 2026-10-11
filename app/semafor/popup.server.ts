@@ -241,13 +241,18 @@ export async function popupStats(shopId: string, days = 30) {
  * (checked at most every 10 minutes per shop).
  */
 const ensured = new Map<string, number>();
-export async function ensurePopupConfig(admin: Admin, shop: { id: string; plan?: string | null; domain?: string | null; settings: ShopSettings }) {
+/** installKey changes on every (re)install (new access token) → the config is pushed right away, no throttle, no check. */
+export async function ensurePopupConfig(admin: Admin, shop: { id: string; plan?: string | null; domain?: string | null; settings: ShopSettings }, installKey = "") {
   if (!shop.settings.popup?.enabled) return;
-  const last = ensured.get(shop.id) || 0;
+  const key = shop.id + ":" + installKey;
+  const last = ensured.get(key) || 0;
   if (Date.now() - last < 10 * 60_000) return;
-  ensured.set(shop.id, Date.now());
-  const d = await gql(admin, `query { currentAppInstallation { metafield(namespace: "semafor", key: "popup") { id } } }`);
-  if (d?.currentAppInstallation?.metafield?.id) return;
+  const fresh = !last;
+  ensured.set(key, Date.now());
+  if (!fresh) {
+    const d = await gql(admin, `query { currentAppInstallation { metafield(namespace: "semafor", key: "popup") { id } } }`);
+    if (d?.currentAppInstallation?.metafield?.id) return;
+  }
   await pushPopupConfig(admin, shop);
   console.log("[semafor] popup config restored after reinstall", shop.domain);
 }
