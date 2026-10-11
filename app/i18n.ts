@@ -450,6 +450,7 @@ const D = {
   "dash.redStopped": { en: "Red orders, last 30 days", ro: "Comenzi roșii, ultimele 30 de zile" },
   "dash.verdicts": { en: "Order verdicts, last 30 days", ro: "Verdictul comenzilor, ultimele 30 de zile" },
   "dash.checked": { en: "{n} orders checked", ro: "{n} comenzi verificate" },
+  "dash.checked1": { en: "1 order checked", ro: "1 comandă verificată" },
   "dash.viewChecks": { en: "View checked orders", ro: "Vezi comenzile verificate" },
   "dash.noChecks": { en: "No orders checked in the last 30 days. New orders are checked automatically.", ro: "Nicio comandă verificată în ultimele 30 de zile. Comenzile noi sunt verificate automat." },
   "dash.showing": { en: "Showing {n} of {total} customers", ro: "Afișați {n} din {total} clienți" },
@@ -475,6 +476,7 @@ const D = {
   "stats.allAttemptsHint": { en: "Every customer who started checkout, newest first. Open a customer to see each step.", ro: "Fiecare client care a început comanda, cei mai noi primii. Deschide clientul ca să vezi fiecare pas." },
   // ── redesign: checked orders ──
   "checks.summary": { en: "Latest verdicts", ro: "Ultimele verdicte" },
+  "checks.summaryHint1": { en: "Your last checked order. It gets the worse of two signals: your own list and the store network.", ro: "Ultima comandă verificată. Primește cel mai grav dintre două semnale: lista ta și rețeaua de magazine." },
   "checks.summaryHint": { en: "Your last {n} checked orders. Each one gets the worse of two signals: your own list and the store network.", ro: "Ultimele {n} comenzi verificate. Fiecare primește cel mai grav dintre două semnale: lista ta și rețeaua de magazine." },
   "checks.scoreBadge": { en: "{level}, score {n}", ro: "{level}, scor {n}" },
   "action.tag": { en: "Tagged", ro: "Etichetată" },

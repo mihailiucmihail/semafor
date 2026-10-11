@@ -48,7 +48,7 @@ export default function Checks() {
           <BlockStack gap="400">
             <Card>
               <BlockStack gap="400">
-                <SectionHead title={tr("checks.summary")} description={tr("checks.summaryHint", { n: checks.length })}>
+                <SectionHead title={tr("checks.summary")} description={(checks.length === 1 ? tr("checks.summaryHint1") : tr("checks.summaryHint", { n: checks.length }))}>
                   <Button icon={RefreshIcon} loading={f.state !== "idle"} onClick={() => f.submit({}, { method: "post" })}>{tr("checks.checkLast50")}</Button>
                 </SectionHead>
                 <SignalStrip green={counts.green} yellow={counts.yellow} red={counts.red} labels={LABEL} emptyText={tr("checks.emptyHeading")} />

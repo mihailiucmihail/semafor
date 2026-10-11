@@ -151,7 +151,7 @@ export default function Stats() {
 
             <Card>
               <BlockStack gap="300">
-                <SectionHead title={tr("nav.checks")} description={tr("dash.checked", { n: orders.green + orders.yellow + orders.red })}>
+                <SectionHead title={tr("nav.checks")} description={(orders.green + orders.yellow + orders.red === 1 ? tr("dash.checked1") : tr("dash.checked", { n: orders.green + orders.yellow + orders.red }))}>
                   <Button variant="plain" url="/app/checks" icon={OrderIcon}>{tr("dash.viewChecks")}</Button>
                 </SectionHead>
                 <SignalStrip green={orders.green} yellow={orders.yellow} red={orders.red}

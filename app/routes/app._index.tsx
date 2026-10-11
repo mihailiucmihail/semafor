@@ -157,7 +157,7 @@ export default function Index() {
                   <InlineStack align="space-between" blockAlign="center" gap="200">
                     <InlineStack gap="200" blockAlign="center">
                       <Text as="h2" variant="headingSm">{tr("dash.verdicts")}</Text>
-                      <Text as="span" variant="bodySm" tone="subdued">{tr("dash.checked", { n: checked })}</Text>
+                      <Text as="span" variant="bodySm" tone="subdued">{(checked === 1 ? tr("dash.checked1") : tr("dash.checked", { n: checked }))}</Text>
                     </InlineStack>
                     <Button variant="plain" url="/app/checks" icon={OrderIcon}>{tr("dash.viewChecks")}</Button>
                   </InlineStack>
