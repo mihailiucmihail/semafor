@@ -76,6 +76,9 @@ export interface PopupSettings {
   welcome: boolean;
   /** Overrides of the welcome e-mail texts per language. */
   welcomeTexts: Partial<Record<PopupLang, Partial<WelcomeTexts>>>;
+  /** Code per storefront language (RO BUNVENIT15, DE WILLKOMMEN15, PL WITAJ15, EN WELCOME15), same % as `code`.
+   *  Filled by Semafor (created in Shopify); a language without one falls back to `code`. */
+  localCodes?: Partial<Record<PopupLang, string>>;
 }
 
 /** Texts of the welcome e-mail ({shop}, {pct} placeholders). */

@@ -1,3 +1,4 @@
+import { allPopupCodes } from "../../core/popup";
 /**
  * Order attribution: was this order brought by Semafor (pop-up / reminder e-mail), and how?
  * Run for every new order right after the traffic-light check (check-order.server.ts):
@@ -51,7 +52,7 @@ export async function computeAttribution(db: PrismaClient, shop: { id: string; s
   return decideAttribution({
     orderAt, leads, sends,
     discountCodes: (o.discount_codes ?? []).map((d) => String(d?.code || "")),
-    popupCode: shop.settings.popup?.code || "",
+    popupCodes: shop.settings.popup ? allPopupCodes(shop.settings.popup) : [],
   });
 }
 

@@ -193,8 +193,28 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
     texts,
     welcome,
     welcomeTexts,
+    localCodes: cleanLocalCodes(p.localCodes),
   };
 }
+
+/** Word for "welcome" per language, used to name the per-language code: BUNVENIT15, WILLKOMMEN15 … */
+export const LOCAL_CODE_PREFIX: Record<PopupLang, string> = { ro: 'BUNVENIT', de: 'WILLKOMMEN', pl: 'WITAJ', en: 'WELCOME' };
+export const localCodeName = (lang: PopupLang, pct: number) => `${LOCAL_CODE_PREFIX[lang]}${Math.round(pct)}`;
+
+function cleanLocalCodes(m: unknown): Partial<Record<PopupLang, string>> {
+  const out: Partial<Record<PopupLang, string>> = {};
+  if (m && typeof m === 'object') for (const l of POPUP_LANGS) {
+    const v = (m as any)[l];
+    if (typeof v === 'string' && /^[A-Z0-9_-]{2,60}$/.test(v)) out[l] = v;
+  }
+  return out;
+}
+
+/** The code a visitor of this language gets (falls back to the main code). */
+export const codeForLang = (p: Pick<PopupSettings, 'code' | 'localCodes'>, lang: PopupLang) => p.localCodes?.[lang] || p.code;
+
+/** All codes the pop-up may hand out (attribution). */
+export const allPopupCodes = (p: Pick<PopupSettings, 'code' | 'localCodes'>) => [...new Set([p.code, ...Object.values(p.localCodes ?? {})].filter(Boolean) as string[])];
 
 /** Code Semafor creates for a percentage (auto mode). */
 export const autoCode = (pct: number) => `WELCOME${Math.round(pct)}`;

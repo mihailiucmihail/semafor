@@ -199,7 +199,7 @@ import { decideAttribution } from '../core/attribution.ts';
 test('attribution: last touch wins, windows, codes', () => {
   const orderAt = new Date('2026-10-11T14:00:00Z');
   const h = (n: number) => new Date(+orderAt - n * 3_600_000);
-  const a = decideAttribution({ orderAt, popupCode: 'WELCOME15', discountCodes: ['welcome15'],
+  const a = decideAttribution({ orderAt, popupCodes: ['WELCOME15'], discountCodes: ['welcome15'],
     leads: [{ source: 'cart', createdAt: h(48) }], sends: [{ kind: 'auto1', createdAt: h(20), discountCode: null }, { kind: 'welcome', createdAt: h(47) }] });
   assert.equal(a.primary, 'email');
   assert.equal(a.touches.length, 2); // the welcome e-mail is not a touch of its own
@@ -207,14 +207,14 @@ test('attribution: last touch wins, windows, codes', () => {
   assert.equal(a.usedCode, 'WELCOME15');
   assert.equal(a.codeSource, 'popup');
   // a reminder older than 14 days doesn't count; a pop-up lead from 30 days ago does
-  const b = decideAttribution({ orderAt, popupCode: 'X', discountCodes: [], leads: [{ source: 'site', createdAt: h(24 * 30) }], sends: [{ kind: 'auto2', createdAt: h(24 * 15) }] });
+  const b = decideAttribution({ orderAt, popupCodes: ['X'], discountCodes: [], leads: [{ source: 'site', createdAt: h(24 * 30) }], sends: [{ kind: 'auto2', createdAt: h(24 * 15) }] });
   assert.equal(b.primary, 'popup_site');
   // the pop-up code alone (no pop-up touch of this buyer) is not attribution
-  const c = decideAttribution({ orderAt, popupCode: 'BUNVENIT15', discountCodes: ['BUNVENIT15'], leads: [], sends: [] });
+  const c = decideAttribution({ orderAt, popupCodes: ['BUNVENIT15'], discountCodes: ['BUNVENIT15'], leads: [], sends: [] });
   assert.equal(c.primary, null);
   assert.equal(c.usedCode, null);
   // touches after the order are ignored; a reminder's own code is recognised
-  const d = decideAttribution({ orderAt, popupCode: '', discountCodes: ['GIFT15-AB12C'], leads: [{ source: 'site', createdAt: h(-1) }], sends: [{ kind: 'auto2', createdAt: h(3), discountCode: 'GIFT15-AB12C' }] });
+  const d = decideAttribution({ orderAt, popupCodes: [''], discountCodes: ['GIFT15-AB12C'], leads: [{ source: 'site', createdAt: h(-1) }], sends: [{ kind: 'auto2', createdAt: h(3), discountCode: 'GIFT15-AB12C' }] });
   assert.equal(d.primary, 'email');
   assert.equal(d.codeSource, 'email');
   assert.equal(d.touches.length, 1);
@@ -232,4 +232,13 @@ test('sending domain: clean + refuse public / myshopify', () => {
   assert.equal(checkDomainAllowed('mail.ru'), 'public');
   assert.equal(checkDomainAllowed('x.myshopify.com'), 'shopify');
   assert.equal(checkDomainAllowed('mihailiuc.ro'), null);
+});
+
+test('pop-up code per storefront language', async () => {
+  const { localCodeName, codeForLang } = await import('../core/popup.ts');
+  assert.equal(localCodeName('de', 15), 'WILLKOMMEN15');
+  assert.equal(localCodeName('ro', 15), 'BUNVENIT15');
+  const p = { code: 'BUNVENIT15', localCodes: { ro: 'BUNVENIT15', de: 'WILLKOMMEN15' } };
+  assert.equal(codeForLang(p, 'de'), 'WILLKOMMEN15');
+  assert.equal(codeForLang(p, 'pl'), 'BUNVENIT15'); // not created yet → main code
 });

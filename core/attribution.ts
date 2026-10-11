@@ -36,7 +36,7 @@ export function decideAttribution(input: {
   leads: Array<{ source: string; createdAt: Date }>;
   sends: Array<{ kind: string; createdAt: Date; discountCode?: string | null }>;
   discountCodes: string[];
-  popupCode: string;
+  popupCodes: string[];
 }): Attribution {
   const t0 = +input.orderAt;
   const touches: Touch[] = [];
@@ -54,8 +54,9 @@ export function decideAttribution(input: {
   touches.sort((a, b) => +new Date(a.at) - +new Date(b.at));
   const codes = input.discountCodes.map((c) => String(c || '').trim().toUpperCase()).filter(Boolean);
   let usedCode: string | null = null, codeSource: Attribution['codeSource'] = null;
-  const pc = String(input.popupCode || '').toUpperCase();
-  if (pc && codes.includes(pc) && touches.some((t) => t.source !== 'email')) { usedCode = pc; codeSource = 'popup'; }
+  const pcs = (input.popupCodes ?? []).map((c) => String(c || '').toUpperCase()).filter(Boolean);
+  const pc = codes.find((c) => pcs.includes(c));
+  if (pc && touches.some((t) => t.source !== 'email')) { usedCode = pc; codeSource = 'popup'; }
   const mailCode = touches.find((t) => t.source === 'email' && t.code && codes.includes(String(t.code).toUpperCase()));
   if (mailCode) { usedCode = String(mailCode.code).toUpperCase(); codeSource = 'email'; }
   const last = touches[touches.length - 1] ?? null;

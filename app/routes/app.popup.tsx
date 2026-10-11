@@ -7,7 +7,7 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { requireFeature, planOf } from "../semafor/plan.server";
-import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, type CodeCheck } from "../semafor/popup.server";
+import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, ensureLocalCodes, type CodeCheck } from "../semafor/popup.server";
 import db from "../db.server";
 import { can } from "../../core/plans";
 import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts, type WelcomeTexts } from "../../core/settings";
@@ -80,6 +80,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try { popup.code = (await ensurePopupDiscount(admin as any, popup.pct)).code; }
     catch (e: any) { codeError = String(e?.message || e).slice(0, 300); console.error("[semafor] popup discount", codeError); }
   }
+  // one code per storefront language (BUNVENIT15 / WILLKOMMEN15 / WITAJ15 / WELCOME15)
+  if (!codeError) popup.localCodes = await ensureLocalCodes(admin as any, popup).catch(() => popup.localCodes ?? {});
   const next = await saveSettings(shop.id, { popup }, (session as any).email || session.shop);
   let pushError: string | null = null;
   try { await pushPopupConfig(admin as any, { ...shop, settings: next }); } catch (e: any) { pushError = String(e?.message || e).slice(0, 300); console.error("[semafor] popup push", pushError); }

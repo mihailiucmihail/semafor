@@ -7,13 +7,17 @@
  */
 import db from "../db.server";
 import { can } from "../../core/plans";
-import { buildPopupConfig, autoCode } from "../../core/popup";
+import { buildPopupConfig, autoCode, localCodeName, codeForLang } from "../../core/popup";
+import { POPUP_LANGS, type PopupLang } from "../../core/settings";
+import { saveSettings } from "./shop.server";
 import type { PopupSettings, ShopSettings } from "../../core/settings";
 import { planOf } from "./plan.server";
 import { isOptedOut } from "./recovery.server";
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 const DAY = 86_400_000;
+
+const langOfLocale = (l: string | null | undefined): PopupLang => { const x = String(l || "").slice(0, 2).toLowerCase(); return (POPUP_LANGS as string[]).includes(x) ? (x as PopupLang) : "en"; };
 
 async function gql(admin: Admin, q: string, variables?: any) {
   const r = await admin.graphql(q, variables ? { variables } : undefined);
@@ -67,8 +71,8 @@ export async function checkDiscountCode(admin: Admin, code: string): Promise<Cod
  * A code Semafor created earlier is updated (percentage, re-activated); a merchant's own code with the same name is
  * reused only when it already gives the same active percentage, otherwise a variant name is used.
  */
-export async function ensurePopupDiscount(admin: Admin, pct: number): Promise<{ code: string; action: "created" | "updated" | "reused" }> {
-  const base = autoCode(pct);
+export async function ensurePopupDiscount(admin: Admin, pct: number, name?: string): Promise<{ code: string; action: "created" | "updated" | "reused" }> {
+  const base = name || autoCode(pct);
   const title = `Semafor pop-up ${pct}%`;
   const gets = { value: { percentage: pct / 100 }, items: { all: true } };
   for (const code of [base, `${base}S`, `${base}-SMF`]) {
@@ -100,6 +104,38 @@ export async function ensurePopupDiscount(admin: Admin, pct: number): Promise<{ 
     if (have === pct && c.status === "ACTIVE") return { code, action: "reused" };
   }
   throw new Error(`code ${base} is taken`);
+}
+
+/**
+ * One code per storefront language with the pop-up percentage — a German visitor gets WILLKOMMEN15, not the Romanian
+ * BUNVENIT15. The merchant's own code is used for the language whose name it already has; the others are created
+ * (or reused) in Shopify. A language that fails keeps falling back to the main code.
+ */
+export async function ensureLocalCodes(admin: Admin, p: PopupSettings): Promise<Partial<Record<PopupLang, string>>> {
+  const out: Partial<Record<PopupLang, string>> = {};
+  for (const lang of POPUP_LANGS) {
+    const name = localCodeName(lang, p.pct);
+    if (name === p.code) { out[lang] = p.code; continue; }
+    try { out[lang] = (await ensurePopupDiscount(admin, p.pct, name)).code; }
+    catch (e: any) { console.error("[semafor] popup local code", lang, e?.message || e); }
+  }
+  return out;
+}
+
+/** Code for a visitor's language; creates the per-language codes once if this shop doesn't have them yet. */
+export async function popupCodeFor(admin: Admin | null, shop: { id: string; settings: ShopSettings }, lang: PopupLang) {
+  const p = shop.settings.popup;
+  const want = localCodeName(lang, p.pct);
+  const have = p.localCodes?.[lang];
+  if (admin && (!have || (have !== want && !have.startsWith(want)))) {
+    try {
+      const localCodes = await ensureLocalCodes(admin, p);
+      const next = await saveSettings(shop.id, { popup: { ...p, localCodes } }, "semafor");
+      shop.settings = next;
+      return codeForLang(next.popup, lang);
+    } catch (e: any) { console.error("[semafor] popup codes", e?.message || e); }
+  }
+  return codeForLang(p, lang);
 }
 
 /** Latest pop-up e-mail of a browser (device id shared with the pixel). */
@@ -144,7 +180,7 @@ export type LeadInput = { email: string; deviceId: string; source: "site" | "car
  */
 export async function subscribeLead(admin: Admin | null, shop: { id: string; settings: ShopSettings }, i: LeadInput) {
   const email = i.email.trim().toLowerCase();
-  const code = shop.settings.popup.code;
+  const code = await popupCodeFor(admin, shop, langOfLocale(i.locale));
   let customerId: string | null = null;
   if (admin) {
     try {

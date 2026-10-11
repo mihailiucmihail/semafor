@@ -6,7 +6,7 @@
  */
 import db from "../db.server";
 import { POPUP_LANGS, type PopupLang, type PopupSettings, type ShopSettings } from "../../core/settings";
-import { welcomeTexts } from "../../core/popup";
+import { codeForLang, welcomeTexts } from "../../core/popup";
 import { buildEmail, isDesign, type DesignId } from "./designs";
 import { render } from "./render";
 import { brandOf, isOptedOut, sendMail, senderOf, unsubUrl, withUnsubFooter, UNSUB_LABEL, UNSUB_PH, DAILY_LIMIT } from "./recovery.server";
@@ -70,9 +70,10 @@ export async function sendWelcome(i: WelcomeInput) {
   const t = welcomeTexts(p, lang);
   const design = await designFor(i.shop.id, lang);
   const html0 = buildEmail(design, { greeting: "", heading: fill(t.heading), text: fill(t.text), button: fill(t.button), note: fill(t.note), discount: fill(t.codeLabel) }, brandOf(s, info.name), { codeBox: true });
-  const url = `${info.base}/discount/${encodeURIComponent(p.code)}?redirect=${encodeURIComponent("/")}`;
+  const code = codeForLang(p, lang);
+  const url = `${info.base}/discount/${encodeURIComponent(code)}?redirect=${encodeURIComponent("/")}`;
   const out = render({ subject: fill(t.subject), html: html0 }, {
-    recovery_url: url, discount_code: p.code, discount_pct: String(p.pct), shop_name: shopName, product_block: "", items: "",
+    recovery_url: url, discount_code: code, discount_pct: String(p.pct), shop_name: shopName, product_block: "", items: "",
     unsubscribe_url: UNSUB_PH, unsubscribe_label: (UNSUB_LABEL[lang] || UNSUB_LABEL.en).link, unsubscribe_why: WHY[lang].replace("{{shop_name}}", shopName),
   }, true);
   if (i.preview) return { ...out, sent: false };
@@ -88,10 +89,10 @@ export async function sendWelcome(i: WelcomeInput) {
     const sentToday = await db.emailSend.count({ where: { shopId: i.shop.id, status: "sent", createdAt: { gt: new Date(Date.now() - DAY) } } });
     if (sentToday >= DAILY_LIMIT) throw new Error(`Limita zilnică de ${DAILY_LIMIT} e-mailuri a fost atinsă.`);
     const providerId = await sendMail({ to: i.to, subject, html, fromName: shopName, fromEmail: await senderOf(i.shop.domain, s), replyTo: s.replyTo || info.email || undefined, unsubscribeUrl: uurl });
-    await db.emailSend.create({ data: { shopId: i.shop.id, deviceId: i.deviceId, email: i.to, subject, kind: "welcome", discountCode: p.code, discountPct: p.pct, status: "sent", providerId, html } });
+    await db.emailSend.create({ data: { shopId: i.shop.id, deviceId: i.deviceId, email: i.to, subject, kind: "welcome", discountCode: code, discountPct: p.pct, status: "sent", providerId, html } });
     return { ...out, sent: true };
   } catch (e: any) {
-    await db.emailSend.create({ data: { shopId: i.shop.id, deviceId: i.deviceId, email: i.to, subject, kind: "welcome", discountCode: p.code, discountPct: p.pct, status: "failed", error: String(e?.message || e).slice(0, 500) } });
+    await db.emailSend.create({ data: { shopId: i.shop.id, deviceId: i.deviceId, email: i.to, subject, kind: "welcome", discountCode: code, discountPct: p.pct, status: "failed", error: String(e?.message || e).slice(0, 500) } });
     throw e;
   }
 }
