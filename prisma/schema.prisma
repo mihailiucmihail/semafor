@@ -106,9 +106,12 @@ model OrderCheck {
   total        Float?                         // order total in the shop currency
   currency     String?
   orderedAt    DateTime?
+  // HMAC of the customer's phone / name+address — finds the same person's other orders under another e-mail
+  personHashes String[] @default([])
 
   @@unique([shopId, orderId])
   @@index([shopId, checkedAt])
+  @@index([personHashes], type: Gin)
 }
 
 model AuditLog {

@@ -10,7 +10,7 @@ import { type ShopSettings } from '../../core/settings';
 import { can, effectiveSettings } from '../../core/plans';
 import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
-import { findRelated } from './open-cod.server';
+import { findRelated, personHashes } from './open-cod.server';
 import { shopLang } from '../i18n.server';
 import { attributeOrder } from './attribution.server';
 
@@ -79,7 +79,9 @@ export async function checkOrder(opts: {
   // Other open orders of the same customer → at least yellow
   let related: string[] = [];
   try {
-    const r = await findRelated(admin as any, order);
+    const ph = personHashes(secret, order, opts.country);
+    const others = ph.length ? await db.orderCheck.findMany({ where: { shopId, personHashes: { hasSome: ph }, orderId: { not: order.admin_graphql_api_id }, checkedAt: { gt: new Date(Date.now() - 30 * 86_400_000) } }, select: { orderId: true }, take: 15 }) : [];
+    const r = await findRelated(admin as any, order, { country: opts.country, otherIds: others.map((o) => o.orderId) });
     related = r.ids;
     if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet` : `customer has ${r.unshipped.length === 1 ? 'another unshipped order' : r.unshipped.length + ' more unshipped orders'}: ${r.unshipped.join(', ')} — can be combined into one parcel`, entryId: '', reason: ro ? 'mai multe comenzi' : 'multiple orders', weight: 40 });
     for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice` : `already has cash-on-delivery order ${n} in transit — wait until it is picked up`, entryId: '', reason: ro ? 'comandă în drum' : 'order in transit', weight: 40 });
@@ -125,8 +127,8 @@ export async function checkOrder(opts: {
 
   await db.orderCheck.upsert({
     where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } },
-    create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action },
-    update: { score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
+    create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action },
+    update: { personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
   });
 
   // Was it brought by Semafor (pop-up / reminder e-mail)? Only for new orders (webhook), not for re-checks / backfill.
