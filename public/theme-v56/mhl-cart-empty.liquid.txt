@@ -1,0 +1,73 @@
+{%- comment -%}
+  v56: empty cart = premium MIA showcase (only colours in stock) instead of the old collections menu.
+{%- endcomment -%}
+{%- liquid
+  assign mk = localization.market.handle
+  assign t_eyebrow = 'Coșul tău te așteaptă'
+  assign t_heading = 'Alege-ți nuanța MIA'
+  assign t_sub = 'Piele naturală, lucrată cu grijă. Iată culorile disponibile acum:'
+  assign t_all = 'Descoperă toată colecția MIA'
+  assign t_last = 'Ultimele bucăți'
+  if mk == 'deutschland'
+    assign t_eyebrow = 'Dein Warenkorb wartet'
+    assign t_heading = 'Wähle deine MIA-Farbe'
+    assign t_sub = 'Echtes Leder, mit Sorgfalt gefertigt. Diese Farben sind sofort lieferbar:'
+    assign t_all = 'Die ganze MIA-Kollektion entdecken'
+    assign t_last = 'Nur noch wenige'
+  elsif mk == 'polska'
+    assign t_eyebrow = 'Twój koszyk czeka'
+    assign t_heading = 'Wybierz swój kolor MIA'
+    assign t_sub = 'Naturalna skóra, wykonana z dbałością. Te kolory są dostępne od ręki:'
+    assign t_all = 'Odkryj całą kolekcję MIA'
+    assign t_last = 'Ostatnie sztuki'
+  endif
+  assign shown = 0
+-%}
+<div class="mhl-ce">
+  <p class="mhl-ce__eyebrow">{{ t_eyebrow }}</p>
+  <h3 class="mhl-ce__heading">{{ t_heading }}</h3>
+  <p class="mhl-ce__sub">{{ t_sub }}</p>
+  <div class="mhl-ce__grid">
+    {%- for p in collections['mia'].products -%}
+      {%- if p.available and shown < 6 -%}
+        {%- assign shown = shown | plus: 1 -%}
+        {%- assign nm = p.title | remove_first: 'MIA ' | split: ',' | first | downcase | split: ' ' -%}
+        {%- assign img = p.featured_media.preview_image -%}
+        <a class="mhl-ce__card" href="{{ p.url }}" style="--d:{{ forloop.index0 | times: 70 }}ms">
+          <span class="mhl-ce__img">
+            {%- if img -%}{{ img | image_url: width: 480 | image_tag: loading: 'lazy', sizes: '160px', widths: '240, 360, 480', alt: p.title }}{%- endif -%}
+            {%- if p.variants.first.inventory_management == 'shopify' and p.variants.first.inventory_quantity > 0 and p.variants.first.inventory_quantity <= 2 -%}
+              <span class="mhl-ce__tag">{{ t_last }}</span>
+            {%- endif -%}
+          </span>
+          <span class="mhl-ce__name">{% for w in nm %}{{ w | capitalize }}{% unless forloop.last %} {% endunless %}{% endfor %}</span>
+          <span class="mhl-ce__price">
+            {%- if p.compare_at_price > p.price -%}<s>{{ p.compare_at_price | money }}</s> {% endif -%}
+            {{ p.price | money }}
+          </span>
+        </a>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+  <a class="mhl-ce__all" href="{{ collections['mia'].url | default: '/collections/mia' }}">{{ t_all }} <span aria-hidden="true">→</span></a>
+</div>
+<style>
+  .cart--empty .cart--empty-text{display:none}
+  .mhl-ce{padding:8px 4px 24px;text-align:center}
+  .mhl-ce__eyebrow{margin:0 0 6px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#9a7b5f}
+  .mhl-ce__heading{margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;line-height:1.1;font-weight:500;color:#2b1d14;letter-spacing:-.01em}
+  .mhl-ce__sub{max-width:300px;margin:0 auto 20px;font-size:13px;line-height:1.55;color:#7a6858}
+  .mhl-ce__grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;text-align:left}
+  .mhl-ce__card{display:block;color:inherit;text-decoration:none;opacity:0;transform:translateY(10px);animation:mhl-ce-in .6s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:var(--d)}
+  .mhl-ce__img{position:relative;display:block;aspect-ratio:4/5;overflow:hidden;border-radius:12px;background:#f3ede6}
+  .mhl-ce__img img{width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+  .mhl-ce__card:hover .mhl-ce__img img{transform:scale(1.06)}
+  .mhl-ce__tag{position:absolute;left:8px;top:8px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.92);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9a4a26}
+  .mhl-ce__name{display:block;margin:9px 2px 2px;font-size:13px;letter-spacing:.04em;color:#2b1d14}
+  .mhl-ce__price{display:block;margin:0 2px;font-size:12px;color:#7a6858}
+  .mhl-ce__price s{opacity:.6;margin-right:4px}
+  .mhl-ce__all{display:inline-block;margin-top:22px;padding:13px 22px;border:1px solid #2b1d14;border-radius:999px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#2b1d14;text-decoration:none;transition:background .25s ease,color .25s ease}
+  .mhl-ce__all:hover{background:#2b1d14;color:#fff}
+  @keyframes mhl-ce-in{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.mhl-ce__card{animation:none;opacity:1;transform:none}}
+</style>
