@@ -364,7 +364,7 @@ export default function PopupPage() {
                 {p.welcome && (
                   <BlockStack gap="200">
                     <Text as="p" variant="bodySm" tone="subdued">{tr("popup.welcomeSender", { sender: data.mail.sender || "—" })}</Text>
-                    {data.mail.semaforDomain && <Text as="p" variant="bodySm" tone="subdued">{tr("popup.welcomeOwnDomain")}</Text>}
+                    {data.mail.semaforDomain && <Banner tone="warning" action={data.recovery.pro ? { content: tr("popup.welcomeOwnDomainBtn"), url: "/app/emails" } : undefined}>{tr("popup.welcomeOwnDomain")}</Banner>}
                     {!data.mail.ready && <Banner tone="info">{tr("client.sendingSoon")}</Banner>}
                     <Box>
                       <Button variant="plain" disclosure={welcomeOpen ? "up" : "down"} onClick={() => setWelcomeOpen((v) => !v)}>{tr("popup.welcomeEdit", { lang: LANG_NAME[tl] })}</Button>
