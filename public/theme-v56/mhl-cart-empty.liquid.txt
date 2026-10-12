@@ -31,7 +31,7 @@
     {%- for p in collections['mia'].products -%}
       {%- if p.available and shown < 6 -%}
         {%- assign shown = shown | plus: 1 -%}
-        {%- assign nm = p.title | remove_first: 'MIA ' | split: ',' | first | downcase | split: ' ' -%}
+        {%- assign nm = p.title | remove_first: 'MIA ' | split: ',' | first | downcase | strip -%}
         {%- assign img = p.featured_media.preview_image -%}
         <a class="mhl-ce__card" href="{{ p.url }}" style="--d:{{ forloop.index0 | times: 70 }}ms">
           <span class="mhl-ce__img">
@@ -40,7 +40,7 @@
               <span class="mhl-ce__tag">{{ t_last }}</span>
             {%- endif -%}
           </span>
-          <span class="mhl-ce__name">{% for w in nm %}{{ w | capitalize }}{% unless forloop.last %} {% endunless %}{% endfor %}</span>
+          <span class="mhl-ce__name">{{ nm }}</span>
           <span class="mhl-ce__price">
             {%- if p.compare_at_price > p.price -%}<s>{{ p.compare_at_price | money }}</s> {% endif -%}
             {{ p.price | money }}
@@ -63,7 +63,7 @@
   .mhl-ce__img img{width:100%;height:100%;object-fit:cover;transition:transform .9s cubic-bezier(.2,.7,.2,1)}
   .mhl-ce__card:hover .mhl-ce__img img{transform:scale(1.06)}
   .mhl-ce__tag{position:absolute;left:8px;top:8px;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.92);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#9a4a26}
-  .mhl-ce__name{display:block;margin:9px 2px 2px;font-size:13px;letter-spacing:.04em;color:#2b1d14}
+  .mhl-ce__name{display:block;text-transform:capitalize;margin:9px 2px 2px;font-size:13px;letter-spacing:.04em;color:#2b1d14}
   .mhl-ce__price{display:block;margin:0 2px;font-size:12px;color:#7a6858}
   .mhl-ce__price s{opacity:.6;margin-right:4px}
   .mhl-ce__all{display:inline-block;margin-top:22px;padding:13px 22px;border:1px solid #2b1d14;border-radius:999px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#2b1d14;text-decoration:none;transition:background .25s ease,color .25s ease}
