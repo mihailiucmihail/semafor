@@ -292,12 +292,14 @@
     }
     slot.innerHTML = '<div class="smf-ci"><p class="smf-ci__badge">-' + esc(ciPct) + '%</p>' +
       '<p class="smf-ci__title">' + esc(ciFill(ciT.title)) + '</p><p class="smf-ci__text">' + esc(ciFill(ciT.text)) + '</p>' +
-      '<form class="smf-ci__form" novalidate><input type="email" name="email" inputmode="email" autocomplete="email" required aria-label="E-mail" placeholder="' + esc(ciT.ph) + '">' +
-      '<button type="submit" class="smf-ci__btn">' + esc(ciFill(ciT.btn)) + '</button></form>' +
+      // no <form>: the slot usually sits inside the theme's cart <form>, and a nested form is dropped by the browser
+      '<div class="smf-ci__form" role="group"><input type="email" name="smf_email" inputmode="email" autocomplete="email" aria-label="E-mail" placeholder="' + esc(ciT.ph) + '">' +
+      '<button type="button" class="smf-ci__btn">' + esc(ciFill(ciT.btn)) + '</button></div>' +
       '<p class="smf-ci__err" role="alert" hidden></p><p class="smf-ci__note">' + esc(ciT.note) + '</p></div>';
-    var f = slot.querySelector('form'), inp = f.querySelector('input'), b = f.querySelector('button'), er = slot.querySelector('.smf-ci__err');
-    f.addEventListener('submit', function (e) {
-      e.preventDefault(); e.stopPropagation();
+    var f = slot.querySelector('.smf-ci__form'), inp = f.querySelector('input'), b = f.querySelector('button'), er = slot.querySelector('.smf-ci__err');
+    var go = function (e) {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (b.disabled) return;
       var email = String(inp.value || '').trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { er.textContent = ciT.err; er.hidden = false; return; }
       b.disabled = true; er.hidden = true;
@@ -308,7 +310,12 @@
         try { fetch('/discount/' + encodeURIComponent(ciState.code), { credentials: 'same-origin' }).catch(function () {}); } catch (x) { /* ignore */ }
         ciMountAll();
       });
-    });
+    };
+    b.addEventListener('click', go);
+    // Enter in the field must not submit the theme's cart form (→ /cart or checkout)
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) go(e); });
+    // keep the theme's drawer from treating clicks/keys in our block as its own (some drawers close or re-render)
+    ['click', 'keydown', 'keyup', 'input', 'change'].forEach(function (t) { f.addEventListener(t, function (e) { e.stopPropagation(); }); });
   }
   function ciMountAll() { Array.prototype.forEach.call(D.querySelectorAll('[data-semafor-cart-offer]'), ciRender); }
   var ciAt = 0, ciBusy = false;
