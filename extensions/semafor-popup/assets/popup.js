@@ -320,7 +320,17 @@
     // keep the theme's drawer from treating clicks/keys in our block as its own (some drawers close or re-render)
     ['click', 'keydown', 'keyup', 'input', 'change'].forEach(function (t) { f.addEventListener(t, function (e) { e.stopPropagation(); }); });
   }
-  function ciMountAll() { Array.prototype.forEach.call(D.querySelectorAll('[data-semafor-cart-offer]'), ciRender); }
+  // the theme drew the cart without our slot (e.g. it was empty at page load and was filled in JS) → add one after the items
+  function ciEnsureSlot() {
+    if (cartCount <= 0) return;
+    Array.prototype.forEach.call(D.querySelectorAll('.cart--body'), function (body) {
+      var root = body.parentElement; if (!root || root.querySelector('[data-semafor-cart-offer]')) return;
+      var el = D.createElement('div'); el.className = 'mhl-cart-offer'; el.setAttribute('data-semafor-cart-offer', ''); el.hidden = true; el.__smfSeen = 1;
+      body.parentNode.insertBefore(el, body.nextSibling);
+    });
+  }
+  function ciMountAll() {
+    ciEnsureSlot(); Array.prototype.forEach.call(D.querySelectorAll('[data-semafor-cart-offer]'), ciRender); }
   var ciAt = 0, ciBusy = false;
   function ciDecide() {
     if (ciState && ciState.code) return ciMountAll();
@@ -329,7 +339,8 @@
     if (ciBusy) return;
     ciBusy = true;
     cartHasDiscount(function (has) {
-      if (has) { ciBusy = false; ciAt = Date.now(); ciState = 'hide'; return ciMountAll(); }
+      // empty cart (the slot can be rendered permanently by the theme) → nothing to offer
+      if (has || cartCount <= 0) { ciBusy = false; ciAt = Date.now(); ciState = 'hide'; return ciMountAll(); }
       serverKnown(function (known) { ciBusy = false; ciAt = Date.now(); ciState = known ? 'hide' : 'show'; ciMountAll(); });
     });
   }
@@ -362,9 +373,11 @@
 
   // ── triggers ──
   var cartCount = Number(B.cartCount) || 0;
-  var cartTimer = null;
+  var cartTimer = null, ciTimer = null;
   /** The cart was opened / changed. how: "add" (add-to-cart) or "open" (cart page, drawer, open event). */
   function cartActivity(how) {
+    // the theme often re-draws its cart in JS (no new slot) → decide the inline offer again after every cart change
+    if (D.querySelector('[data-semafor-cart-offer], .cart--body') && !(ciState && ciState.code)) { clearTimeout(ciTimer); ciTimer = setTimeout(function () { ciAt = 0; ciDecide(); }, 300); }
     if (cartCount <= 0) return;
     if (cfg.mode === 'cart') {
       if (siteShown) return;
