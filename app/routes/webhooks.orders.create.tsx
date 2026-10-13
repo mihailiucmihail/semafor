@@ -5,6 +5,7 @@ import { getShop, SECRET } from "../semafor/shop.server";
 import { checkOrder } from "../semafor/check-order.server";
 import { fetchOrder } from "../semafor/backfill.server";
 import { withinQuota } from "../semafor/plan.server";
+import { checkPickupDistance } from "../semafor/pickup-check.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, payload, admin, topic } = await authenticate.webhook(request);
@@ -15,6 +16,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Respond fast; do the work after the response is sent.
   queueMicrotask(async () => {
+    try { await checkPickupDistance(admin as any, s, payload); } catch (e) { console.error("[semafor] pickup check failed", e); }
     try {
       if (!(await withinQuota(s))) { console.log(`[semafor] ${shop}: free plan monthly limit reached, order not checked`); return; }
       const res = await checkOrder({ db, secret: SECRET, shopId: s.id, shopDomain: shop, country: s.country, settings: s.settings, order: payload, admin });
