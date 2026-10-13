@@ -237,7 +237,7 @@
   }
   function show(source) {
     if (ui) return false;
-    if (!designMode && (ciVisible() || ciTyping())) return false;
+    if (!designMode && (ciInOpenCart() || ciTyping())) return false;
     ui = render(cfg, lang, { onSubmit: submit(source), onClose: close });
     D.body.appendChild(ui.root);
     prevOverflow = D.documentElement.style.overflow;
@@ -251,7 +251,7 @@
   function open(source) {
     if (siteShown || ui) return;
     // the cart already shows the inline offer (or the visitor is typing in it): never cover it with the pop-up
-    if (!designMode && (ciVisible() || ciTyping())) return;
+    if (!designMode && (ciInOpenCart() || ciTyping())) return;
     if (designMode) { siteShown = true; show(source); return; }
     if (knownLocally() || dismissedRecently()) return;
     serverKnown(function (known) { if (!known && !siteShown && show(source)) siteShown = true; });
@@ -346,6 +346,16 @@
     if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', scan); else scan();
   })();
   function ciVisible() { var el = D.querySelector('[data-semafor-cart-offer] .smf-ci'); return !!(el && el.offsetParent); }
+  // the theme's cart (drawer or page) with our inline slot is on screen — even while the slot is still deciding (hidden)
+  function ciInOpenCart() {
+    var els = D.querySelectorAll('[data-semafor-cart-offer]');
+    for (var i = 0; i < els.length; i++) {
+      var p = els[i].parentElement; if (!p || !p.getClientRects().length) continue;
+      if (p.checkVisibility && !p.checkVisibility({ visibilityProperty: true, opacityProperty: true })) continue;
+      var r = p.getBoundingClientRect(); if (r.width > 0 && r.right > 0 && r.left < (W.innerWidth || 9999) && r.bottom > 0 && r.top < (W.innerHeight || 9999)) return true;
+    }
+    return false;
+  }
   function ciTyping() { var a = D.activeElement; return !!(a && a.closest && a.closest('[data-semafor-cart-offer]')); }
 
   if (designMode) { setTimeout(function () { open(smart ? 'site' : cfg.mode); }, 400); return; }
