@@ -1,0 +1,496 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "deutschland"
+  },
+  "parent": "index.json",
+  "sections": {
+    "mde_tone": {
+      "type": "mia-de-tone",
+      "blocks": {
+        "t01": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+            "name": "Espresso",
+            "number": "01",
+            "tone": "#24140e",
+            "tagline": "Tiefes Dunkelbraun – der Klassiker.",
+            "force": true
+          }
+        },
+        "t02": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ciocolata-neagra-piele-naturala",
+            "name": "Dunkle Schokolade",
+            "number": "02",
+            "tone": "#3d2419",
+            "tagline": "Fast schwarz, mit warmem Braunton."
+          }
+        },
+        "t03": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-taupe-accesorii-aurii-piele-naturala",
+            "name": "Taupe",
+            "number": "03",
+            "tone": "#8c7b6b",
+            "tagline": "Warm, ruhig, passt zu allem."
+          }
+        },
+        "t04": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-dark-cherry",
+            "name": "Dark Cherry",
+            "number": "04",
+            "tone": "#5a1f2b",
+            "tagline": "Dunkles Kirschrot mit dezentem Glanz."
+          }
+        },
+        "t05": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-piele-naturala",
+            "name": "Kaschmir",
+            "number": "05",
+            "tone": "#d6c3a5",
+            "tagline": "Helles Beige für Frühling und Sommer."
+          }
+        },
+        "t06": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-greige",
+            "name": "Greige",
+            "number": "06",
+            "tone": "#a8998a",
+            "tagline": "Zwischen Grau und Beige."
+          }
+        },
+        "t07": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ivory",
+            "name": "Ivory",
+            "number": "07",
+            "tone": "#efe6d6",
+            "tagline": "Fast weiß, ganz fein."
+          }
+        },
+        "t08": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-baby-blue",
+            "name": "Baby Blue",
+            "number": "08",
+            "tone": "#a9c4d8",
+            "tagline": "Zartes Hellblau."
+          }
+        },
+        "t09": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-maro-accesorii-aurii-piele-naturala",
+            "name": "Cognac",
+            "number": "09",
+            "tone": "#9a5a2a",
+            "tagline": "Warmes Rotbraun."
+          }
+        },
+        "t10": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-burgundy-accesorii-aurii-piele-naturala",
+            "name": "Burgund",
+            "number": "10",
+            "tone": "#6b1f26",
+            "tagline": "Edel und tief – für Tag und Abend."
+          }
+        },
+        "t11": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-neagra-accesorii-aurii-piele-naturala",
+            "name": "Schwarz",
+            "number": "11",
+            "tone": "#1a1717",
+            "tagline": "Passt zu jedem Anlass."
+          }
+        },
+        "t12": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-espresso",
+            "name": "Velours Espresso",
+            "number": "12",
+            "tone": "#5a3a2a",
+            "tagline": "Weiches Velours in tiefem Braun."
+          }
+        },
+        "t13": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-ciocolata-neagra",
+            "name": "Velours Dunkle Schokolade",
+            "number": "13",
+            "tone": "#3a2620",
+            "tagline": "Velours in fast schwarzem Braun."
+          }
+        },
+        "t14": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-taupe",
+            "name": "Velours Taupe",
+            "number": "14",
+            "tone": "#9a8a7a",
+            "tagline": "Velours in sanftem Graubraun."
+          }
+        },
+        "t15": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-accesorii-aurii-piele-naturala",
+            "name": "Velours Kaschmir",
+            "number": "15",
+            "tone": "#cbb79a",
+            "tagline": "Helles Velours, weich im Griff."
+          }
+        }
+      },
+      "block_order": [
+        "t01",
+        "t02",
+        "t03",
+        "t04",
+        "t05",
+        "t06",
+        "t07",
+        "t08",
+        "t09",
+        "t10",
+        "t11",
+        "t12",
+        "t13",
+        "t14",
+        "t15"
+      ],
+      "settings": {
+        "dur": 4,
+        "kicker": "Echtes Leder · In Italien gefertigt",
+        "byline": "by MIHAILIUC · 15 Farben",
+        "label": "Deine Farbe",
+        "specs": "inkl. MwSt. · 26 × 23 × 11 cm · goldfarbene Beschläge",
+        "cta": "In den Warenkorb",
+        "cta2": "Details",
+        "soldout": "Diese Farbe ist gerade ausverkauft – bald wieder da.",
+        "ship": "Versand mit Hermes in 4–5 Werktagen · 4,95 € · <b>ab 100 € versandkostenfrei</b> · 14 Tage Rückgabe"
+      }
+    },
+    "mde_rail": {
+      "type": "mia-de-rail",
+      "settings": {
+        "collection": "mia",
+        "limit": 6,
+        "first": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "title": "Die MIA-Kollektion",
+        "all_label": "Alle ansehen →",
+        "soldout": "Ausverkauft"
+      }
+    },
+    "mia_stories": {
+      "type": "mia-stories",
+      "settings": {
+        "kicker": "Instagram · Kundinnen",
+        "title": "Echte Momente. <em>Von unseren Kundinnen.</em>",
+        "text": "Fotos und Videos, die uns Kundinnen geschickt haben, als ihre MIA angekommen war – so, wie wir sie auf Instagram geteilt haben.",
+        "open_label": "Stories ansehen",
+        "count_label": "Stories",
+        "story_label": "Story",
+        "handle": "mihailiucofficial",
+        "viewer_sub": "Kundinnen",
+        "cta_label": "Finde deine MIA-Farbe",
+        "cta_url": "#reihe",
+        "ig_url": "https://www.instagram.com/mihailiucofficial/",
+        "ig_label": "Folge uns auf Instagram",
+        "order": "0,96,18,25,27,28,31,32,33,36,38,39,47,49,50,54,59,61,62,68,70,72,80,86,88,89,91"
+      }
+    },
+    "mde_inside": {
+      "type": "mia-de-inside",
+      "settings": {
+        "caption": "Video · Das Innere",
+        "play": "Video abspielen",
+        "kicker": "Das Innere",
+        "title": "Alles dabei – und immer griffbereit.",
+        "text": "Außen klare, elegante Linien. Innen zwei Fächer für Handy, Geldbörse, Schlüssel und Sonnenbrille – und die Tasche behält trotzdem ihre Form.",
+        "f1n": "26",
+        "f1": "cm breit – sogar DIN A5 passt rein",
+        "f2n": "2",
+        "f2": "Fächer, eines mit Reißverschluss",
+        "f3n": "1",
+        "f3": "goldfarbener Drehverschluss aus Metall"
+      }
+    },
+    "mde_detail": {
+      "type": "mia-de-detail",
+      "blocks": {
+        "s1": {
+          "type": "spot",
+          "settings": {
+            "x": 60,
+            "y": 68,
+            "zoom": 2.4,
+            "kicker": "Das Leder",
+            "title": "Echtes Rindsleder, angenehm weich im Griff.",
+            "text": "Hochwertiges Leder aus italienischen Gerbereien – mit feiner Narbung und samtweicher Oberfläche. Jede Haut wählen wir sorgfältig aus – nur Stücke ohne Falten und Fehlstellen –, damit deine Tasche makellos aussieht und lange in Form bleibt.",
+            "tag1": "Echtes Leder",
+            "tag2": "Italien"
+          }
+        },
+        "s2": {
+          "type": "spot",
+          "settings": {
+            "x": 65,
+            "y": 58,
+            "zoom": 2.8,
+            "kicker": "Die Nähte",
+            "title": "Gerade Nähte, hochwertiges Garn.",
+            "text": "Saubere, gleichmäßige Nähte ohne abstehende Fäden. Die Kanten werden sorgfältig veredelt und zweimal gefärbt – so bleiben sie glatt, ebenmäßig und lange schön.",
+            "tag1": "Hochwertiges Garn",
+            "tag2": "Kanten 2× gefärbt"
+          }
+        },
+        "s3": {
+          "type": "spot",
+          "settings": {
+            "x": 45,
+            "y": 66,
+            "zoom": 2.8,
+            "kicker": "Die Beschläge",
+            "title": "Goldfarbener Drehverschluss aus Metall.",
+            "text": "Ein hochwertiger Verschluss, solide verschraubt. Er lässt sich leicht drehen, ohne zu haken, und rastet mit einem dezenten, angenehmen Klick ein.",
+            "tag1": "Metall",
+            "tag2": "Verschraubt"
+          }
+        },
+        "s4": {
+          "type": "spot",
+          "settings": {
+            "x": 52,
+            "y": 50,
+            "zoom": 2.2,
+            "kicker": "Das Innere",
+            "title": "Robustes Futter, leicht zu pflegen.",
+            "text": "Fühlt sich angenehm an, ist strapazierfähig und sieht auch nach Jahren noch gut aus. Dazu ein Reißverschlussfach für Kleinigkeiten – und wenn mal etwas danebengeht, wischst du das Futter einfach mit einem Tuch ab.",
+            "tag1": "Reißverschlussfach",
+            "tag2": "Leicht zu reinigen"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "settings": {
+        "product": "mia-ivory",
+        "index": 6,
+        "dur": 4.5,
+        "title": "Aus der Nähe. <em>Die Details.</em>",
+        "alt": "Die geöffnete MIA: Innenfutter, Reißverschluss, Nähte und goldfarbener Drehverschluss",
+        "hint": "Tippen zum Vergrößern",
+        "link": "Zum Produkt"
+      }
+    },
+    "mde_atelier": {
+      "type": "mia-de-atelier",
+      "settings": {
+        "video_product": "mia-ciocolata-neagra-piele-naturala",
+        "video_index": 1,
+        "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "alt": "MIA in Dunkler Schokolade aus echtem Leder – Video",
+        "kicker": "Das Atelier",
+        "title": "Worauf wir <em>achten.</em>",
+        "text1": "Wir suchen das schönste Leder, das wir zu einem fairen Preis bekommen – und prüfen jede Tasche so, als wäre sie für uns selbst:",
+        "points": "Gerade Nähte aus reißfestem Garn – keine abstehenden Fäden\nSauber versiegelte Kanten, sorgfältig gefärbt\nFest verschraubte Metallbeschläge, die sich nicht lockern\nAngenehmes, strapazierfähiges Futter, das sich leicht abwischen lässt\nVor dem Versand schauen wir uns jede Tasche noch ein zweites Mal an",
+        "text2": "Deine MIA kommt in einem Staubbeutel – darin bleibt sie geschützt, wenn du sie gerade nicht trägst.",
+        "sig": "Mihail Mihailiuc",
+        "sig_sub": "Gründer · MIHAILIUC",
+        "n1": "15",
+        "l1": "Farben für unseren Bestseller",
+        "n2": "26<i>×</i>23<i>×</i>11",
+        "l2": "cm (B × H × T)",
+        "n3": "4–5",
+        "l3": "Werktage Lieferzeit mit Hermes",
+        "l4": "Bewertungen"
+      }
+    },
+    "mde_reviews": {
+      "type": "mia-de-reviews",
+      "settings": {
+        "show_body": true,
+        "show_ro": false,
+        "numeral": "V"
+      }
+    },
+    "mde_service": {
+      "type": "mia-de-service",
+      "blocks": {
+        "q1": {
+          "type": "q",
+          "settings": {
+            "q": "Wie lange dauert die Lieferung nach Deutschland?",
+            "a": "Wir versenden mit Hermes. Die Lieferung dauert in der Regel 4–5 Werktage nach Zahlungseingang. Sobald deine Tasche unterwegs ist, bekommst du eine E-Mail mit der Sendungsverfolgung."
+          }
+        },
+        "q2": {
+          "type": "q",
+          "settings": {
+            "q": "Was kostet der Versand?",
+            "a": "4,95 € pro Bestellung. Ab einem Bestellwert von 100 € liefern wir kostenlos."
+          }
+        },
+        "q3": {
+          "type": "q",
+          "settings": {
+            "q": "Kann ich die Tasche zurückgeben?",
+            "a": "Ja, innerhalb von 14 Tagen nach Erhalt – ohne Angabe von Gründen. Alle Details findest du in der <a href=\"/pages/widerrufsbelehrung\">Widerrufsbelehrung</a>."
+          }
+        },
+        "q4": {
+          "type": "q",
+          "settings": {
+            "q": "Ist die MIA aus echtem Leder?",
+            "a": "Ja. Außen echtes, genarbtes Rindsleder aus italienischen Gerbereien – weich und angenehm im Griff. Innen ein hochwertiges, strapazierfähiges Futter. Jede Tasche wird in Italien gefertigt – Zuschnitt und Kantenveredelung erfolgen von Hand."
+          }
+        },
+        "q5": {
+          "type": "q",
+          "settings": {
+            "q": "Wie pflege ich meine MIA?",
+            "a": "Wisch sie mit einem weichen, trockenen Tuch ab und pflege das Leder ab und zu mit einer farblosen Lederpflege. Schütze sie vor Nässe und lass sie nicht lange in der prallen Sonne liegen. Für Velours empfehlen wir eine spezielle Veloursbürste."
+          }
+        },
+        "q6": {
+          "type": "q",
+          "settings": {
+            "q": "Welche Zahlungsarten gibt es?",
+            "a": "Kreditkarte, PayPal und Apple Pay. Alle verfügbaren Zahlungsarten siehst du an der Kasse – die Bezahlung ist sicher verschlüsselt."
+          }
+        }
+      },
+      "block_order": [
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6"
+      ],
+      "settings": {
+        "t1": "Versand nach Deutschland",
+        "p1": "Mit Hermes in 4–5 Werktagen. 4,95 € pro Bestellung, ab 100 € versandkostenfrei. Die Sendungsverfolgung bekommst du per E-Mail.",
+        "a1": "Versand & Lieferung →",
+        "u1": "/pages/versand-lieferung",
+        "t2": "14 Tage Rückgabe",
+        "p2": "Passt doch nicht? Schick die Tasche einfach innerhalb von 14 Tagen nach Erhalt zurück – ohne Angabe von Gründen.",
+        "a2": "Widerrufsbelehrung →",
+        "u2": "/pages/widerrufsbelehrung",
+        "t3": "In Italien gefertigt",
+        "p3": "Echtes Rindsleder aus italienischen Gerbereien, in Italien gefertigt – Zuschnitt und Kantenveredelung von Hand. Kleine Serien, jedes Stück einzeln geprüft.",
+        "a3": "Mehr über das Atelier →",
+        "u3": "#atelier",
+        "t4": "Sicher bezahlen",
+        "p4": "Kreditkarte, PayPal und Apple Pay. Alle Preise inkl. MwSt. – keine Zollgebühren, denn wir versenden innerhalb der EU.",
+        "a4": "Häufige Fragen →",
+        "u4": "#faq",
+        "t5": "90 Tage MIHAILIUC-Garantie",
+        "p5": "Reparatur und Versand in beide Richtungen übernehmen wir. Deine gesetzliche Gewährleistung (2 Jahre) bleibt davon unberührt.",
+        "a5": "Zur Garantie →",
+        "u5": "/pages/garan%C8%9Bie",
+        "faq_title": "Gut zu <em>wissen.</em>",
+        "faq_text": "Die häufigsten Fragen zu Lieferung, Rückgabe und Pflege – kurz beantwortet."
+      }
+    },
+    "mde_final": {
+      "type": "mia-de-final",
+      "settings": {
+        "product": "mia-taupe-accesorii-aurii-piele-naturala",
+        "title": "Nicht irgendeine. <em>Deine.</em>",
+        "meta": "Versand 4,95 € · ab 100 € versandkostenfrei · 14 Tage Rückgabe",
+        "cta": "Deine Farbe wählen"
+      }
+    },
+    "slideshow": {
+      "disabled": true
+    },
+    "blocks_ipnKJ6": {
+      "disabled": true
+    },
+    "grid-with-overlay": {
+      "disabled": true
+    },
+    "featured_collections_xAAcME": {
+      "disabled": true
+    },
+    "featured-collection": {
+      "disabled": true
+    },
+    "featured_collection_6XMJGM": {
+      "disabled": true
+    },
+    "featured_collection_JhJ4U3": {
+      "disabled": true
+    },
+    "featured_collection_NyrJ8B": {
+      "disabled": true
+    },
+    "17764797355ea96316": {
+      "disabled": true
+    },
+    "177721552213705e35": {
+      "disabled": true
+    },
+    "17772156562027624e": {
+      "disabled": true
+    },
+    "1774500295a0a3d606": {
+      "disabled": true
+    }
+  },
+  "order": [
+    "mde_tone",
+    "mde_rail",
+    "mia_stories",
+    "mde_inside",
+    "mde_detail",
+    "mde_atelier",
+    "mde_reviews",
+    "mde_service",
+    "mde_final",
+    "slideshow",
+    "blocks_ipnKJ6",
+    "grid-with-overlay",
+    "featured_collections_xAAcME",
+    "featured-collection",
+    "featured_collection_6XMJGM",
+    "featured_collection_JhJ4U3",
+    "featured_collection_NyrJ8B",
+    "17764797355ea96316",
+    "177721552213705e35",
+    "17772156562027624e",
+    "1774500295a0a3d606"
+  ]
+}

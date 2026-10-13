@@ -1,0 +1,246 @@
+{%- liquid
+  assign current_variant = product.selected_or_first_available_variant
+
+  assign add_to_cart_t = 'products.add_to_cart' | t
+  assign change_t = 'products.change' | t
+  assign buy_it_now_t = 'products.buy_it_now' | t
+  assign button_text = 'products.out_of_stock' | t
+  if current_variant.available
+    assign button_text = 'products.add_to_cart' | t
+  endif
+
+  unless onboarding
+    if product.selling_plan_groups != empty or product.available == false
+      assign smart_payment_enabled = false
+    endif
+  endunless
+%}
+
+{%- unless request.page_type == "password" -%}
+  {%- if onboarding -%}
+    <div class="product-buy-buttons--root" data-container="block">
+      <div
+        class="product-buy-buttons--primary"
+        {% if smart_payment_enabled %}
+          data-item="{{ secondary_button_style }}"
+        {% else %}
+          data-item="{{ primary_button_style }}"
+        {% endif %}
+        data-text="{{ add_to_cart_t }}"
+      >
+        <span>{{ add_to_cart_t }}</span>
+      </div>
+
+      {%- if smart_payment_enabled -%}
+        <div
+          class="product-buy-buttons--buy-now"
+          data-item="{{ primary_button_style }}"
+          data-text="{{ buy_it_now_t }}"
+        >
+          <span>{{ buy_it_now_t }}</span>
+        </div>
+      {%- endif -%}
+    </div>
+
+  {%- else -%}
+    <product-buy-buttons-element
+      class="product-buy-buttons--root"
+      data-id="{{ id }}"
+      data-cart-type="{{ settings.cart--type }}"
+      data-translations="{{ translations | escape }}"
+      data-container="block"
+    >
+      {{- form | payment_terms -}}
+
+      <button
+        class="product-buy-buttons--primary"
+        type="submit"
+        aria-busy="false"
+        data-text="{{ button_text }}"
+        {% if smart_payment_enabled %}
+          data-item="{{ secondary_button_style }}"
+        {% else %}
+          data-item="{{ primary_button_style }}"
+        {% endif %}
+        {%- unless current_variant.available -%}
+          disabled
+        {%- endunless -%}
+      >
+        <span class="product-buy-buttons--cta-text">
+          {{- button_text -}}
+        </span>
+        <span class="product-buy-buttons--spinner">
+          {%- render 'icons', icon: 'spinner' -%}
+        </span>
+      </button>
+
+      {%- if smart_payment_enabled -%}
+        {%- assign smart_payment_button = form | payment_button -%}
+        {%- unless smart_payment_button == blank -%}
+          <div
+            class="product-buy-buttons--smart"
+            data-style="{{ primary_button_style }}"
+            {% if current_variant.available and request.design_mode == false %}
+              aria-hidden="false"
+            {% else %}
+              aria-hidden="true"
+            {% endif %}
+          >
+            {{- smart_payment_button -}}
+          </div>
+        {%- else -%}
+          <button
+            class="product-buy-buttons--buy-now"
+            data-item="{{ primary_button_style }}"
+            data-text="{{ buy_it_now_t }}"
+            type="button"
+            aria-busy="false"
+            {% if request.design_mode or current_variant.available == false %}
+              disabled
+            {% endif %}
+          >
+            <span class="product-buy-buttons--buy-now-text">
+              {{- buy_it_now_t -}}
+            </span>
+            <span class="product-buy-buttons--spinner">
+              {%- render 'icons', icon: 'spinner' -%}
+            </span>
+          </button>
+        {%- endunless -%}
+      {%- endif -%}
+
+      {%- if sticky_cart_enabled -%}
+        <div
+          class="product-buy-buttons--drawer"
+          data-background-color="none"
+          data-translucent="true"
+          data-mq="small"
+          aria-hidden="true"
+          tabindex="-1"
+        >
+          <div class="product-buy-buttons--drawer-info-container">
+            <div class="product-buy-buttons--drawer-info">
+              <div data-item="paragraph">
+                {{- product.title -}}
+              </div>
+
+              {%- unless product.has_only_default_variant -%}
+                <div class="product-buy-buttons--drawer-variant" data-item="nav-text">
+                  {{- current_variant.title -}}
+                </div>
+              {%- endunless -%}
+            </div>
+
+            {%- unless product.has_only_default_variant -%}
+              <button
+                class="product-buy-buttons--drawer-change"
+                type="button"
+                data-item="block-link"
+              >
+                <span>{{- change_t -}}</span>
+              </button>
+            {%- endunless -%}
+          </div>
+
+          <button
+            class="product-buy-buttons--primary"
+            type="submit"
+            aria-busy="false"
+            data-text="{{ button_text }}"
+            data-item="{{ primary_button_style }}"
+            {%- unless current_variant.available -%}
+              disabled
+            {%- endunless -%}
+          >
+            <span class="product-buy-buttons--cta-text">
+              {{- button_text -}}
+            </span>
+            <span class="product-buy-buttons--spinner">
+              {%- render 'icons', icon: 'spinner' -%}
+            </span>
+          </button>
+        </div>
+      {%- endif %}
+
+      <input
+        type="hidden"
+        class="product-buy-buttons--input"
+        name="id"
+        data-id="{{ current_variant.id }}"
+        data-sku="{{ current_variant.sku }}"
+        data-management="{{ current_variant.inventory_management }}"
+        data-policy="{{ current_variant.inventory_policy }}"
+        data-quantity="{{ current_variant.inventory_quantity | default: 0 }}"
+        value="{{ current_variant.id }}"
+      >
+
+      <script type="application/json">
+        {
+          "add_to_cart": "{{ "products.add_to_cart" | t }}",
+          "out_of_stock": "{{ "products.out_of_stock" | t }}",
+          "unavailable": "{{ "products.unavailable" | t }}"
+        }
+      </script>
+    </product-buy-buttons-element>
+
+    {%- comment -%} German storefront: delivery info (replaces the Romanian estimated-delivery app block) {%- endcomment -%}
+    {%- if request.locale.iso_code == 'de' and request.page_type == 'product' -%}
+      {%- assign d1 = 'now' | date: '%s' | plus: 518400 -%}
+      {%- assign d2 = 'now' | date: '%s' | plus: 604800 -%}
+      <style>
+        .product-form--block:has([id$="essential_estimated_app_block_xrWkAH"]) { display: none !important; }
+      </style>
+      <div class="mh-de-delivery" style="margin:18px 0 6px;padding:16px 18px;border:1px solid rgba(42,26,18,.12);border-radius:14px;background:#faf6ef;font-size:14px;line-height:1.55;color:#2a1a12;text-align:left;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9a4a2a" stroke-width="1.5" aria-hidden="true" style="flex:none;"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
+          <strong style="font-size:14px;letter-spacing:.02em;">{% if localization.country.iso_code == 'AT' %}Versand nach Österreich mit der Österreichischen Post{% else %}Versand nach Deutschland mit Hermes{% endif %}</strong>
+        </div>
+        <div>Lieferung in <strong>4–5 Werktagen</strong> – voraussichtlich zwischen <strong>{{ d1 | date: '%d.%m.' }}</strong> und <strong>{{ d2 | date: '%d.%m.' }}</strong></div>
+        <div style="color:#5c463a;margin-top:4px;">Versandkosten 4,95 € · <strong>kostenlos ab 100 €</strong> · 14 Tage Rückgabe</div>
+      </div>
+      <script>
+        (function () {
+          var map = [
+            ['Bifați pentru ambalare cadou', 'Geschenkverpackung hinzufügen'],
+            ['Cutie cadou simplă', 'Geschenkbox'],
+            ['Cutie cadou premium', 'Premium-Geschenkbox'],
+            ['Bifați pentru personalizarea', 'Tasche mit Gravur personalisieren'],
+            ['Scrieți vă rog ce text', 'Dein Wunschtext für die Gravur (Name oder Initialen)']
+          ];
+          function tr(t) { t = t.trim(); for (var i = 0; i < map.length; i++) { if (t.indexOf(map[i][0]) === 0) return map[i][1]; } return null; }
+          function fix(root) {
+            var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, r;
+            while ((n = w.nextNode())) { r = tr(n.nodeValue); if (r) n.nodeValue = r; }
+            if (root.querySelectorAll) root.querySelectorAll('input[placeholder]').forEach(function (i) { var r = tr(i.placeholder); if (r) i.placeholder = r; });
+          }
+          function run() { document.querySelectorAll('[id*="globo_product_options"], .gpo-app').forEach(fix); }
+          run();
+          if (window.MutationObserver) new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+        })();
+      </script>
+    {%- endif -%}
+    {%- comment -%} v45: Polish storefront – translate Globo product-option labels (Romanian in the app) {%- endcomment -%}
+    {%- if request.locale.iso_code == 'pl' and request.page_type == 'product' -%}
+      <script>
+        (function () {
+          var map = [
+            ['Bifați pentru ambalare cadou', 'Zaznacz, aby dodać opakowanie prezentowe'],
+            ['Cutie cadou simplă', 'Pudełko prezentowe'],
+            ['Cutie cadou premium', 'Pudełko prezentowe premium'],
+            ['Bifați pentru personalizarea', 'Personalizuj torebkę grawerem'],
+            ['Scrieți vă rog ce text', 'Twój tekst do grawerunku (imię lub inicjały)']
+          ];
+          function tr(t) { t = t.trim(); for (var i = 0; i < map.length; i++) { if (t.indexOf(map[i][0]) === 0) return map[i][1]; } return null; }
+          function fix(root) {
+            var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, r;
+            while ((n = w.nextNode())) { r = tr(n.nodeValue); if (r) n.nodeValue = r; }
+            if (root.querySelectorAll) root.querySelectorAll('input[placeholder]').forEach(function (i) { var r = tr(i.placeholder); if (r) i.placeholder = r; });
+          }
+          function run() { document.querySelectorAll('[id*="globo_product_options"], .gpo-app').forEach(fix); }
+          run();
+          if (window.MutationObserver) new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+        })();
+      </script>
+    {%- endif -%}
+  {%- endif -%}
+{%- endunless -%}

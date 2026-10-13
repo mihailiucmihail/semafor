@@ -1,0 +1,57 @@
+{%- comment -%}
+  v52: Vertrauensleiste unter dem Checkout-Button (Warenkorb-Seite + Warenkorb-Drawer).
+  NUR DE + PL. Auf dem rumänischen Markt (ro / default) gibt dieses Snippet nichts aus.
+  Zahlungs-Icons: nur wirklich aktive Zahlarten (shop.enabled_payment_types) – gleiche Filter wie im Footer (v27/v47);
+  Klarna (über Mollie, nicht in enabled_payment_types) wird für DE zusätzlich gezeigt.
+{%- endcomment -%}
+{%- liquid
+  assign ct_mk = localization.market.handle
+  assign ct_show = false
+  if ct_mk == 'deutschland' or ct_mk == 'polska'
+    assign ct_show = true
+  endif
+-%}
+{%- if ct_show -%}
+  {%- liquid
+    assign ct_pl_allow = 'blik,visa,master,maestro,american_express,paypal,apple_pay,google_pay' | split: ','
+    assign ct_de_deny = 'blik,bizum,mobilepay' | split: ','
+    assign ct_carrier = 'Versand mit Hermes in 4–5 Werktagen'
+    if localization.country.iso_code == 'AT'
+      assign ct_carrier = 'Versand mit der Österreichischen Post in 5–6 Werktagen'
+    endif
+  -%}
+  <div class="mia-ct">
+    <div class="mia-ct__line" data-item="small-text">
+      <svg class="mia-ct__lock" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <span>{% if ct_mk == 'deutschland' %}Sichere Zahlung · Kostenlose Rücksendung innerhalb von 14 Tagen · {{ ct_carrier }}{% else %}Bezpieczna płatność · Darmowy zwrot w ciągu 14 dni · Wysyłka InPost w 4–5 dni roboczych{% endif %}</span>
+    </div>
+    <div class="mia-ct__pay">
+      {%- liquid
+        for type in shop.enabled_payment_types
+          if ct_mk == 'polska'
+            unless ct_pl_allow contains type
+              continue
+            endunless
+          else
+            if ct_de_deny contains type
+              continue
+            endif
+          endif
+          echo type | payment_type_svg_tag: class: 'mia-ct__icon'
+        endfor
+        if ct_mk == 'deutschland'
+          unless shop.enabled_payment_types contains 'klarna'
+            echo 'klarna' | payment_type_svg_tag: class: 'mia-ct__icon'
+          endunless
+        endif
+      -%}
+    </div>
+  </div>
+  <style>
+    .mia-ct{margin:12px 0 2px;text-align:center}
+    .mia-ct__line{display:flex;align-items:flex-start;justify-content:center;gap:7px;font-size:12px;line-height:1.5;color:#5c463a;text-align:center}
+    .mia-ct__lock{flex:none;width:14px;height:14px;margin-top:2px;color:#2a1a12}
+    .mia-ct__pay{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:10px}
+    .mia-ct__pay .mia-ct__icon{height:22px;width:auto;border-radius:3px}
+  </style>
+{%- endif -%}

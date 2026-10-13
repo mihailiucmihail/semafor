@@ -1,0 +1,506 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "polska"
+  },
+  "parent": "index.json",
+  "sections": {
+    "mde_tone": {
+      "type": "mia-de-tone",
+      "blocks": {
+        "t01": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+            "name": "Espresso",
+            "number": "01",
+            "tone": "#24140e",
+            "tagline": "Głęboki ciemny brąz – klasyka.",
+            "force": true
+          }
+        },
+        "t02": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ciocolata-neagra-piele-naturala",
+            "name": "Ciemna Czekolada",
+            "number": "02",
+            "tone": "#3d2419",
+            "tagline": "Niemal czarna, z ciepłym odcieniem brązu."
+          }
+        },
+        "t03": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-taupe-accesorii-aurii-piele-naturala",
+            "name": "Taupe",
+            "number": "03",
+            "tone": "#8c7b6b",
+            "tagline": "Ciepła, spokojna, pasuje do wszystkiego."
+          }
+        },
+        "t04": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-dark-cherry",
+            "name": "Dark Cherry",
+            "number": "04",
+            "tone": "#5a1f2b",
+            "tagline": "Ciemna wiśniowa czerwień z delikatnym połyskiem."
+          }
+        },
+        "t05": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-piele-naturala",
+            "name": "Kaszmir",
+            "number": "05",
+            "tone": "#d6c3a5",
+            "tagline": "Jasny beż na wiosnę i lato."
+          }
+        },
+        "t06": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-greige",
+            "name": "Greige",
+            "number": "06",
+            "tone": "#a8998a",
+            "tagline": "Pomiędzy szarością a beżem."
+          }
+        },
+        "t07": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ivory",
+            "name": "Ivory",
+            "number": "07",
+            "tone": "#efe6d6",
+            "tagline": "Niemal biała, bardzo subtelna."
+          }
+        },
+        "t08": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-baby-blue",
+            "name": "Baby Blue",
+            "number": "08",
+            "tone": "#a9c4d8",
+            "tagline": "Delikatny jasny błękit."
+          }
+        },
+        "t09": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-maro-accesorii-aurii-piele-naturala",
+            "name": "Koniak",
+            "number": "09",
+            "tone": "#9a5a2a",
+            "tagline": "Ciepły, czerwonawy brąz."
+          }
+        },
+        "t10": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-burgundy-accesorii-aurii-piele-naturala",
+            "name": "Burgund",
+            "number": "10",
+            "tone": "#6b1f26",
+            "tagline": "Szlachetna i głęboka – na dzień i na wieczór."
+          }
+        },
+        "t11": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-neagra-accesorii-aurii-piele-naturala",
+            "name": "Czarna",
+            "number": "11",
+            "tone": "#1a1717",
+            "tagline": "Pasuje na każdą okazję."
+          }
+        },
+        "t12": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-espresso",
+            "name": "Zamsz Espresso",
+            "number": "12",
+            "tone": "#5a3a2a",
+            "tagline": "Miękki zamsz w głębokim brązie."
+          }
+        },
+        "t13": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-ciocolata-neagra",
+            "name": "Zamsz Ciemna Czekolada",
+            "number": "13",
+            "tone": "#3a2620",
+            "tagline": "Zamsz w niemal czarnym brązie."
+          }
+        },
+        "t14": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-taupe",
+            "name": "Zamsz Taupe",
+            "number": "14",
+            "tone": "#9a8a7a",
+            "tagline": "Zamsz w łagodnym szarobrązie."
+          }
+        },
+        "t15": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-accesorii-aurii-piele-naturala",
+            "name": "Zamsz Kaszmir",
+            "number": "15",
+            "tone": "#cbb79a",
+            "tagline": "Jasny zamsz, miękki w dotyku."
+          }
+        }
+      },
+      "block_order": [
+        "t01",
+        "t02",
+        "t03",
+        "t04",
+        "t05",
+        "t06",
+        "t07",
+        "t08",
+        "t09",
+        "t10",
+        "t11",
+        "t12",
+        "t13",
+        "t14",
+        "t15"
+      ],
+      "settings": {
+        "dur": 4,
+        "kicker": "Skóra naturalna · Wyprodukowano we Włoszech",
+        "byline": "by MIHAILIUC · 15 kolorów",
+        "label": "Twój kolor",
+        "specs": "z VAT · 26 × 23 × 11 cm · okucia w kolorze złota",
+        "cta": "Dodaj do koszyka",
+        "cta2": "Szczegóły",
+        "soldout": "Ten kolor jest chwilowo wyprzedany – wkrótce wróci.",
+        "ship": "Kurier InPost lub Paczkomat InPost 24/7 w 4–5 dni roboczych · 14,99 zł · <b>darmowa dostawa od 399 zł</b> · 14 dni na zwrot"
+      }
+    },
+    "mde_rail": {
+      "type": "mia-de-rail",
+      "settings": {
+        "collection": "mia",
+        "limit": 6,
+        "first": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "title": "Kolekcja MIA",
+        "all_label": "Zobacz wszystkie →",
+        "soldout": "Wyprzedane"
+      }
+    },
+    "mia_stories": {
+      "type": "mia-stories",
+      "settings": {
+        "kicker": "Instagram · Klientki",
+        "title": "Prawdziwe chwile. <em>Od naszych klientek.</em>",
+        "text": "Zdjęcia i filmy, które klientki przysłały nam po odebraniu swojej MIA – w takiej formie, w jakiej pokazaliśmy je na Instagramie.",
+        "open_label": "Zobacz relacje",
+        "count_label": "relacji",
+        "story_label": "Relacja",
+        "handle": "mihailiucofficial",
+        "viewer_sub": "Klientki",
+        "cta_label": "Znajdź swój kolor MIA",
+        "cta_url": "#reihe",
+        "ig_url": "https://www.instagram.com/mihailiucofficial/",
+        "ig_label": "Obserwuj nas na Instagramie",
+        "order": "0,96,18,25,27,28,31,32,33,36,38,39,47,49,50,54,59,61,62,68,70,72,80,86,88,89,91"
+      }
+    },
+    "mde_inside": {
+      "type": "mia-de-inside",
+      "settings": {
+        "caption": "Wideo · Wnętrze",
+        "play": "Odtwórz wideo",
+        "kicker": "Wnętrze",
+        "title": "Wszystko w środku – i zawsze pod ręką.",
+        "text": "Na zewnątrz czyste, eleganckie linie. W środku dwie komory na telefon, portfel, klucze i okulary przeciwsłoneczne – a torebka mimo to zachowuje swój kształt.",
+        "f1n": "26",
+        "f1": "cm szerokości – zmieści się nawet notes A5",
+        "f2n": "2",
+        "f2": "komory, jedna zamykana na zamek",
+        "f3n": "1",
+        "f3": "metalowe zapięcie obrotowe w kolorze złota"
+      }
+    },
+    "mde_detail": {
+      "type": "mia-de-detail",
+      "blocks": {
+        "s1": {
+          "type": "spot",
+          "settings": {
+            "x": 60,
+            "y": 68,
+            "zoom": 2.4,
+            "kicker": "Skóra",
+            "title": "Prawdziwa skóra licowa, przyjemnie miękka w dotyku.",
+            "text": "Wysokiej jakości skóra z włoskich garbarni – o delikatnym rysunku lica i aksamitnie miękkiej powierzchni. Każdą skórę wybieramy starannie – tylko fragmenty bez zagnieceń i skaz – aby Twoja torebka wyglądała nieskazitelnie i długo trzymała formę.",
+            "tag1": "Skóra naturalna",
+            "tag2": "Włochy"
+          }
+        },
+        "s2": {
+          "type": "spot",
+          "settings": {
+            "x": 65,
+            "y": 58,
+            "zoom": 2.8,
+            "kicker": "Szwy",
+            "title": "Proste szwy, wysokiej jakości nici.",
+            "text": "Staranne, równe szwy bez wystających nitek. Krawędzie są dokładnie wykończone i dwukrotnie barwione – dzięki temu pozostają gładkie, równe i na długo zachowują piękny wygląd.",
+            "tag1": "Wysokiej jakości nici",
+            "tag2": "Krawędzie barwione 2×"
+          }
+        },
+        "s3": {
+          "type": "spot",
+          "settings": {
+            "x": 45,
+            "y": 66,
+            "zoom": 2.8,
+            "kicker": "Okucia",
+            "title": "Metalowe zapięcie obrotowe w kolorze złota.",
+            "text": "Wysokiej jakości zapięcie, solidnie przykręcone. Obraca się lekko, bez zacinania, i zamyka się z dyskretnym, przyjemnym kliknięciem.",
+            "tag1": "Metal",
+            "tag2": "Przykręcane"
+          }
+        },
+        "s4": {
+          "type": "spot",
+          "settings": {
+            "x": 52,
+            "y": 50,
+            "zoom": 2.2,
+            "kicker": "Wnętrze",
+            "title": "Trwała podszewka, łatwa w pielęgnacji.",
+            "text": "Przyjemna w dotyku i odporna na zużycie – nawet po latach nadal dobrze wygląda. Do tego kieszonka na zamek na drobiazgi, a jeśli coś się rozleje, po prostu przetrzesz podszewkę ściereczką.",
+            "tag1": "Kieszonka na zamek",
+            "tag2": "Łatwa w czyszczeniu"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "settings": {
+        "product": "mia-ivory",
+        "index": 6,
+        "dur": 4.5,
+        "title": "Z bliska. <em>Detale.</em>",
+        "alt": "Otwarta MIA: podszewka, zamek, szwy i zapięcie obrotowe w kolorze złota",
+        "hint": "Dotknij, aby powiększyć",
+        "link": "Zobacz produkt"
+      }
+    },
+    "mde_atelier": {
+      "type": "mia-de-atelier",
+      "settings": {
+        "video_product": "mia-ciocolata-neagra-piele-naturala",
+        "video_index": 1,
+        "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "alt": "MIA w kolorze Ciemna Czekolada ze skóry naturalnej – wideo",
+        "kicker": "Atelier",
+        "title": "Na co <em>zwracamy uwagę.</em>",
+        "text1": "Szukamy najpiękniejszej skóry, jaką można kupić za uczciwą cenę – i sprawdzamy każdą torebkę tak, jakbyśmy kupowali ją dla siebie:",
+        "points": "Proste szwy z nici odpornych na rozerwanie – bez wystających nitek\nStarannie zabezpieczone krawędzie, równo barwione\nSolidnie przykręcone metalowe okucia, które się nie obluzowują\nPrzyjemna, trwała podszewka, którą łatwo przetrzeć\nPrzed wysyłką jeszcze raz sprawdzamy każdą torebkę",
+        "text2": "Twoja MIA dotrze do Ciebie w ochronnym pokrowcu – będzie w nim bezpieczna, gdy akurat jej nie nosisz.",
+        "sig": "Mihail Mihailiuc",
+        "sig_sub": "Założyciel · MIHAILIUC",
+        "n1": "15",
+        "l1": "kolorów naszego bestsellera",
+        "n2": "26<i>×</i>23<i>×</i>11",
+        "l2": "cm (szer. × wys. × gł.)",
+        "n3": "4–5",
+        "l3": "dni roboczych · kurier lub Paczkomat InPost",
+        "l4": "opinii"
+      }
+    },
+    "mde_reviews": {
+      "type": "mia-de-reviews",
+      "settings": {
+        "show_body": true,
+        "show_ro": false,
+        "numeral": "V",
+        "title": "Noszona przez <em>klientki.</em>",
+        "all_url": "https://judge.me/reviews/stores/mihailiuc.co",
+        "all_label": "Wszystkie opinie",
+        "count_label": "opinii",
+        "jm_label": "Zebrane przez Judge.me",
+        "read_label": "Przeczytaj wszystkie opinie ([count]) →",
+        "photo_tag": "Zdjęcie klientki",
+        "verified": "Zweryfikowany zakup",
+        "anon": "Klientka",
+        "all_text": "Więcej zdjęć i opinii: <em>wszystkie [count] na Judge.me</em> · średnia ocena [rating]/5"
+      }
+    },
+    "mde_service": {
+      "type": "mia-de-service",
+      "blocks": {
+        "q1": {
+          "type": "q",
+          "settings": {
+            "q": "Jak długo trwa dostawa do Polski?",
+            "a": "Wysyłamy przez InPost – kurierem pod drzwi albo do Paczkomatu InPost 24/7 (automat wybierzesz zaraz po złożeniu zamówienia). Dostawa trwa zwykle 4–5 dni roboczych od zaksięgowania płatności. Gdy Twoja torebka będzie w drodze, otrzymasz e-mail z numerem do śledzenia przesyłki."
+          }
+        },
+        "q2": {
+          "type": "q",
+          "settings": {
+            "q": "Ile kosztuje dostawa?",
+            "a": "14,99 zł za zamówienie – kurierem InPost lub do Paczkomatu InPost 24/7. Przy zamówieniu od 399 zł dostawa jest darmowa. Płatność przy odbiorze (+12 zł) – kurierem lub w Paczkomacie (zamówienia do 800 zł)."
+          }
+        },
+        "q3": {
+          "type": "q",
+          "settings": {
+            "q": "Czy mogę zwrócić torebkę?",
+            "a": "Tak – masz 14 dni od otrzymania na odstąpienie od umowy, bez podawania przyczyny. Wszystkie szczegóły znajdziesz w zakładce <a href=\"/pages/widerrufsbelehrung\">Prawo odstąpienia od umowy</a>."
+          }
+        },
+        "q4": {
+          "type": "q",
+          "settings": {
+            "q": "Czy MIA jest ze skóry naturalnej?",
+            "a": "Tak. Na zewnątrz prawdziwa skóra licowa z włoskich garbarni – miękka i przyjemna w dotyku. W środku wysokiej jakości, trwała podszewka. Każda torebka jest wykonana we Włoszech, a krojenie i wykończenie krawędzi odbywa się ręcznie."
+          }
+        },
+        "q5": {
+          "type": "q",
+          "settings": {
+            "q": "Jak dbać o moją MIA?",
+            "a": "Przecieraj ją miękką, suchą ściereczką, a od czasu do czasu nałóż bezbarwny preparat do pielęgnacji skóry. Chroń torebkę przed wilgocią i nie zostawiaj jej na długo w pełnym słońcu. Do zamszu polecamy specjalną szczoteczkę."
+          }
+        },
+        "q6": {
+          "type": "q",
+          "settings": {
+            "q": "Jakie są metody płatności?",
+            "a": "BLIK, karta płatnicza, PayPal, Apple Pay i Google Pay, a także płatność przy odbiorze (+12 zł) – kurierem lub w Paczkomacie. Wszystkie dostępne metody płatności zobaczysz przy kasie – płatności online są bezpiecznie szyfrowane."
+          }
+        }
+      },
+      "block_order": [
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6"
+      ],
+      "settings": {
+        "t1": "Dostawa na terenie Polski",
+        "p1": "Kurierem InPost pod drzwi albo do Paczkomatu InPost 24/7, w 4–5 dni roboczych. 14,99 zł za zamówienie, darmowa dostawa od 399 zł. Numer do śledzenia przesyłki otrzymasz e-mailem.",
+        "a1": "Dostawa i wysyłka →",
+        "u1": "/pages/versand-lieferung",
+        "t2": "14 dni na zwrot",
+        "p2": "Nie pasuje? Masz 14 dni od otrzymania na odstąpienie od umowy – bez podawania przyczyny. Kuriera po zwrot zamawiamy my, na nasz koszt.",
+        "a2": "Prawo odstąpienia od umowy →",
+        "u2": "/pages/widerrufsbelehrung",
+        "t3": "Wyprodukowano we Włoszech",
+        "p3": "Prawdziwa skóra licowa z włoskich garbarni. Każda torebka jest wykonana we Włoszech – krojenie i wykończenie krawędzi ręcznie – w małych seriach i sprawdzana osobno.",
+        "a3": "Więcej o atelier →",
+        "u3": "#atelier",
+        "t4": "Bezpieczna płatność",
+        "p4": "BLIK, karta płatnicza, PayPal, Apple Pay i Google Pay. Wszystkie ceny zawierają VAT – bez opłat celnych, bo wysyłamy z terenu UE.",
+        "a4": "Najczęstsze pytania →",
+        "u4": "#faq",
+        "t5": "Gwarancja MIHAILIUC 90 dni",
+        "p5": "Naprawa i transport w obie strony na nasz koszt. Twoje ustawowe prawa z tytułu rękojmi (2 lata) obowiązują niezależnie.",
+        "a5": "Gwarancja →",
+        "u5": "/pages/garan%C8%9Bie",
+        "faq_title": "Warto <em>wiedzieć.</em>",
+        "faq_text": "Najczęstsze pytania o dostawę, zwroty i pielęgnację – krótkie odpowiedzi."
+      }
+    },
+    "mde_final": {
+      "type": "mia-de-final",
+      "settings": {
+        "product": "mia-taupe-accesorii-aurii-piele-naturala",
+        "title": "Nie byle jaka. <em>Twoja.</em>",
+        "meta": "Dostawa 14,99 zł · darmowa od 399 zł · 14 dni na zwrot",
+        "cta": "Wybierz swój kolor"
+      }
+    },
+    "slideshow": {
+      "disabled": true
+    },
+    "blocks_ipnKJ6": {
+      "disabled": true
+    },
+    "grid-with-overlay": {
+      "disabled": true
+    },
+    "featured_collections_xAAcME": {
+      "disabled": true
+    },
+    "featured-collection": {
+      "disabled": true
+    },
+    "featured_collection_6XMJGM": {
+      "disabled": true
+    },
+    "featured_collection_JhJ4U3": {
+      "disabled": true
+    },
+    "featured_collection_NyrJ8B": {
+      "disabled": true
+    },
+    "17764797355ea96316": {
+      "disabled": true
+    },
+    "177721552213705e35": {
+      "disabled": true
+    },
+    "17772156562027624e": {
+      "disabled": true
+    },
+    "1774500295a0a3d606": {
+      "disabled": true
+    }
+  },
+  "order": [
+    "mde_tone",
+    "mde_rail",
+    "mia_stories",
+    "mde_inside",
+    "mde_detail",
+    "mde_atelier",
+    "mde_reviews",
+    "mde_service",
+    "mde_final",
+    "slideshow",
+    "blocks_ipnKJ6",
+    "grid-with-overlay",
+    "featured_collections_xAAcME",
+    "featured-collection",
+    "featured_collection_6XMJGM",
+    "featured_collection_JhJ4U3",
+    "featured_collection_NyrJ8B",
+    "17764797355ea96316",
+    "177721552213705e35",
+    "17772156562027624e",
+    "1774500295a0a3d606"
+  ]
+}
