@@ -23,11 +23,14 @@ function km(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
 
 export function pickupInfo(order: any) {
   const line = (order.shipping_lines || [])[0];
-  const title = String(line?.title || "");
-  if (!/^FANbox/i.test(title)) return null;
+  const lineTitle = String(line?.title || "");
   const attr = (order.note_attributes || []).find((a: any) => a?.name === "Pickup Point");
+  // the checkout title may be renamed (Shipy: "Automat FANbox (ridici singur…)"), so rely on the pickup point data
+  if (!attr && !/FANbox/i.test(lineTitle)) return null;
   let pp: any = null;
   try { pp = JSON.parse(String(attr?.value || "")); } catch { return null; }
+  const title = String(pp?.office || lineTitle);
+  if (!/FANbox/i.test(title)) return null;
   const loc = pp?.data?.x_pickupLocation;
   const p = loc?.addressPoint;
   const s = order.shipping_address;
