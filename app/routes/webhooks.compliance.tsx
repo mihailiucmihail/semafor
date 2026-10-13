@@ -1,10 +1,10 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import { verifyWebhook } from "../semafor/webhook-verify.server";
 import db from "../db.server";
 
 // GDPR webhooks required by the App Store.
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, topic, payload } = await authenticate.webhook(request);
+  const { shop, topic, payload } = await verifyWebhook(request);
   const s = await db.shop.findUnique({ where: { domain: shop } });
   console.log(`[semafor] compliance ${topic} ${shop}`);
   if (!s) return new Response();
@@ -29,7 +29,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       break;
     }
     case "SHOP_REDACT": {
-      await db.shop.delete({ where: { id: s.id } }); // cascades entries, identifiers, checks, audit
+      await db.shop.deleteMany({ where: { id: s.id } }); // cascades entries, identifiers, checks, audit
       break;
     }
   }

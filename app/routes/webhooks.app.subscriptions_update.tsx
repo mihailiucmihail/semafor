@@ -1,12 +1,12 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
+import { verifyWebhook } from "../semafor/webhook-verify.server";
 import db from "../db.server";
 import { planFromSubscriptionName } from "../../core/plans";
 import { isOwnerShop } from "../semafor/plan.server";
 
 /** app_subscriptions/update: the merchant picked, changed or cancelled a plan (managed pricing). */
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, payload, topic } = await authenticate.webhook(request);
+  const { shop, payload, topic } = await verifyWebhook(request);
   const s: any = (payload as any)?.app_subscription ?? {};
   const plan = isOwnerShop(shop) ? "pro" : s.status === "ACTIVE" ? planFromSubscriptionName(s.name) : "free";
   console.log(`[semafor] ${topic} ${shop}: ${s.name} ${s.status} → ${plan}`);
