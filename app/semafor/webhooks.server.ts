@@ -7,14 +7,18 @@
  * through the Admin API, the first time an admin opens it (and re-checks every hour).
  */
 
+import { isOwnerShop } from "./plan.server";
+
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
-const NEEDED: { topic: string; path: string }[] = [
+const NEEDED: { topic: string; path: string; owner?: boolean }[] = [
   { topic: "ORDERS_CREATE", path: "/webhooks/orders/create" },
   { topic: "APP_UNINSTALLED", path: "/webhooks/app/uninstalled" },
   { topic: "ORDERS_PAID", path: "/webhooks/orders/status" },
   { topic: "ORDERS_CANCELLED", path: "/webhooks/orders/status" },
   { topic: "ORDERS_FULFILLED", path: "/webhooks/orders/status" },
+  // owner shops only: "order in progress" e-mail (see in-work.server.ts)
+  { topic: "ORDERS_UPDATED", path: "/webhooks/orders/updated", owner: true },
 ];
 
 export type WebhookStatus = { topic: string; ok: boolean; uri?: string; error?: string };
@@ -41,6 +45,7 @@ export async function ensureWebhooks(admin: Admin, shop: string, force = false):
   }
 
   for (const n of NEEDED) {
+    if (n.owner && !isOwnerShop(shop)) continue;
     const uri = baseUrl() + n.path;
     const have = existing.find((e) => e.topic === n.topic && e.uri === uri);
     if (have) { status.push({ topic: n.topic, ok: true, uri }); continue; }
