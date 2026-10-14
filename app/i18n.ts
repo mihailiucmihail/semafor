@@ -138,6 +138,7 @@ const D = {
   "settings.topic.ORDERS_PAID": { en: "Paid orders", ro: "Comenzi achitate" },
   "settings.topic.ORDERS_CANCELLED": { en: "Cancelled orders", ro: "Comenzi anulate" },
   "settings.topic.ORDERS_FULFILLED": { en: "Fulfilled orders", ro: "Comenzi expediate" },
+  "settings.topic.ORDERS_UPDATED": { en: "Order updates (order in progress e-mail)", ro: "Actualizări comenzi (e-mail „comanda în pregătire”)" },
   "settings.topic.PIXEL": { en: "Checkout device tracking", ro: "Urmărire dispozitiv la checkout" },
   "settings.topic.PAYMENTS": { en: "Hide payment methods for blacklisted customers", ro: "Ascundere plăți pentru lista neagră" },
   "settings.active": { en: " — active", ro: " — activ" },
