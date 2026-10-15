@@ -5,14 +5,14 @@
 // The blacklist arrives as short SHA-256 hashes in the customization's metafield ($app:blocklist):
 //   { v:1, e:[…], p:[…], a:[…], d:[…] }   each = sha256(`${kind}:${normalized}`).slice(0,16)
 import { sha256 } from "./sha256.js";
-import { normEmail, normPhone, normAddress } from "../../../core/normalize.ts";
+import { normEmail, normPhone, normAddress, normName } from "../../../core/normalize.ts";
 
 const NONE = { operations: [] };
 
 export function cartPaymentMethodsTransformRun(input) {
   const list = input?.paymentCustomization?.metafield?.jsonValue;
   if (!list || !input.paymentMethods || input.paymentMethods.length === 0) return NONE;
-  const sets = { e: new Set(list.e || []), p: new Set(list.p || []), a: new Set(list.a || []), d: new Set(list.d || []) };
+  const sets = { e: new Set(list.e || []), p: new Set(list.p || []), a: new Set(list.a || []), d: new Set(list.d || []), n: new Set(list.n || []) };
   const h = (kind, norm) => (norm ? sha256(`${kind}:${norm}`).slice(0, 16) : null);
   const country = input.localization?.country?.isoCode || "RO";
   const cart = input.cart || {};
@@ -28,6 +28,14 @@ export function cartPaymentMethodsTransformRun(input) {
     const exact = normAddress({ address1: a.address1, address2: a.address2, city: a.city });
     const any = normAddress({ address1: a.address1, address2: a.address2, city: null });
     hits.push(sets.a.has(h("address", exact)) || sets.a.has(h("address", any)));
+    // name-only entries: full name (any word order) or a single blocked word anywhere in the name
+    if (sets.n.size) {
+      const n = normName(a.firstName, a.lastName);
+      if (n) {
+        hits.push(sets.n.has(h("name", n)));
+        for (const w of n.split(" ")) hits.push(sets.n.has(h("nw", w)));
+      }
+    }
   }
   for (const p of phones) if (p) hits.push(sets.p.has(h("phone", normPhone(p, country))));
 

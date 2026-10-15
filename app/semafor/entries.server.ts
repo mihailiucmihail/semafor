@@ -94,6 +94,24 @@ export async function deleteEntry(shopId: string, shopDomain: string, entryId: s
  * Checkout metafield: short plain-SHA256 hashes per kind (the Function cannot keep the HMAC secret).
  * {"v":1,"e":[...],"p":[...],"a":[...],"d":[...],"msg":"..."}
  */
+/** Normalized names of entries that consist of a name only (no e-mail, phone, address or device). */
+export async function nameOnlyRows(shopId: string): Promise<string[]> {
+  const rows = (await db.identifier.findMany({
+    where: { shopId, kind: "name", entry: { identifiers: { every: { kind: "name" } }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+    select: { normalized: true },
+  })) as any[];
+  return [...new Set(rows.map((r) => String(r.normalized)).filter(Boolean))];
+}
+
+/** Does a buyer name hit one of the name-only entries? Returns the matching entry name or null. */
+export function nameOnlyHit(names: string[], first?: string | null, last?: string | null): string | null {
+  const n = normName(first, last);
+  if (!n) return null;
+  const w = new Set(n.split(" "));
+  for (const x of names) if (x.includes(" ") ? x === n : w.has(x)) return x;
+  return null;
+}
+
 export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const empty = { v: 1, e: [] as string[], p: [] as string[], a: [] as string[], d: [] as string[], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
   // Blocking in checkout (hide cash on delivery / block) is a Basic feature.
@@ -103,10 +121,14 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
     select: { kind: true, normalized: true },
   });
   const sh = (kind: string, n: string) => createHash("sha256").update(`${kind}:${n}`).digest("hex").slice(0, 16);
-  const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set() };
+  const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set(), n: new Set() };
   const key: Record<string, string> = { email: "e", phone: "p", address: "a", device: "d" };
   for (const r of rows) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
-  return { v: 1, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
+  // Name-only entries (the merchant blocked a person by name, with no e-mail/phone/address): match the delivery name.
+  // One word ("picioruș") = that word anywhere in first/last name; several words = the full name (any order).
+  // Names that are only part of a fuller entry are NOT used here — too many people share a name.
+  for (const r of await nameOnlyRows(shopId)) buckets.n.add(r.includes(" ") ? sh("name", r) : sh("nw", r));
+  return { v: 1, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 
 export async function pushCheckoutMetafield(admin: { graphql: (q: string, o?: any) => Promise<Response> }, shopId: string) {

@@ -10,6 +10,7 @@ type Entry = { en: string; ro: string };
 const D = {
   // ── navigation ──
   "nav.blacklist": { en: "Blacklist", ro: "Lista neagră" },
+  "nav.blocked": { en: "Blocked attempts", ro: "Încercări blocate" },
   "nav.stats": { en: "Analytics", ro: "Statistici" },
   "nav.statsPro": { en: "Analytics · Pro", ro: "Statistici · Pro" },
   "nav.emails": { en: "Emails", ro: "E-mailuri" },
@@ -20,6 +21,29 @@ const D = {
   "nav.popupBasic": { en: "Pop-up · Basic", ro: "Pop-up · Basic" },
   "nav.settings": { en: "Settings", ro: "Setări" },
   "nav.plan": { en: "Plan", ro: "Plan" },
+
+  // ── blocked attempts (live) ──
+  "blocked.live": { en: "Live — refreshes every 30 seconds · last update {time}", ro: "Live — se actualizează la fiecare 30 de secunde · ultima actualizare {time}" },
+  "blocked.refresh": { en: "Refresh", ro: "Actualizează" },
+  "blocked.kpiPeople": { en: "Blacklisted people who tried", ro: "Persoane din lista neagră care au încercat" },
+  "blocked.kpiPeopleHint": { en: "in the selected period", ro: "în perioada aleasă" },
+  "blocked.kpiToday": { en: "Tried today", ro: "Au încercat azi" },
+  "blocked.kpiTodayHint": { en: "since midnight", ro: "de la miezul nopții" },
+  "blocked.kpiTries": { en: "Checkout tries", ro: "Încercări în checkout" },
+  "blocked.kpiTriesHint": { en: "steps they took in checkout", ro: "pași făcuți în checkout" },
+  "blocked.kpiThrough": { en: "Got through", ro: "Au trecut" },
+  "blocked.kpiThroughHint": { en: "placed an order anyway — check these", ro: "au plasat totuși comanda — verifică-le" },
+  "blocked.title": { en: "Who tried, newest first", ro: "Cine a încercat, cele mai noi primele" },
+  "blocked.hint": { en: "Every customer from your blacklist who reached checkout: what matched your list, what was in the cart and whether the order was stopped.", ro: "Fiecare client din lista ta neagră care a ajuns în checkout: ce s-a potrivit cu lista, ce avea în coș și dacă a fost oprit." },
+  "blocked.none": { en: "Nobody from your blacklist has tried to order in this period.", ro: "Nimeni din lista neagră nu a încercat să comande în această perioadă." },
+  "blocked.resOne": { en: "attempt", ro: "încercare" },
+  "blocked.resMany": { en: "attempts", ro: "încercări" },
+  "blocked.colMatched": { en: "Matched your list", ro: "Potrivire cu lista" },
+  "blocked.colCart": { en: "Cart", ro: "Coș" },
+  "blocked.tryOne": { en: "1 step in checkout", ro: "1 pas în checkout" },
+  "blocked.tryMany": { en: "{n} steps in checkout", ro: "{n} pași în checkout" },
+  "blocked.stopped": { en: "Stopped — no order", ro: "Oprit — fără comandă" },
+  "blocked.gotThrough": { en: "Got through — ordered", ro: "A trecut — a comandat" },
 
   // ── common ──
   "common.error": { en: "Error", ro: "Eroare" },

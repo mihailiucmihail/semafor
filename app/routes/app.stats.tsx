@@ -12,7 +12,7 @@ import { attributionSummary, backfillAttribution } from "../semafor/attribution.
 import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
-import { buildIdentifiers } from "../semafor/entries.server";
+import { buildIdentifiers, nameOnlyRows, nameOnlyHit } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
 import { normEmail, normPhone, normName } from "../../core/normalize";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
@@ -37,6 +37,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const hashes = [...new Set(perAttempt.flat().map((i) => i.hash))];
   const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true } } } })) as any[]) : [];
   const hitSet = new Map(hits.map((h) => [h.hash, h.entry.reason]));
+  const nameOnly = await nameOnlyRows(shop.id);
 
   type Dev = { id: string; first: Date; last: Date; emails: Set<string>; phones: Set<string>; names: Set<string>; steps: number; completed: boolean; matched: string[]; events: string[]; orderId: string | null; city: string | null };
   const devs = new Map<string, Dev>();
@@ -51,6 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const p = a.phone && normPhone(a.phone, shop.country); if (p) d.phones.add(a.phone);
     const n = normName(a.firstName, a.lastName); if (n) d.names.add([a.firstName, a.lastName].filter(Boolean).join(" "));
     for (const i of perAttempt[idx]) if (hitSet.has(i.hash) && !d.matched.includes(i.raw)) d.matched.push(i.raw);
+    if (nameOnly.length && nameOnlyHit(nameOnly, a.firstName, a.lastName)) { const raw = [a.firstName, a.lastName].filter(Boolean).join(" "); if (!d.matched.includes(raw)) d.matched.push(raw); }
     devs.set(a.deviceId, d);
   });
   // "cart" rows (before checkout) only matter for browsers whose e-mail is known from the pop-up
