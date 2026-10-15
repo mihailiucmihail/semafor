@@ -11,6 +11,7 @@ const D = {
   // ── navigation ──
   "nav.blacklist": { en: "Blacklist", ro: "Lista neagră" },
   "nav.blocked": { en: "Blocked attempts", ro: "Încercări blocate" },
+  "nav.blockedBasic": { en: "Blocked attempts · Basic", ro: "Încercări blocate · Basic" },
   "nav.stats": { en: "Analytics", ro: "Statistici" },
   "nav.statsPro": { en: "Analytics · Pro", ro: "Statistici · Pro" },
   "nav.emails": { en: "Emails", ro: "E-mailuri" },

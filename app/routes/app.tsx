@@ -49,7 +49,7 @@ export default function App() {
       <LangProvider lang={lang}>
         <NavMenu>
           <Link to="/app" rel="home">{t(lang, "nav.blacklist")}</Link>
-          <Link to="/app/blocked">{t(lang, "nav.blocked")}</Link>
+          <Link to="/app/blocked">{t(lang, basic ? "nav.blocked" : "nav.blockedBasic")}</Link>
           <Link to="/app/stats">{t(lang, pro ? "nav.stats" : "nav.statsPro")}</Link>
           <Link to="/app/emails">{t(lang, pro ? "nav.emails" : "nav.emailsPro")}</Link>
           <Link to="/app/popup">{t(lang, basic ? "nav.popup" : "nav.popupBasic")}</Link>
