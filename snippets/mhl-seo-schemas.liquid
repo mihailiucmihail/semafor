@@ -1,0 +1,82 @@
+{%- comment -%}
+  SEO schemas added by Manus for mihailiuc.ro
+  Renders Organization + WebSite (with SearchAction) + SiteNavigationElement on homepage only.
+  v45: DE/PL markets – local menu (main-menu-de / main-menu-pl); Organization without postal address, sameAs and VAT ID.
+{%- endcomment -%}
+
+{%- if request.page_type == 'index' -%}
+{%- assign brand = 'MIHAILIUC' -%}
+{%- assign site_url = shop.secure_url -%}
+{%- assign mhl_mk = localization.market.handle -%}
+{%- assign mhl_intl = false -%}
+{%- if mhl_mk == 'deutschland' or mhl_mk == 'polska' or mhl_mk == 'ireland' or mhl_mk == 'spania' -%}{%- assign mhl_intl = true -%}{%- endif -%}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "{{ brand }}",
+  "alternateName": "Mihailiuc",
+  "legalName": "Mihailiuc Group SRL",
+  "url": "{{ site_url }}",
+  "logo": "https:{{ 'logo.png' | asset_img_url: '512x' | default: settings.logo | img_url: '512x' }}"{% unless mhl_intl %},
+  "sameAs": [
+    "https://www.facebook.com/mihailiuc",
+    "https://www.instagram.com/mihailiuc",
+    "https://www.tiktok.com/@mihailiuc"
+  ],
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Intr. Gheorghe Simionescu 19, Ap. B26, Cod 014155",
+    "addressLocality": "București",
+    "addressRegion": "Sector 1",
+    "addressCountry": "RO"
+  },
+  "vatID": "RO49596845"{% endunless %}
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ brand }}",
+  "alternateName": "Mihailiuc",
+  "url": "{{ site_url }}",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ site_url }}/search?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+{%- assign nav_menu = linklists['main-menu'] -%}
+{%- if mhl_mk == 'deutschland' -%}
+  {%- assign nav_menu = linklists['main-menu-de'] -%}
+{%- elsif mhl_mk == 'polska' -%}
+  {%- assign nav_menu = linklists['main-menu-pl'] -%}
+{%- elsif mhl_mk == 'ireland' -%}
+  {%- assign nav_menu = linklists['main-menu-ie'] -%}
+{%- elsif mhl_mk == 'spania' -%}
+  {%- assign nav_menu = linklists['main-menu-es'] -%}
+{%- endif -%}
+{%- if nav_menu and nav_menu.links.size > 0 -%}
+<script type="application/ld+json">
+[
+  {%- for link in nav_menu.links -%}
+  {
+    "@context": "https://schema.org",
+    "@type": "SiteNavigationElement",
+    "position": {{ forloop.index }},
+    "name": {{ link.title | upcase | json }},
+    "url": "{{ shop.secure_url }}{{ link.url }}"
+  }{% unless forloop.last %},{% endunless %}
+  {%- endfor -%}
+]
+</script>
+{%- endif -%}
+{%- endif -%}

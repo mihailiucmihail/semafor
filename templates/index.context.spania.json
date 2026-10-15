@@ -1,0 +1,506 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "spania"
+  },
+  "parent": "index.json",
+  "sections": {
+    "mde_tone": {
+      "type": "mia-de-tone",
+      "blocks": {
+        "t01": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+            "name": "Espresso",
+            "number": "01",
+            "tone": "#24140e",
+            "tagline": "Marrón oscuro intenso. El clásico.",
+            "force": true
+          }
+        },
+        "t02": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ciocolata-neagra-piele-naturala",
+            "name": "Chocolate Oscuro",
+            "number": "02",
+            "tone": "#3d2419",
+            "tagline": "Casi negro, con un toque marrón cálido."
+          }
+        },
+        "t03": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-taupe-accesorii-aurii-piele-naturala",
+            "name": "Taupe",
+            "number": "03",
+            "tone": "#8c7b6b",
+            "tagline": "Cálido y tranquilo. Combina con todo."
+          }
+        },
+        "t04": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-dark-cherry",
+            "name": "Cereza Oscura",
+            "number": "04",
+            "tone": "#5a1f2b",
+            "tagline": "Rojo cereza intenso, con un brillo suave."
+          }
+        },
+        "t05": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-piele-naturala",
+            "name": "Cashmere",
+            "number": "05",
+            "tone": "#d6c3a5",
+            "tagline": "Beige claro para la primavera y el verano."
+          }
+        },
+        "t06": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-greige",
+            "name": "Greige",
+            "number": "06",
+            "tone": "#a8998a",
+            "tagline": "A medio camino entre el gris y el beige."
+          }
+        },
+        "t07": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-ivory",
+            "name": "Marfil",
+            "number": "07",
+            "tone": "#efe6d6",
+            "tagline": "Casi blanco, suave y luminoso."
+          }
+        },
+        "t08": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-baby-blue",
+            "name": "Azul Bebé",
+            "number": "08",
+            "tone": "#a9c4d8",
+            "tagline": "Un azul claro y delicado."
+          }
+        },
+        "t09": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-maro-accesorii-aurii-piele-naturala",
+            "name": "Coñac",
+            "number": "09",
+            "tone": "#9a5a2a",
+            "tagline": "Marrón rojizo y cálido."
+          }
+        },
+        "t10": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-burgundy-accesorii-aurii-piele-naturala",
+            "name": "Burdeos",
+            "number": "10",
+            "tone": "#6b1f26",
+            "tagline": "Un rojo vino profundo, de día y de noche."
+          }
+        },
+        "t11": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-neagra-accesorii-aurii-piele-naturala",
+            "name": "Negro",
+            "number": "11",
+            "tone": "#1a1717",
+            "tagline": "El negro de siempre: sencillo y elegante."
+          }
+        },
+        "t12": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-espresso",
+            "name": "Ante Espresso",
+            "number": "12",
+            "tone": "#5a3a2a",
+            "tagline": "Ante suave en un marrón profundo."
+          }
+        },
+        "t13": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-ciocolata-neagra",
+            "name": "Ante Chocolate Oscuro",
+            "number": "13",
+            "tone": "#3a2620",
+            "tagline": "Ante en un marrón casi negro."
+          }
+        },
+        "t14": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-velur-taupe",
+            "name": "Ante Taupe",
+            "number": "14",
+            "tone": "#9a8a7a",
+            "tagline": "Ante en un marrón grisáceo suave."
+          }
+        },
+        "t15": {
+          "type": "tone",
+          "settings": {
+            "product": "mia-bej-accesorii-aurii-piele-naturala",
+            "name": "Ante Cashmere",
+            "number": "15",
+            "tone": "#cbb79a",
+            "tagline": "Ante claro, suave al tacto."
+          }
+        }
+      },
+      "block_order": [
+        "t01",
+        "t02",
+        "t03",
+        "t04",
+        "t05",
+        "t06",
+        "t07",
+        "t08",
+        "t09",
+        "t10",
+        "t11",
+        "t12",
+        "t13",
+        "t14",
+        "t15"
+      ],
+      "settings": {
+        "dur": 4,
+        "kicker": "MIA by MIHAILIUC",
+        "byline": "by MIHAILIUC · 15 colores",
+        "label": "Tu color",
+        "specs": "IVA incluido · 26 × 23 × 11 cm · herrajes dorados",
+        "cta": "Añadir a la cesta",
+        "cta2": "Detalles",
+        "soldout": "Este color está agotado ahora mismo. Volverá pronto.",
+        "ship": "Envío gratis con seguimiento en 5–7 días laborables · Devolución en 14 días"
+      }
+    },
+    "mde_rail": {
+      "type": "mia-de-rail",
+      "settings": {
+        "collection": "mia",
+        "limit": 6,
+        "first": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "title": "La colección MIA",
+        "all_label": "Ver todos →",
+        "soldout": "Agotado",
+        "more_label": "colores más"
+      }
+    },
+    "mia_stories": {
+      "type": "mia-stories",
+      "settings": {
+        "kicker": "Instagram · Clientas",
+        "title": "MIA en el día a día. <em>Fotos de nuestras clientas.</em>",
+        "text": "Nuestras clientas nos mandaron estas fotos y vídeos cuando les llegó su MIA, y los compartimos en nuestro Instagram.",
+        "open_label": "Ver las stories",
+        "count_label": "Stories",
+        "story_label": "Story",
+        "handle": "mihailiucofficial",
+        "viewer_sub": "Clientas",
+        "cta_label": "Encuentra tu color",
+        "cta_url": "#reihe",
+        "ig_url": "https://www.instagram.com/mihailiucofficial/",
+        "ig_label": "Síguenos en Instagram",
+        "order": "0,96,18,25,27,28,31,32,33,36,38,39,47,49,50,54,59,61,62,68,70,72,80,86,88,89,91"
+      }
+    },
+    "mde_inside": {
+      "type": "mia-de-inside",
+      "settings": {
+        "caption": "Vídeo · El interior",
+        "play": "Reproducir vídeo",
+        "kicker": "El interior",
+        "title": "Sitio para todo lo que llevas a diario.",
+        "text": "Por fuera, líneas limpias. Por dentro, dos compartimentos para el móvil, el monedero, las llaves y las gafas de sol, y el bolso no pierde la forma.",
+        "f1n": "26",
+        "f1": "cm de ancho: cabe hasta una libreta A5",
+        "f2n": "2",
+        "f2": "compartimentos, uno con cremallera",
+        "f3n": "1",
+        "f3": "cierre giratorio de metal dorado"
+      }
+    },
+    "mde_detail": {
+      "type": "mia-de-detail",
+      "blocks": {
+        "s1": {
+          "type": "spot",
+          "settings": {
+            "x": 60,
+            "y": 68,
+            "zoom": 2.4,
+            "kicker": "La piel",
+            "title": "Piel de vacuno auténtica, suave al tacto.",
+            "text": "Piel de curtidurías italianas, con un grano fino. Elegimos cada piel con cuidado, sin arrugas ni marcas, para que tu bolso luzca bien y mantenga la forma.",
+            "tag1": "Piel auténtica",
+            "tag2": "Italia"
+          }
+        },
+        "s2": {
+          "type": "spot",
+          "settings": {
+            "x": 65,
+            "y": 58,
+            "zoom": 2.8,
+            "kicker": "Las costuras",
+            "title": "Costuras rectas, hilo de calidad.",
+            "text": "Costuras limpias y regulares, sin hilos sueltos. Los cantos se rematan con cuidado y se tiñen dos veces para que queden lisos y uniformes.",
+            "tag1": "Hilo de calidad",
+            "tag2": "Cantos teñidos 2 veces"
+          }
+        },
+        "s3": {
+          "type": "spot",
+          "settings": {
+            "x": 45,
+            "y": 66,
+            "zoom": 2.8,
+            "kicker": "Los herrajes",
+            "title": "Cierre giratorio de metal dorado.",
+            "text": "Un cierre de metal resistente, bien atornillado. Gira con facilidad, sin engancharse, y cierra con un clic suave.",
+            "tag1": "Metal",
+            "tag2": "Atornillado"
+          }
+        },
+        "s4": {
+          "type": "spot",
+          "settings": {
+            "x": 52,
+            "y": 50,
+            "zoom": 2.2,
+            "kicker": "El interior",
+            "title": "Forro resistente y fácil de cuidar.",
+            "text": "Uno de los compartimentos lleva cremallera para las cosas pequeñas y, si algo se derrama, el forro se limpia con un paño.",
+            "tag1": "Compartimento con cremallera",
+            "tag2": "Fácil de limpiar"
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "settings": {
+        "product": "mia-ivory",
+        "index": 6,
+        "dur": 4.5,
+        "title": "De cerca. <em>Los detalles.</em>",
+        "alt": "El MIA abierto: forro, cremallera, costuras y cierre giratorio dorado",
+        "hint": "Toca para ampliar",
+        "link": "Ver el bolso"
+      }
+    },
+    "mde_atelier": {
+      "type": "mia-de-atelier",
+      "settings": {
+        "video_product": "mia-ciocolata-neagra-piele-naturala",
+        "video_index": 1,
+        "product": "mia-cafea-lunga-accesorii-aurii-piele-naturala",
+        "alt": "MIA en Chocolate Oscuro de piel auténtica – vídeo",
+        "kicker": "El taller",
+        "title": "En qué nos <em>fijamos.</em>",
+        "text1": "Buscamos la mejor piel que podemos conseguir a un precio justo y revisamos cada bolso como si fuera para nosotros:",
+        "points": "Costuras rectas con hilo resistente, sin hilos sueltos\nCantos bien sellados y teñidos con cuidado\nHerrajes de metal bien atornillados, para que no se aflojen\nUn forro resistente que se limpia fácilmente\nAntes de enviarlo, revisamos cada bolso una segunda vez",
+        "text2": "Tu MIA llega en una bolsa guardapolvo, para que esté protegido cuando no lo lleves.",
+        "sig": "Mihail Mihailiuc",
+        "sig_sub": "Fundador · MIHAILIUC",
+        "n1": "15",
+        "l1": "colores para elegir",
+        "n2": "26<i>×</i>23<i>×</i>11",
+        "l2": "cm (ancho × alto × fondo)",
+        "n3": "90",
+        "l3": "días de garantía MIHAILIUC",
+        "l4": "opiniones"
+      }
+    },
+    "mde_reviews": {
+      "type": "mia-de-reviews",
+      "settings": {
+        "show_body": true,
+        "show_ro": false,
+        "numeral": "V",
+        "title": "Lo que nos cuentan <em>nuestras clientas.</em>",
+        "all_label": "Todas las opiniones",
+        "count_label": "opiniones",
+        "jm_label": "Opiniones recogidas en Judge.me",
+        "read_label": "Leer las [count] opiniones →",
+        "photo_tag": "Foto de clienta",
+        "anon": "Clienta",
+        "verified": "Compra verificada",
+        "all_text": "Más fotos y opiniones: <em>las [count] en Judge.me</em> · media de [rating] sobre 5 estrellas"
+      }
+    },
+    "mde_service": {
+      "type": "mia-de-service",
+      "blocks": {
+        "q1": {
+          "type": "q",
+          "settings": {
+            "q": "¿Cuánto tarda el envío?",
+            "a": "Normalmente, 5–7 días laborables desde el pago. Te lo llevamos a casa con seguimiento desde nuestro almacén en la UE y, en cuanto salga, te mandamos el enlace por email. Enviamos a la Península y Baleares; de momento, no a Canarias, Ceuta ni Melilla."
+          }
+        },
+        "q2": {
+          "type": "q",
+          "settings": {
+            "q": "¿Cuánto cuesta el envío?",
+            "a": "Nada: el envío es gratis en todos los pedidos. Los precios llevan el IVA incluido y no hay aduanas, porque todo se envía dentro de la UE."
+          }
+        },
+        "q3": {
+          "type": "q",
+          "settings": {
+            "q": "¿Puedo devolver el bolso?",
+            "a": "Sí, tienes 14 días desde la entrega, sin tener que dar explicaciones. Escríbenos y te enviamos la dirección de devolución en España. Te devolvemos el importe íntegro y el envío de vuelta corre de nuestra cuenta. Si prefieres cambiarlo por otro color, el envío del cambio lo pagas tú. Tienes todos los detalles en <a href=\"/pages/devoluciones-y-cambios\">devoluciones y cambios</a>."
+          }
+        },
+        "q4": {
+          "type": "q",
+          "settings": {
+            "q": "¿El MIA es de piel auténtica?",
+            "a": "Sí. Por fuera es piel de vacuno graneada de curtidurías italianas (o ante, en los modelos de ante). El forro es de piel auténtica y piel vegana, y se limpia con facilidad."
+          }
+        },
+        "q5": {
+          "type": "q",
+          "settings": {
+            "q": "¿Cómo cuido mi MIA?",
+            "a": "Límpialo con un paño suave y seco y, de vez en cuando, ponle a la piel una crema incolora. Protégelo de la lluvia y no lo dejes mucho rato a pleno sol. Para el ante, usa un cepillo especial para ante."
+          }
+        },
+        "q6": {
+          "type": "q",
+          "settings": {
+            "q": "¿Cómo puedo pagar?",
+            "a": "Con tarjeta (Visa, Mastercard o Maestro) o PayPal. Según tu móvil o navegador, también con Apple Pay o Google Pay. Verás todas las opciones al finalizar la compra."
+          }
+        }
+      },
+      "block_order": [
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6"
+      ],
+      "settings": {
+        "t1": "Envío gratis",
+        "p1": "En todos los pedidos, con seguimiento hasta tu casa. A la Península y Baleares.",
+        "a1": "Envíos →",
+        "u1": "/pages/envio",
+        "t2": "Devolución en 14 días",
+        "p2": "¿No te convence? Escríbenos en los 14 días siguientes a la entrega y te enviamos la dirección de devolución en España. Sin dar explicaciones.",
+        "a2": "Devoluciones y cambios →",
+        "u2": "/pages/devoluciones-y-cambios",
+        "t3": "Hecho en Italia",
+        "p3": "Piel de vacuno auténtica de curtidurías italianas. Cada bolso se fabrica en Italia; la piel se corta y los cantos se rematan a mano.",
+        "a3": "Más sobre el taller →",
+        "u3": "#atelier",
+        "t4": "Pago seguro",
+        "p4": "Tarjeta, PayPal o Apple Pay. Todos los precios llevan el IVA incluido y no tendrás que pagar nada más al recibirlo.",
+        "a4": "Preguntas frecuentes →",
+        "u4": "#faq",
+        "t5": "Garantía MIHAILIUC de 90 días",
+        "p5": "Si algo falla, lo reparamos y pagamos el envío de ida y vuelta. Y mantienes tu garantía legal de 3 años.",
+        "a5": "Sobre la garantía →",
+        "u5": "/pages/garantia",
+        "faq_title": "Conviene <em>saberlo.</em>",
+        "faq_text": "Las preguntas que más nos hacéis sobre el envío, las devoluciones y el cuidado."
+      }
+    },
+    "mde_final": {
+      "type": "mia-de-final",
+      "settings": {
+        "product": "mia-taupe-accesorii-aurii-piele-naturala",
+        "title": "¿Cuál es <em>el tuyo?</em>",
+        "meta": "Envío gratis · Devolución en 14 días · IVA incluido",
+        "cta": "Elige tu color"
+      }
+    },
+    "slideshow": {
+      "disabled": true
+    },
+    "blocks_ipnKJ6": {
+      "disabled": true
+    },
+    "grid-with-overlay": {
+      "disabled": true
+    },
+    "featured_collections_xAAcME": {
+      "disabled": true
+    },
+    "featured-collection": {
+      "disabled": true
+    },
+    "featured_collection_6XMJGM": {
+      "disabled": true
+    },
+    "featured_collection_JhJ4U3": {
+      "disabled": true
+    },
+    "featured_collection_NyrJ8B": {
+      "disabled": true
+    },
+    "17764797355ea96316": {
+      "disabled": true
+    },
+    "177721552213705e35": {
+      "disabled": true
+    },
+    "17772156562027624e": {
+      "disabled": true
+    },
+    "1774500295a0a3d606": {
+      "disabled": true
+    }
+  },
+  "order": [
+    "mde_tone",
+    "mde_rail",
+    "mia_stories",
+    "mde_inside",
+    "mde_detail",
+    "mde_atelier",
+    "mde_reviews",
+    "mde_service",
+    "mde_final",
+    "slideshow",
+    "blocks_ipnKJ6",
+    "grid-with-overlay",
+    "featured_collections_xAAcME",
+    "featured-collection",
+    "featured_collection_6XMJGM",
+    "featured_collection_JhJ4U3",
+    "featured_collection_NyrJ8B",
+    "17764797355ea96316",
+    "177721552213705e35",
+    "17772156562027624e",
+    "1774500295a0a3d606"
+  ]
+}

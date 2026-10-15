@@ -1,0 +1,79 @@
+{%- comment -%} Premium unsubscribe confirmation (Shopify Email / Messaging) — /account/unsubscribe {%- endcomment -%}
+{%- liquid
+  assign de = false
+  if request.locale.iso_code == 'de' or localization.market.handle == 'deutschland'
+    assign de = true
+  endif
+  assign ie = false
+  if localization.market.handle == 'ireland'
+    assign ie = true
+  endif
+  assign es = false
+  if localization.market.handle == 'spania'
+    assign es = true
+  endif
+  assign pl = false
+  if request.locale.iso_code == 'pl' or localization.market.handle == 'polska'
+    assign pl = true
+  endif
+  assign img = all_products['mia-greige'].featured_image
+-%}
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Jost:wght@400;500&display=swap">
+<style>
+.shopify-email-marketing-confirmation__container,.jdgm-medals-wrapper{display:none!important}
+.shopify-email-marketing-confirmation__preview-bar{max-width:560px;margin:0 auto 30px;padding:10px 16px;border:1px dashed #c9a46b;border-radius:8px;background:#fffdf8;font:13px/1.5 'Jost',Helvetica,Arial,sans-serif;color:#6f5f55;text-align:center}
+.shopify-email-marketing-confirmation__preview-bar p{margin:0}
+.mun{background:#faf7f2;color:#2a1a12;font-family:'Jost',Helvetica,Arial,sans-serif;padding:56px 20px 64px;text-align:center;-webkit-font-smoothing:antialiased}
+.mun *{box-sizing:border-box}
+.mun .in{max-width:560px;margin:0 auto}
+.mun .k{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:#8a4a2a;font-weight:500}
+.mun .logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;letter-spacing:.32em;margin:10px 0 30px}
+.mun .ph{width:100%;max-width:360px;aspect-ratio:3/4;margin:0 auto;border-radius:8px;overflow:hidden;background:#e6dccd}
+.mun .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.mun h1{font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:44px;line-height:1.05;margin:34px 0 0;letter-spacing:0;text-transform:none}
+.mun h1 em{font-style:italic;color:#8a4a2a}
+.mun p{font-size:16px;line-height:1.7;color:#4a3a30;margin:16px auto 0;max-width:460px}
+.mun .b{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.mun .b a{display:inline-block;padding:15px 30px;border-radius:40px;font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:500;text-decoration:none}
+.mun .b a.p{background:#2a1a12;color:#faf7f2}
+.mun .b a.s{border:1px solid #2a1a12;color:#2a1a12}
+.mun .f{margin-top:34px;font-size:12px;color:#8a7a70}
+.mun .f a{color:#8a4a2a}
+@media(max-width:600px){.mun{padding:40px 20px 50px}.mun h1{font-size:36px}}
+</style>
+<section class="mun" id="mun" hidden>
+  <div class="in">
+    <div class="k">{% if de %}Abmeldung{% elsif ie %}Unsubscribed{% elsif es %}Baja confirmada{% elsif pl %}Wypisanie z newslettera{% else %}Dezabonare{% endif %}</div>
+    <div class="logo">MIHAILIUC</div>
+    {%- if img -%}<div class="ph">{{ img | image_url: width: 720 | image_tag: loading: 'eager', alt: 'MIA' }}</div>{%- endif -%}
+    {%- if de -%}
+      <h1>Du hast dich<br><em>abgemeldet.</em></h1>
+      <p>Du bekommst ab jetzt keine Newsletter mehr von uns. Wenn du es dir anders überlegst, kannst du dich jederzeit unten auf der Seite wieder anmelden.</p>
+      <div class="b"><a class="p" href="{{ routes.root_url }}">Zurück zum Shop</a><a class="s" href="{{ routes.collections_url }}/mia">MIA-Kollektion ansehen</a></div>
+      <div class="f">Fragen? Schreib uns an <a href="mailto:info@mihailiuc.co">info@mihailiuc.co</a></div>
+    {%- elsif ie -%}
+      <h1>You've been<br><em>unsubscribed.</em></h1>
+      <p>You won't get any more newsletters from us. If you change your mind, you can sign up again any time at the bottom of the page.</p>
+      <div class="b"><a class="p" href="{{ routes.root_url }}">Back to the shop</a><a class="s" href="{{ routes.collections_url }}/mia">See the MIA collection</a></div>
+      <div class="f">Questions? Email us at <a href="mailto:info@mihailiuc.co">info@mihailiuc.co</a></div>
+    {%- elsif es -%}
+      <h1>Te has dado<br><em>de baja.</em></h1>
+      <p>Ya no recibirás nuestra newsletter. Si cambias de opinión, puedes volver a suscribirte cuando quieras desde el pie de la página.</p>
+      <div class="b"><a class="p" href="{{ routes.root_url }}">Volver a la tienda</a><a class="s" href="{{ routes.collections_url }}/mia">Ver la colección MIA</a></div>
+      <div class="f">¿Tienes alguna pregunta? Escríbenos a <a href="mailto:info@mihailiuc.co">info@mihailiuc.co</a></div>
+    {%- elsif pl -%}
+      <h1>Twoja subskrypcja<br><em>została anulowana.</em></h1>
+      <p>Od teraz nie będziesz już otrzymywać od nas newslettera. Jeśli zmienisz zdanie, możesz w każdej chwili zapisać się ponownie na dole strony.</p>
+      <div class="b"><a class="p" href="{{ routes.root_url }}">Wróć do sklepu</a><a class="s" href="{{ routes.collections_url }}/mia">Zobacz kolekcję MIA</a></div>
+      <div class="f">Pytania? Napisz do nas na <a href="mailto:info@mihailiuc.co">info@mihailiuc.co</a></div>
+    {%- else -%}
+      <h1>Te-ai<br><em>dezabonat.</em></h1>
+      <p>Nu vei mai primi e-mailuri cu oferte de la noi. Dacă te răzgândești, te poți abona din nou oricând, din partea de jos a site-ului.</p>
+      <div class="b"><a class="p" href="{{ routes.root_url }}">Înapoi la magazin</a><a class="s" href="{{ routes.collections_url }}/mia">Vezi colecția MIA</a></div>
+      <div class="f">Ai întrebări? Scrie-ne la <a href="mailto:info@mihailiuc.co">info@mihailiuc.co</a></div>
+    {%- endif -%}
+  </div>
+</section>
+<script>
+(function(){var s=document.getElementById('mun'),c=document.querySelector('.shopify-email-marketing-confirmation__container');if(!s)return;var m=(c&&c.parentNode)||document.querySelector('main')||document.body;m.insertBefore(s,m.firstChild);s.hidden=false;})();
+</script>

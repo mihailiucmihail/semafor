@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}" dir="ltr">
+  <head>
+    <!-- Beyond theme - Version 6.2.1 by Troop Themes - https://troopthemes.com/ -->
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    {%- assign mhl_page_desc = page_description -%}
+    {%- if request.locale.iso_code == 'pl' and request.page_type == 'search' and shop.description != blank -%}
+      {%- assign mhl_page_desc = shop.description -%}
+    {%- endif -%}
+    {%- if mhl_page_desc -%}
+      <meta name="description" content="{{ mhl_page_desc | escape }}">
+    {%- endif -%}
+
+    <title>
+      {{ page_title }}
+      {%- if current_tags %} &ndash; Tag: "{{ current_tags | join: ", " }}"{% endif -%}
+      {%- if current_page != 1 %} &ndash; {% if localization.market.handle == 'ireland' %}Page{% elsif localization.market.handle == 'spania' %}Página{% else %}Seite{% endif %} {{ current_page }}{% endif -%}
+      {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
+    </title>
+
+    {%- if canonical_url != blank -%}
+      <link rel="canonical" href="{{ canonical_url }}">
+    {%- endif -%}
+
+    {%- if settings.favicon != blank -%}
+      <link rel="shortcut icon" href="{{ settings.favicon | image_url: width: 32 }}" type="image/png">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180 }}">
+    {%- endif -%}
+
+    {%- liquid
+      render 'preload'
+      render 'meta-tags'
+      render 'css-typography'
+      render 'css-variables'
+      render 'custom-styles'
+    -%}
+
+    {{ 'theme.css' | asset_url | stylesheet_tag: preload: true }}
+    {{ content_for_header }}
+    {%- render 'routes' -%}
+
+    <script type="module" src="{{ 'theme.js' | asset_url }}"></script>
+
+
+
+
+    {%- if request.page_type contains 'customers' -%}
+      <script src="{{ 'shopify_common.js' | shopify_asset_url }}" defer></script>
+      <script src="{{ 'customer_area.js' | shopify_asset_url }}" defer></script>
+    {%- endif -%}
+
+    {%- if request.design_mode -%}
+      <script type="module" src="{{ 'editor-events.min.js' | asset_url }}" defer></script>
+    {%- endif -%}
+      {%- render 'mhl-seo-schemas' -%}
+
+
+  {{ "custom.css" | asset_url | stylesheet_tag }}
+
+<style>
+  :root {
+    --announcement-bar-height: 0px;
+    --header-height: 0px;
+  }
+
+  .announcement-bar--root {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 999;
+  }
+
+  .header--root {
+    position: sticky;
+    top: var(--announcement-bar-height);
+    z-index: 998;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .header--root.header--scrolled,
+  body.template--product .header--root {
+    background-color: #ffffff; /* White background when scrolled or on product page */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Optional shadow for better visibility */
+  }
+
+  body {
+    padding-top: calc(var(--announcement-bar-height) + var(--header-height));
+  }
+</style>
+</head>
+
+
+  <body
+    class="template--{{ template | split: '.' | first | remove: '_' | replace: '/', '--' }} {% if request.page_type == 'product' %}template--product{% endif %}"
+    data-theme-id="939"
+    data-theme-name="Beyond"
+    data-theme-version="6.2.1"
+    data-theme-preset="{{ settings.preset }}"
+  >
+    <a data-item="a11y-button" href='#main_content' id="a11y_skip">
+      {{- 'general.a11y.skip_main' | t -}}
+    </a>
+    <div
+      class="layout--viewport"
+      data-button-transitions="{% if settings.transitions--buttons %}false{% else %}true{% endif %}"
+      data-drawer-status="closed"
+      data-drop-shadows="{{ settings.drop-shadows-enabled }}"
+      data-cart-empty="{% if cart.item_count > 0 %}false{% else %}true{% endif %}"
+      data-logged-in="{% if customer %}true{% else %}false{% endif %}"
+      data-transition-container="viewport"
+    >
+      {%- sections 'announcement-bar-group' -%}
+      {%- sections 'header-group' -%}
+      {%- sections 'overlay-group' -%}
+      <main class="layout--template" id="main_content">
+        {{ content_for_layout }}
+      </main>
+      <div class="layout--footer-group">
+        {%- sections 'footer-group' -%}
+      </div>
+      {%- liquid
+        render 'layout--navigation'
+        render 'drawer'
+        render 'feedback-bar'
+        render 'icons', icon: 'defs'
+      -%}
+    </div>
+
+{%- render 'mhl-jdgm-fade' -%}
+{%- render 'mia-scroll-fix' -%}
+{%- render 'mia-wa-fix' -%}
+{%- comment -%} Notă: scriptul original de aici (înălțimea header-ului) era stricat (script în script) și nu rula niciodată; a fost eliminat ca să păstrăm exact aspectul de dinainte. {%- endcomment -%}
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const header = document.querySelector(".header--root");
+    if (header && document.body.classList.contains('template--product')) header.classList.add('header--scrolled');
+  });
+</script>
+</body>
+
+</html>

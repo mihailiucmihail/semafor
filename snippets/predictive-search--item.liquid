@@ -1,0 +1,84 @@
+{%- liquid
+  assign no_results_t = 'general.search.no_results' | t
+
+  if type == 'article'
+    assign url = routes.search_url | append: '?type=article&q=' | append: predictive_search.terms | append: '*'
+  elsif type == 'collection'
+    assign url = routes.collections_url
+  elsif type == 'custom'
+    comment
+      v42: DE/PL use their own market menu (the RO main menu links to collections not sold there)
+    endcomment
+    assign ps_list = settings.search--list
+    assign title = settings.search--list-heading
+    if localization.market.handle == 'deutschland'
+      assign ps_list = 'main-menu-de'
+      assign title = 'Entdecken'
+    elsif localization.market.handle == 'ireland'
+      assign ps_list = 'main-menu-ie'
+      assign title = 'Explore'
+    elsif localization.market.handle == 'spania'
+      assign ps_list = 'main-menu-es'
+      assign title = 'Descubre'
+    elsif localization.market.handle == 'polska'
+      assign ps_list = 'main-menu-pl'
+      assign title = 'Odkryj'
+    endif
+    assign results = linklists[ps_list].links
+  endif
+-%}
+
+<div class="predictive-search--item">
+  {%- if url -%}
+    <a href="{{ url }}">
+  {%- endif -%}
+
+  {%- unless title == blank -%}
+    <div
+      class="predictive-search--heading"
+      data-item="block-heading"
+      {% unless settings.transitions--text %}
+        data-transition-item="search"
+        data-transition-cascade="vertical"
+        data-transition-cascade-interval="120"
+      {% endunless %}
+    >
+      {{- title }}
+    </div>
+  {%- endunless -%}
+
+  {%- if url -%}
+    </a>
+  {%- endif -%}
+
+  {%- if results.size > 0 -%}
+    <div class="predictive-search--container" data-item="paragraph">
+      {%- for result in results limit: limit -%}
+        <div
+          class="predictive-search--item"
+          {% unless settings.transitions--text %}
+            data-transition-item="search"
+            data-transition-cascade="vertical"
+            data-transition-cascade-interval="120"
+          {% endunless %}
+        >
+          <a href="{{ result.url }}">
+            {%- liquid
+              if type == 'query'
+                echo result.styled_text
+              else
+                echo result.title
+              endif
+            -%}
+          </a>
+        </div>
+      {%- endfor -%}
+    </div>
+
+  {%- else -%}
+    <div class="predictive-search--feedback" data-item="paragraph">
+      {{- no_results_t -}}
+    </div>
+
+  {%- endif -%}
+</div>

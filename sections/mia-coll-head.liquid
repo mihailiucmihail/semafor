@@ -1,0 +1,61 @@
+{%- comment -%}
+  v52: Klarer Kollektionskopf für DE/PL (statt des unscharfen Video-Banners).
+  Nur in templates/collection.context.deutschland.json / collection.context.polska.json eingebunden;
+  zusätzlich per Markt abgesichert – auf RO gibt die Section nichts aus.
+{%- endcomment -%}
+{%- liquid
+  assign mk = localization.market.handle
+  assign de = false
+  if mk == 'deutschland'
+    assign de = true
+  endif
+  assign pl = false
+  if mk == 'polska'
+    assign pl = true
+  endif
+  assign ie = false
+  if mk == 'ireland'
+    assign ie = true
+  endif
+  assign es = false
+  if mk == 'spania'
+    assign es = true
+  endif
+  assign ttl = collection.title
+  if collection.handle == 'mia'
+    if de
+      assign ttl = section.settings.title_de
+    elsif pl
+      assign ttl = section.settings.title_pl
+    elsif ie
+      assign ttl = section.settings.title_ie | default: 'MIA – genuine leather handbags'
+    elsif es
+      assign ttl = section.settings.title_es | default: 'MIA – bolsos de piel auténtica'
+    endif
+  endif
+-%}
+{%- if de or pl or ie or es -%}
+<div class="mch">
+  <h1 class="mch__t">{{ ttl }}</h1>
+  <p class="mch__s">{%- render 'mia-italy', place: 'text' -%}<i>·</i><span>{% if de %}Echtes Leder{% elsif ie %}Genuine leather{% elsif es %}Piel auténtica{% else %}Skóra naturalna{% endif %}</span><i>·</i><span>{% if de %}14 Tage Rückgabe{% elsif ie %}14-day returns{% elsif es %}Devolución en 14 días{% else %}14 dni na zwrot{% endif %}</span></p>
+</div>
+<style>
+  .mch{max-width:900px;margin:0 auto;padding:44px 20px 6px;text-align:center;color:#2a1a12;-webkit-font-smoothing:antialiased}
+  .mch__t{margin:0;font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:500;font-size:clamp(30px,4.2vw,48px);line-height:1.1;letter-spacing:0;text-transform:none;color:#2a1a12}
+  .mch__s{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:14px 0 0;font-family:'Jost','Helvetica Neue',Arial,sans-serif;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:#5a4a40;line-height:1.6}
+  .mch__s i{font-style:normal;color:#b8924f}
+  @media(max-width:640px){.mch{padding:30px 16px 0}.mch__s{font-size:10.5px;letter-spacing:.12em}}
+</style>
+{%- endif -%}
+{% schema %}
+{
+  "name": "MIA Kollektionskopf",
+  "settings": [
+    { "type": "text", "id": "title_de", "label": "Titel DE (Kollektion mia)", "default": "MIA – Handtaschen aus echtem Leder" },
+    { "type": "text", "id": "title_pl", "label": "Titel PL (Kollektion mia)", "default": "MIA – torebki ze skóry naturalnej" },
+    { "type": "text", "id": "title_ie", "label": "Title IE (collection mia)", "default": "MIA – genuine leather handbags" },
+    { "type": "text", "id": "title_es", "label": "Título ES (colección mia)", "default": "MIA – bolsos de piel auténtica" }
+  ],
+  "presets": [{ "name": "MIA Kollektionskopf" }]
+}
+{% endschema %}

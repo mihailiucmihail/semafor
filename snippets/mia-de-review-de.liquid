@@ -1,0 +1,59 @@
+{%- comment -%} German translations of Judge.me photo reviews (MIA), keyed by review uuid. Output: variable body_de (blank if none) {%- endcomment -%}
+{%- liquid
+  assign body_de = blank
+  case uuid
+    when 'a61b2857-aded-42b4-9a49-79c1b6ecc5bc'
+      assign body_de = 'Wunderschön! ❤️'
+    when '29acb846-2397-428a-a5d3-0c8db5c12770'
+      assign body_de = 'Sehr schön! Einfach traumhaft. Liebevoll verpackt und von hoher Qualität.'
+    when '8c9b7715-15ce-4185-9985-d572fd9d509b'
+      assign body_de = 'Sieht richtig gut aus, gefällt mir sehr.'
+    when '8cac8f8d-1ffd-4bdc-8492-12794d2ed8c7'
+      assign body_de = 'Eine außergewöhnliche Tasche! Hat meine Erwartungen übertroffen ❤️'
+    when '3674db3e-7f7a-4e5b-a861-9367d4a0c172'
+      assign body_de = 'Eine sehr schöne Tasche, mit viel Liebe zum Detail gearbeitet.'
+    when '9bf7c51f-581f-4c0d-80bf-5d5447818c35'
+      assign body_de = 'Wunderschön!'
+    when '5fa02141-aa3c-428e-970a-893f1c2380e9'
+      assign body_de = 'Ich liebe meine neue Tasche – sie passt zu mir, ist hochwertig, elegant und gibt mir das Gefühl, Stil zu haben. Ehrlich gesagt wusste ich anfangs nicht, dass sich die Marke neu erfunden hat: 2021 hatte ich mir ein personalisiertes Lederportemonnaie bestellt – offenbar auch von Mihailiuc – und ich benutze es bis heute, es ist makellos. Danke!'
+    when '4b18107b-f5ca-4b52-a333-d0ca170bdf0d'
+      assign body_de = 'Schön verarbeitete Tasche, ausreichend geräumig. Sehr gutes Preis-Leistungs-Verhältnis!'
+    when '639e9382-6f71-4f4f-83c4-f648d2d59208'
+      assign body_de = 'Eine schöne Tasche, gut verarbeitet und sehr praktisch. 🥰'
+    when 'ea9a209b-9c9b-4976-96e6-5657d24e4763'
+      assign body_de = 'Sie ist wunderschön!'
+    when '0ffff97d-703a-4c5c-97d0-c6ccbcf10fdf'
+      assign body_de = 'Wunderschön. Vielen Dank.'
+    when '024fe5ab-04f0-4cbf-83d4-b800786a30e2'
+      assign body_de = 'Wunderschöne Tasche.'
+    when '13e1e83a-4818-43e4-831b-82fda73a3358'
+      assign body_de = 'Eine schöne und elegante Tasche!'
+    when 'b33f660f-fcef-4e94-8b96-913c7c24f9f8'
+      assign body_de = 'Mir fehlen die Worte. Eine perfekte Tasche, elegant, mittelgroß. Ideal für den Abend, aber auch für den Tag. Ich bereue nur, sie nicht früher bestellt zu haben. Das Leder ist dick und formstabil – ich wollte eine Tasche, die ihre Form hält, fester ist, aber keine Box-Bag, mit einem einzigartigen Design. Ich habe fünf Taschen aus weichem Leder einer anderen Marke, aber nie eine gefunden, die so ist wie diese. Danke für einen erfüllten Traum.'
+    when 'e3071a46-28d4-40fd-937b-41c5f1b52d43'
+      assign body_de = 'Wunderschön und hochwertig. Einzige Anmerkung: Ich hätte einen Reißverschluss aus Metall bevorzugt – ein wichtiges Detail, das bei einer wirklich hochwertigen Tasche den Unterschied macht.'
+    when '63f48708-cbae-444c-8f62-72d6b39a8fe7'
+      assign body_de = 'Eine in jeder Hinsicht wunderschöne Tasche. Mittlere Größe, aber sehr geräumig. Der Ton Taupe ist sehr stilvoll.'
+    when '5cce4921-5b44-4e5d-9cc9-96ca1a737377'
+      assign body_de = 'Sie ist wunderschön. Ich fühle mich, als würde ich eine Hermès tragen! Kann ich mit gutem Gewissen empfehlen!'
+    when '06d9b635-63c8-46fb-a05a-d79d44639991'
+      assign body_de = 'Wunderbar – ich habe sie in zwei Farben. 🤍'
+    when '4524fddd-0d88-4da2-9c05-6a4f3dc4817f'
+      assign body_de = 'Ganz besondere Taschen von hervorragender Qualität. Dazu wunderschön verpackt. Sie sind geräumiger, als ich erwartet hatte. Ich kann nicht aufhören, sie zu bewundern ❤️ Ich freue mich darauf, sie zu tragen! Hoffentlich gibt es diesen Shop noch lange – ich habe ihn gerade erst entdeckt und freue mich auf weitere Modelle.'
+    when '3974a430-2347-4ac4-a829-3fa55a367dbe'
+      assign body_de = 'Ganz besondere Taschen von hervorragender Qualität. Dazu wunderschön verpackt. Sie sind geräumiger, als ich erwartet hatte. Ich kann nicht aufhören, sie zu bewundern ❤️ Ich freue mich darauf, sie zu tragen! Hoffentlich gibt es diesen Shop noch lange – ich habe ihn gerade erst entdeckt und freue mich auf weitere Modelle.'
+    when 'fb34c4c3-4747-4f9e-a843-90bbb1205ef3'
+      assign body_de = 'Ich bin absolut begeistert von dieser Tasche! Die Qualität ist ausgezeichnet, und mir gefällt sehr, wie sie in echt aussieht. Das war sicher nicht mein letzter Kauf hier – ich kann es kaum erwarten, die nächste zu bestellen! Von Herzen zu empfehlen!'
+  endcase
+  if localization.market.handle == 'ireland'
+    capture body_de
+      render 'mia-ie-review-en', uuid: uuid
+    endcapture
+    assign body_de = body_de | strip
+  elsif localization.market.handle == 'spania'
+    capture body_de
+      render 'mia-es-review-es', uuid: uuid
+    endcapture
+    assign body_de = body_de | strip
+  endif
+-%}

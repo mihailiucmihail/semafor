@@ -1,0 +1,41 @@
+{%- comment -%}
+  v27 (all markets) – WhatsApp bubble (.mh-wa-float) must never cover buttons on mobile:
+  - while the sticky add-to-cart bar is visible it is lifted above the bar;
+  - while a drawer (cart, menu, search) is open it is hidden.
+  v45: DE/PL – hide the Judge.me "Bewertungen / Opinie" link in the mobile menu (#mdm).
+{%- endcomment -%}
+{%- if localization.market.handle == 'deutschland' or localization.market.handle == 'polska' or localization.market.handle == 'ireland' or localization.market.handle == 'spania' -%}
+<style>#mdm .list a[href*="judge.me"]{display:none!important}</style>
+{%- endif -%}
+<style>
+.mh-wa-float{transition:all .2s ease,bottom .3s ease,opacity .25s ease}
+@media (max-width:989px){
+  html.mia-wa-lift .mh-wa-float{bottom:calc(var(--mia-wa-bar,72px) + 14px)!important}
+  html.mia-wa-hide .mh-wa-float{opacity:0!important;pointer-events:none!important;visibility:hidden}
+}
+</style>
+<script>
+(function(){
+  var H=document.documentElement,raf=0;
+  function upd(){raf=0;
+    var vp=document.querySelector('.layout--viewport'),st=vp&&vp.getAttribute('data-drawer-status');
+    var drawerOpen=!!st&&st!=='closed';
+    var mdm=document.getElementById('mdm');if(mdm&&mdm.classList.contains('open'))drawerOpen=true;
+    H.classList.toggle('mia-wa-hide',drawerOpen);
+    var bar=null;document.querySelectorAll('.product-buy-buttons--drawer').forEach(function(b){if(b.getAttribute('aria-hidden')==='false'&&getComputedStyle(b).display!=='none'&&b.getBoundingClientRect().height>0)bar=b;});
+    if(bar){var h=Math.round(bar.getBoundingClientRect().height);if(h>0&&h<400){H.style.setProperty('--mia-wa-bar',h+'px');H.classList.add('mia-wa-lift');}else H.classList.remove('mia-wa-lift');}
+    else H.classList.remove('mia-wa-lift');
+  }
+  function q(){if(!raf)raf=requestAnimationFrame(upd);clearTimeout(q.t);q.t=setTimeout(upd,500);}
+  function init(){
+    if(!window.MutationObserver)return;
+    var mo=new MutationObserver(q);
+    var vp=document.querySelector('.layout--viewport');if(vp)mo.observe(vp,{attributes:true,attributeFilter:['data-drawer-status']});
+    document.querySelectorAll('.product-buy-buttons--drawer').forEach(function(b){mo.observe(b,{attributes:true,attributeFilter:['aria-hidden','class','style']});});
+    var mdm=document.getElementById('mdm');if(mdm)mo.observe(mdm,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',q,{passive:true});window.addEventListener('scroll',q,{passive:true});
+    q();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>

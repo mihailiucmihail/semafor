@@ -1,0 +1,36 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "spania"
+  },
+  "parent": "overlay-group.json",
+  "sections": {
+    "welcome_popup": {
+      "settings": {
+        "discount_code": "BIENVENIDA10",
+        "discount_label": "−10 %",
+        "discount_sub": "en tu primer pedido",
+        "eyebrow": "Te damos la bienvenida",
+        "heading": "Un pequeño regalo de bienvenida.",
+        "text": "<p>Suscríbete a las novedades de MIHAILIUC y llévate un 10 % de descuento en tu primer pedido. Te mandamos el código por email al momento.</p>",
+        "placeholder": "Tu dirección de email",
+        "button": "Quiero mi 10 %",
+        "note": "Sin spam. Puedes darte de baja cuando quieras.",
+        "decline": "No, gracias",
+        "success_eyebrow": "Ya estás dentro",
+        "success_heading": "¡Gracias! Ya lo tienes.",
+        "success_text": "<p>Tu código y el enlace ya van de camino a tu bandeja de entrada. También puedes usar el descuento ahora mismo:</p>",
+        "success_button": "Ver el MIA con mi descuento",
+        "success_note": "El descuento se aplica automáticamente al finalizar la compra."
+      }
+    }
+  }
+}

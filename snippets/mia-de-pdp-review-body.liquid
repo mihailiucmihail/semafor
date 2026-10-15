@@ -1,0 +1,32 @@
+{%- comment -%} Deutscher Bewertungstext. Params: uuid, tr (review_translations des Produkts oder nil). Gibt <p> aus oder nichts.
+  v44: Judge.me-"Übersetzung", die noch rumänisch ist (z. B. „Superba!“), wird nicht angezeigt. {%- endcomment -%}
+{%- liquid
+  capture t
+    render 'mia-de-review-de2', uuid: uuid
+  endcapture
+  assign t = t | strip
+  assign mie = false
+  if localization.market.handle == 'ireland'
+    assign mie = true
+  endif
+  assign mes = false
+  if localization.market.handle == 'spania'
+    assign mes = true
+  endif
+  if t == blank and tr and mie == false and mes == false
+    assign t = tr[uuid].de.body | remove: '„' | remove: '“'
+    assign tl = t | downcase
+    assign ro_marks = 'ă,â,î,ș,ş,ț,ţ,geant,superb,frumoas,recomand,multum,mulțum,foarte,calitate,poșet,poset,ador,minunat,arata,arată' | split: ','
+    for m in ro_marks
+      if tl contains m
+        assign t = ''
+        break
+      endif
+    endfor
+  endif
+-%}
+{%- if t != blank -%}
+  {%- if mie -%}<p lang="en">“{{ t | strip_html | newline_to_br | replace: '<br />', ' ' | strip }}”</p>{%- elsif mes -%}<p lang="es">«{{ t | strip_html | newline_to_br | replace: '<br />', ' ' | strip }}»</p>{%- else -%}<p lang="de">„{{ t | strip_html | newline_to_br | replace: '<br />', ' ' | strip }}“</p>{%- endif -%}
+{%- else -%}
+  {%- render 'mia-de-review-text', uuid: uuid, fallback: '', show_ro: false -%}
+{%- endif -%}

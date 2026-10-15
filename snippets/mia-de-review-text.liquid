@@ -1,0 +1,5 @@
+{%- comment -%} Renders the German review text. Params: uuid, fallback (original body), show_ro.
+  v48: all native German translations live in mia-de-review-de2. {%- endcomment -%}
+{%- capture t2 -%}{%- render 'mia-de-review-de2', uuid: uuid -%}{%- endcapture -%}
+{%- assign t2 = t2 | strip -%}
+{%- if t2 != blank and localization.market.handle == 'ireland' -%}<p lang="en">“{{ t2 }}”</p>{%- elsif t2 != blank and localization.market.handle == 'spania' -%}<p lang="es">«{{ t2 }}»</p>{%- elsif t2 != blank -%}<p lang="de">„{{ t2 }}“</p>{%- elsif show_ro and fallback != blank -%}<p lang="ro">„{{ fallback | strip_html | strip }}“</p>{%- endif -%}

@@ -1,0 +1,43 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "spania"
+  },
+  "parent": "collection.json",
+  "sections": {
+    "mia_coll_head": {
+      "type": "mia-coll-head",
+      "settings": {
+        "title_de": "MIA – Handtaschen aus echtem Leder",
+        "title_ie": "MIA – genuine leather handbags",
+        "title_pl": "MIA – torebki ze skóry naturalnej",
+        "title_es": "MIA – bolsos de piel auténtica"
+      }
+    },
+    "featured_video_NDYeWc": {
+      "disabled": true
+    },
+    "recent-products": {
+      "settings": {
+        "heading": "Vistos recientemente"
+      }
+    }
+  },
+  "order": [
+    "mia_coll_head",
+    "featured_video_NDYeWc",
+    "collection-header",
+    "collection-navigation",
+    "main-collection",
+    "image-with-text",
+    "recent-products"
+  ]
+}

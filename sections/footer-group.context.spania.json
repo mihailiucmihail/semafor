@@ -1,0 +1,49 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "spania"
+  },
+  "parent": "footer-group.json",
+  "sections": {
+    "footer": {
+      "blocks": {
+        "menu_YJzRWm": {
+          "settings": {
+            "menu-title": "Ayuda e información legal",
+            "menu": "footer-es"
+          }
+        },
+        "0084b80f-ae0f-4e7a-a72f-b137ed5df50b": {
+          "settings": {
+            "heading": "Newsletter",
+            "description": "<p>Nuevos colores y ofertas, solo cuando haya algo que merezca la pena contarte.</p>",
+            "show-social-icons": false
+          }
+        }
+      }
+    },
+    "custom_content_rPEa4j": {
+      "settings": {
+        "custom_html": "© 2026 MIHAILIUC · Mihailiuc Group SRL · <a href=\"/pages/aviso-legal\" style=\"color:inherit;text-decoration:underline\">Aviso legal</a>"
+      }
+    },
+    "177382323534b82b02": {
+      "blocks": {
+        "judge_me_reviews_medals_nnFTtG": {
+          "disabled": true
+        }
+      }
+    },
+    "whatsapp_float": {
+      "disabled": true
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{%- liquid
+  assign s = section.settings
+  assign photo = s.photo
+  if photo == blank
+    assign photo = 'https://cdn.shopify.com/s/files/1/0954/5079/2260/files/B1AEAEF2-72AE-4FBB-B61E-C5A2403BEDE5.jpg?v=1766935180'
+  endif
+-%}
+{% render 'mia-de-head' %}
+<div class="mde">
+<section class="mde-hero" id="mia">
+  <img src="{{ photo }}{% if photo contains 'cdn.shopify.com/s/files' %}&width=2000{% endif %}" alt="{{ s.alt | escape }}" width="1500" height="2250" fetchpriority="high" loading="eager">
+  <div class="c">
+    <div class="kap">{{ s.kicker }}</div>
+    <div class="big">MIA</div>
+    <div class="sub">{{ s.subtitle }}</div>
+    <div class="m"><span>{{ s.meta1 }}</span><span>{%- if s.meta2 contains 'Itali' or s.meta2 contains 'Włosz' or s.meta2 contains 'Italy' -%}{%- render 'mia-italy', place: 'text' -%}{%- else -%}{{ s.meta2 }}{%- endif -%}</span><span>{{ s.meta3 }}</span></div>
+    <div class="cta"><a class="btn gold" href="#ton">{{ s.cta }}</a><a class="link" href="#atelier">{{ s.cta2 }}</a></div>
+  </div>
+  <div class="vert" aria-hidden="true">{{ s.vertical }}</div>
+  {% if localization.market.handle == 'ireland' %}<nav class="idx" aria-label="Chapters"><a href="#mia"><b>I</b> The Bag</a><a href="#ton"><b>II</b> The Colour</a><a href="#innere"><b>III</b> Inside</a><a href="#detail"><b>IV</b> The Details</a><a href="#atelier"><b>V</b> The Workshop</a><a href="#bewertungen"><b>VI</b> Reviews</a></nav>{% elsif localization.market.handle == 'spania' %}<nav class="idx" aria-label="Capítulos"><a href="#mia"><b>I</b> El bolso</a><a href="#ton"><b>II</b> El color</a><a href="#innere"><b>III</b> El interior</a><a href="#detail"><b>IV</b> Los detalles</a><a href="#atelier"><b>V</b> El taller</a><a href="#bewertungen"><b>VI</b> Opiniones</a></nav>{% else %}<nav class="idx" aria-label="Kapitel"><a href="#mia"><b>I</b> Die Tasche</a><a href="#ton"><b>II</b> Der Ton</a><a href="#innere"><b>III</b> Das Innere</a><a href="#detail"><b>IV</b> Das Detail</a><a href="#atelier"><b>V</b> Das Atelier</a><a href="#bewertungen"><b>VI</b> Bewertungen</a></nav>{% endif %}
+</section>
+</div>
+{% schema %}
+{
+  "name": "MIA DE — Hero",
+  "settings": [
+    { "type": "text", "id": "photo", "label": "Foto URL (Files)" },
+    { "type": "text", "id": "alt", "label": "Alt", "default": "MIA-Lederhandtasche in Espresso, in der Hand getragen" },
+    { "type": "text", "id": "kicker", "label": "Kicker", "default": "Kapitel I · Die Tasche" },
+    { "type": "text", "id": "subtitle", "label": "Subtitlu (HTML)", "default": "Echtes Leder. <em>Fünfzehn Töne.</em> Und deine Hand, die sie trägt." },
+    { "type": "text", "id": "meta1", "label": "Meta 1", "default": "Echtes Leder" },
+    { "type": "text", "id": "meta2", "label": "Meta 2 (Italien-Zeile nur DE/PL, mit SVG-Flagge)", "default": "In Italien gefertigt" },
+    { "type": "text", "id": "meta3", "label": "Meta 3", "default": "89 €" },
+    { "type": "text", "id": "cta", "label": "Buton", "default": "Deinen Ton wählen" },
+    { "type": "text", "id": "cta2", "label": "Link", "default": "Die Geschichte" },
+    { "type": "text", "id": "vertical", "label": "Text vertical", "default": "MIA by MIHAILIUC · 15 Farben · 26 × 23 × 11 cm" }
+  ],
+  "presets": [{ "name": "MIA DE — Hero" }]
+}
+{% endschema %}

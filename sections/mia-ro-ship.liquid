@@ -1,0 +1,209 @@
+{%- comment -%} MIA RO — informații de livrare vizibile: bară sus (mode: bar) sau card pe pagina produsului (mode: pdp). {%- endcomment -%}
+{%- liquid
+  assign s = section.settings
+  assign carrier = 'Hermes'
+  if localization.country.iso_code == 'AT'
+    assign carrier = 'der Österreichischen Post'
+  endif
+  assign thr = s.free_from | times: 100
+-%}
+{%- assign mk = localization.market.handle -%}
+{%- comment -%} v27: explicit condition – Liquid evaluates and/or right-to-left, so the old one-liner never matched deutschland (DE PDP had no delivery card / multi-buy tiers). {%- endcomment -%}
+{%- assign mro_show = false -%}
+{%- if mk == 'ro' -%}{%- assign mro_show = true -%}{%- elsif s.mode == 'pdp' -%}{%- if mk == 'polska' or mk == 'deutschland' or mk == 'ireland' or mk == 'spania' -%}{%- assign mro_show = true -%}{%- endif -%}{%- endif -%}
+{%- if mro_show -%}
+{%- if s.mode == 'bar' -%}
+<style>
+  .mro-bar{background:#2a1d15;color:#fbf8f4;font-family:'Jost','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;text-align:center;line-height:1;position:relative;height:36px;overflow:hidden}
+  .mro-bar a,.mro-bar a:visited,.mro-bar a:hover,.mro-bar span{color:#fbf8f4!important;text-decoration:none!important}
+  .mro-bar a{display:block;height:100%}
+  .mro-bar span{position:absolute;inset:0;display:block;line-height:36px;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mro-bar b{font-weight:500;color:#e2c79a!important}
+  .mro-bar .m1,.mro-bar .m2{display:none}
+  @media (max-width:749px){
+    .mro-bar{font-size:10px;letter-spacing:.12em}
+    .mro-bar .d{display:none}
+    .mro-bar .m1,.mro-bar .m2{display:block;animation:mroSwap 8s infinite}
+    .mro-bar .m2{animation-delay:-4s}
+  }
+  @keyframes mroSwap{0%,44%{opacity:1;transform:none}50%,94%{opacity:0;transform:translateY(-6px)}100%{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.mro-bar .m1,.mro-bar .m2{animation:none}.mro-bar .m2{display:none}}
+</style>
+<div class="mro-bar" role="note"><a href="{{ s.link }}">
+  <span class="d">{{ s.bar_desktop }}</span>
+  <span class="m1">{{ s.bar_m1 }}</span>
+  <span class="m2">{{ s.bar_m2 }}</span>
+</a></div>
+{%- elsif s.mode == 'pdp' and product -%}
+{%- liquid
+  assign de = false
+  if mk == 'deutschland'
+    assign de = true
+    assign thr = 10000
+  endif
+  assign pl = false
+  if mk == 'polska'
+    assign pl = true
+    assign thr = 39900
+  endif
+  comment
+    IE (market ireland): tracked courier, €4.95, free from €150, usually 5–7 working days (see FACTS).
+  endcomment
+  assign ie = false
+  if mk == 'ireland'
+    assign ie = true
+    assign thr = 15000
+    assign ie_ship = '€4.95'
+  endif
+  comment
+    ES (market spania): free tracked delivery on every order (no threshold), usually 5–7 días laborables (see FACTS).
+  endcomment
+  assign es = false
+  if mk == 'spania'
+    assign es = true
+    assign thr = 1
+  endif
+  assign pct = product.price | times: 100 | divided_by: thr
+  if pct > 100
+    assign pct = 100
+  endif
+-%}
+<style>
+delivery-preview-widget,.essential-estimated-delivery-block,.mh-de-delivery{display:none!important}
+.mdl{--ink:#2a1a12;--ink2:#5a4a40;--rust:#8a4a2a;--gold:#b8924f;--line:rgba(42,26,18,.12);position:relative;margin:22px 0 10px;padding:26px 22px 22px;background:#faf7f2;border:1px solid var(--line);color:var(--ink);font-family:'Jost','Helvetica Neue',Arial,sans-serif;text-align:left;overflow:hidden;-webkit-font-smoothing:antialiased}
+.mdl *{box-sizing:border-box;color:inherit}
+.mdl:before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.7}
+.mdl .k{display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.26em;text-transform:uppercase;font-weight:500;color:var(--rust)!important}
+.mdl .k:before{content:"";width:22px;height:1px;background:var(--gold)}
+{% if pl %}.mdl .k{flex-wrap:wrap}.mdl .k .ipb{margin-left:auto;padding:3px 8px;border-radius:3px;background:#ffcd00;color:#1d1d1b!important;font-size:9px;letter-spacing:.12em;font-weight:600;white-space:nowrap}{% endif %}
+.mdl h3{margin:12px 0 4px;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:28px;line-height:1.08;letter-spacing:0;text-transform:none;color:var(--ink)!important}
+.mdl h3 em{font-style:italic;color:var(--rust)!important}
+.mdl .sub{font-size:13px;line-height:1.55;color:var(--ink2)!important;margin:0}
+.mdl .tl{position:relative;display:grid;grid-template-columns:repeat(3,1fr);margin:24px 0 6px}
+.mdl .tl .ln{position:absolute;left:16.66%;right:16.66%;top:21px;height:1px;background:var(--line)}
+.mdl .tl .ln i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold);transition:width 1.6s cubic-bezier(.22,1,.36,1) .2s}
+.mdl.on .tl .ln i{width:100%}
+.mdl .st{position:relative;text-align:center;padding:0 4px}
+.mdl .dot{position:relative;z-index:1;width:42px;height:42px;margin:0 auto;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transform:scale(.6);opacity:0;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .5s,border-color .5s,background .5s}
+.mdl.on .dot{transform:none;opacity:1}
+.mdl .st:nth-child(3) .dot{transition-delay:.55s}.mdl .st:nth-child(4) .dot{transition-delay:1.1s}
+.mdl .dot svg{width:19px;height:19px;fill:none;stroke:var(--rust);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.mdl .st.now .dot{background:var(--ink);border-color:var(--ink)}
+.mdl .st.now .dot svg{stroke:#faf7f2}
+.mdl .st.now .dot:after{content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid var(--gold);animation:mdlP 2.4s ease-out infinite}
+.mdl .st.end .dot{border-color:var(--gold)}
+@keyframes mdlP{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.35);opacity:0}}
+.mdl .st b{display:block;margin-top:10px;font-family:'Cormorant Garamond',Georgia,serif;font-size:19px;font-weight:500;line-height:1.1;color:var(--ink)!important}
+.mdl .st small{display:block;margin-top:4px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)!important;line-height:1.5;font-weight:500}
+.mdl .opts{margin:22px 0 0;border-top:1px solid var(--line)}
+.mdl .opt{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.mdl .opt svg{width:22px;height:22px;flex:none;fill:none;stroke:var(--gold);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.mdl .opt span{flex:1;font-size:14px;line-height:1.35;color:var(--ink)!important}
+.mdl .opt span small{display:block;font-size:11px;color:var(--ink2)!important;margin-top:2px}
+.mdl .opt b{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:500;white-space:nowrap;color:var(--ink)!important}
+.mdl .opt.free b{color:var(--rust)!important;font-style:italic}
+.mdl .bar{margin:18px 0 0}
+.mdl .bar .tr{height:3px;background:rgba(42,26,18,.08);border-radius:3px;overflow:hidden}
+.mdl .bar .tr i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--rust));border-radius:3px;transition:width 1.4s cubic-bezier(.22,1,.36,1) .6s}
+.mdl .bar p{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--ink2)!important}
+.mdl .bar p b{color:var(--rust)!important;font-weight:500}
+.mdl .ft{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;color:var(--ink2)!important}
+.mdl .ft span:before{content:"✓";color:var(--gold);margin-right:6px}
+@media(max-width:400px){.mdl{padding:22px 16px 18px}.mdl h3{font-size:25px}.mdl .st b{font-size:17px}.mdl .st small{font-size:9px;letter-spacing:.1em}}
+@media(prefers-reduced-motion:reduce){.mdl .dot,.mdl .tl .ln i,.mdl .bar .tr i{transition:none}.mdl .st.now .dot:after{animation:none}}
+</style>
+<div class="mdl" id="mro-ship" data-thr="{{ thr }}">
+  <div class="k">{% if de %}Versand mit {{ carrier }}{% elsif ie %}Tracked courier delivery{% elsif es %}Envío gratis con seguimiento{% elsif pl %}Dostawa InPost: kurier lub Paczkomat <span class="ipb">InPost · Paczkomat 24/7</span>{% else %}Livrare cu FAN Courier{% endif %}</div>
+  <h3>{% if de %}Deine MIA ist <em data-d-end>in 4–5 Werktagen</em> bei dir{% elsif ie %}Your MIA should be with you <em data-d-end>in 5–7 working days</em>{% elsif es %}Tu MIA debería llegarte <em data-d-end>en 5–7 días laborables</em>{% elsif pl %}Twoja MIA będzie u Ciebie <em data-d-end>w 4–5 dni roboczych</em>{% else %}Primești geanta <em data-d-end>în 1–2 zile</em>{% endif %}</h3>
+  <p class="sub" data-sub></p>
+  <div class="tl">
+    <div class="ln"><i></i></div>
+    <div class="st now"><div class="dot"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></div><b data-d0></b><small>{% if de %}Deine Bestellung{% elsif ie %}Your order{% elsif es %}Tu pedido{% elsif pl %}Twoje zamówienie{% else %}Plasezi comanda{% endif %}</small></div>
+    <div class="st"><div class="dot"><svg viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></div><b data-d1></b><small>{% if de %}Wir verpacken &amp; versenden{% elsif ie %}We pack &amp; send it{% elsif es %}Lo preparamos y lo enviamos{% elsif pl %}Pakujemy i wysyłamy{% else %}Pregătim și expediem{% endif %}</small></div>
+    <div class="st end"><div class="dot"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/><path d="M9 20v-6h6v6"/></svg></div><b data-d2></b><small>{% if de %}Bei dir zu Hause{% elsif ie %}At your door{% elsif es %}En tu casa{% elsif pl %}U Ciebie w domu{% else %}Colet livrat{% endif %}</small></div>
+  </div>
+  <div class="opts">
+    {%- if de -%}
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg><span>Versand mit {{ carrier }}<small>Mit Sendungsverfolgung per E-Mail</small></span><b>4,95 €</b></div>
+    <div class="opt free"><svg viewBox="0 0 24 24"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 20V7M12 7H8a2 2 0 1 1 0-4c3 0 4 4 4 4zM12 7h4a2 2 0 1 0 0-4c-3 0-4 4-4 4z"/></svg><span>Ab 100 € Bestellwert<small>Versandkostenfrei nach ganz {% if localization.country.iso_code == 'AT' %}Österreich{% else %}Deutschland{% endif %}</small></span><b>Kostenlos</b></div>
+    {%- elsif ie -%}
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg><span>Tracked courier delivery<small>Tracking link by email once it’s sent</small></span><b>{{ ie_ship }}</b></div>
+    <div class="opt free"><svg viewBox="0 0 24 24"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 20V7M12 7H8a2 2 0 1 1 0-4c3 0 4 4 4 4zM12 7h4a2 2 0 1 0 0-4c-3 0-4 4-4 4z"/></svg><span>Orders of €{{ thr | divided_by: 100 }} or more<small>Free delivery anywhere in Ireland</small></span><b>Free</b></div>
+    {%- elsif es -%}
+    <div class="opt free"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg><span>Envío con seguimiento a domicilio<small>Península y Baleares · enlace de seguimiento por email</small></span><b>Gratis</b></div>
+    {%- elsif pl -%}
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg><span>Kurier InPost pod drzwi<small>Ze śledzeniem przesyłki e-mailem · możliwa płatność przy odbiorze (+12 zł)</small></span><b>14,99 zł</b></div>
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 9h16M4 15h16M12 3v18"/></svg><span>Paczkomat InPost 24/7<small>Automat wybierzesz zaraz po złożeniu zamówienia · możliwa płatność przy odbiorze (+12 zł)</small></span><b>14,99 zł</b></div>
+    <div class="opt free"><svg viewBox="0 0 24 24"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 20V7M12 7H8a2 2 0 1 1 0-4c3 0 4 4 4 4zM12 7h4a2 2 0 1 0 0-4c-3 0-4 4-4 4z"/></svg><span>Zamówienia od 399 zł<small>Darmowa dostawa na terenie całej Polski</small></span><b>Gratis</b></div>
+    {%- else -%}
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M4 9h16M4 15h16M12 3v18"/></svg><span>{{ s.l1 }}<small>Ridici când vrei, non-stop</small></span><b>{{ s.p1 }}</b></div>
+    <div class="opt"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="1"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg><span>{{ s.l2 }}<small>Direct la ușa ta</small></span><b>{{ s.p2 }}</b></div>
+    <div class="opt free"><svg viewBox="0 0 24 24"><path d="M20 12v8H4v-8M2 7h20v5H2zM12 20V7M12 7H8a2 2 0 1 1 0-4c3 0 4 4 4 4zM12 7h4a2 2 0 1 0 0-4c-3 0-4 4-4 4z"/></svg><span>{{ s.l3 }}<small>FANbox sau curier, la alegere</small></span><b>{{ s.p3 }}</b></div>
+    {%- endif -%}
+  </div>
+  <div class="bar">
+    <div class="tr"><i data-w="{{ pct }}"></i></div>
+    <p>{%- if de -%}{%- if product.price >= thr -%}Für diese Tasche ist <b>der Versand kostenlos</b>.{%- else -%}Nur noch <b>{{ thr | minus: product.price | money }}</b>, dann ist der Versand kostenlos.{%- endif -%}{%- elsif ie -%}{%- if product.price >= thr -%}This bag comes with <b>free delivery</b>.{%- else -%}Just <b>{{ thr | minus: product.price | money }}</b> more and delivery is free.{%- endif -%}{%- elsif es -%}El envío de este bolso es <b>gratis</b>, como en todos los pedidos.{%- elsif pl -%}{%- if product.price >= thr -%}Dla tej torebki <b>dostawa jest darmowa</b>.{%- else -%}Do darmowej dostawy brakuje Ci tylko <b>{{ thr | minus: product.price | money_without_trailing_zeros }}</b>.{%- endif -%}{%- else -%}{%- if product.price >= thr -%}{{ s.free_yes }}{%- else -%}{{ s.free_no | replace: '[rest]', '' }}{%- endif -%}{%- endif -%}</p>
+  </div>
+  <div class="ft">{% if de %}<span>Sicher bezahlen</span><span>14 Tage Rückgabe</span><span>inkl. MwSt.</span>{% elsif ie %}<span>Secure payment</span><span>14-day returns</span><span>Prices incl. VAT</span>{% elsif es %}<span>Pago seguro</span><span>Devolución en 14 días</span><span>IVA incluido</span>{% elsif pl %}<span>Bezpieczna płatność</span><span>14 dni na zwrot</span><span>z VAT</span>{% else %}<span>Plată ramburs sau card</span><span>Retur 14 zile</span><span>Ambalaj cadou</span>{% endif %}</div>
+</div>
+<script>
+(function(){
+  var box=document.getElementById('mro-ship');if(!box||box.__b)return;box.__b=1;
+  function place(){
+    var pf=document.querySelector('form.product-form'),bb=pf&&pf.querySelector('[data-block-type="buy-buttons"]');
+    if(bb){bb.parentNode.insertBefore(box,bb.nextSibling);return true;}
+    var main=document.querySelector('[id*="main-product"], .product--container, main');
+    var f=main&&main.querySelector('form[action*="/cart/add"]');
+    if(!f)return false;
+    var anchor=f.closest('[data-block-type], .product--buy-buttons, .buy-buttons')||f;
+    anchor.parentNode.insertBefore(box,anchor.nextSibling);return true;
+  }
+  if(!place())document.addEventListener('DOMContentLoaded',place);
+  var DE={{ de | json }},PL={{ pl | json }},IE={{ ie | json }},ES={{ es | json }};
+  var SD=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'],SM=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],SMS=['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sept.','oct.','nov.','dic.'];
+  var ED=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],EM=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var Z=IE?'Europe/Dublin':ES?'Europe/Madrid':PL?'Europe/Warsaw':DE?'Europe/Berlin':'Europe/Bucharest',DG=["niedzieli", "poniedziałku", "wtorku", "środy", "czwartku", "piątku", "soboty"],D=PL?["niedziela", "poniedziałek", "wtorek", "środa", "czwartek", "piątek", "sobota"]:DE?['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag']:['duminică','luni','marți','miercuri','joi','vineri','sâmbătă'],M=PL?["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"]:DE?['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']:['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+  var p={};try{new Intl.DateTimeFormat('en-US',{timeZone:Z,year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date()).forEach(function(x){p[x.type]=+x.value;});}catch(e){var n=new Date();p={year:n.getFullYear(),month:n.getMonth()+1,day:n.getDate()};}
+  var t=new Date(Date.UTC(p.year,p.month-1,p.day));
+  function nextBiz(d){var x=new Date(d.getTime());do{x.setUTCDate(x.getUTCDate()+1);}while(x.getUTCDay()===0||x.getUTCDay()===6);return x;}
+  function addBiz(d,n){var x=d;for(var i=0;i<n;i++)x=nextBiz(x);return x;}
+  var FAR=DE||PL||IE||ES;var d1=nextBiz(t),d2=(IE||ES)?addBiz(t,5):FAR?addBiz(t,4):nextBiz(d1),d3=(IE||ES)?addBiz(t,7):FAR?addBiz(t,5):null;
+  var MS=PL?["sty.", "lut.", "mar.", "kwi.", "maj", "cze.", "lip.", "sie.", "wrz.", "paź.", "lis.", "gru."]:['Jan.','Feb.','März','Apr.','Mai','Juni','Juli','Aug.','Sept.','Okt.','Nov.','Dez.'];var DS=['niedz.','pn.','wt.','śr.','czw.','pt.','sob.'];function sh(d){return IE?(ED[d.getUTCDay()].slice(0,3)+', '+d.getUTCDate()+' '+EM[d.getUTCMonth()].slice(0,3)):ES?(SD[d.getUTCDay()].slice(0,3)+', '+d.getUTCDate()+' '+SMS[d.getUTCMonth()]):PL?(DS[d.getUTCDay()]+', '+d.getUTCDate()+' '+MS[d.getUTCMonth()]):DE?(D[d.getUTCDay()].slice(0,2)+'., '+d.getUTCDate()+'. '+MS[d.getUTCMonth()]):(D[d.getUTCDay()].slice(0,3).replace(/^./,function(c){return c.toUpperCase();})+', '+d.getUTCDate()+' '+M[d.getUTCMonth()].slice(0,3)+'.');}
+  function lg(d){return IE?(ED[d.getUTCDay()]+', '+d.getUTCDate()+' '+EM[d.getUTCMonth()]):ES?(SD[d.getUTCDay()]+' '+d.getUTCDate()+' de '+SM[d.getUTCMonth()]):PL?(DG[d.getUTCDay()]+', '+d.getUTCDate()+' '+M[d.getUTCMonth()]):DE?(D[d.getUTCDay()]+', '+d.getUTCDate()+'. '+M[d.getUTCMonth()]):(D[d.getUTCDay()]+', '+d.getUTCDate()+' '+M[d.getUTCMonth()]);}
+  box.querySelector('[data-d0]').textContent=IE?('Today, '+t.getUTCDate()+' '+EM[t.getUTCMonth()].slice(0,3)):ES?('Hoy, '+t.getUTCDate()+' '+SMS[t.getUTCMonth()]):PL?('Dziś, '+t.getUTCDate()+' '+MS[t.getUTCMonth()]):DE?('Heute, '+t.getUTCDate()+'. '+MS[t.getUTCMonth()]):('Azi, '+t.getUTCDate()+' '+M[t.getUTCMonth()].slice(0,3)+'.');
+  box.querySelector('[data-d1]').textContent=sh(d1);
+  box.querySelector('[data-d2]').textContent=IE?(d2.getUTCMonth()===d3.getUTCMonth()?(d2.getUTCDate()+'–'+d3.getUTCDate()+' '+EM[d3.getUTCMonth()].slice(0,3)):(d2.getUTCDate()+' '+EM[d2.getUTCMonth()].slice(0,3)+' – '+d3.getUTCDate()+' '+EM[d3.getUTCMonth()].slice(0,3))):ES?(d2.getUTCMonth()===d3.getUTCMonth()?(d2.getUTCDate()+'–'+d3.getUTCDate()+' '+SMS[d3.getUTCMonth()]):(d2.getUTCDate()+' '+SMS[d2.getUTCMonth()]+' – '+d3.getUTCDate()+' '+SMS[d3.getUTCMonth()])):PL?(d2.getUTCMonth()===d3.getUTCMonth()?(d2.getUTCDate()+'–'+d3.getUTCDate()+' '+MS[d3.getUTCMonth()]):(d2.getUTCDate()+' '+MS[d2.getUTCMonth()]+' – '+d3.getUTCDate()+' '+MS[d3.getUTCMonth()])):DE?(d2.getUTCMonth()===d3.getUTCMonth()?(d2.getUTCDate()+'.–'+d3.getUTCDate()+'. '+MS[d3.getUTCMonth()]):(d2.getUTCDate()+'. '+MS[d2.getUTCMonth()]+' – '+d3.getUTCDate()+'. '+MS[d3.getUTCMonth()])):sh(d2);
+  var de_=box.querySelector('[data-d-end]');if(PL&&!de_.__n){de_.__n=1;de_.insertAdjacentText('afterend',' (przewidywany termin)');}
+  de_.textContent=IE?('by '+lg(d3)):ES?('hacia el '+lg(d3)):PL?('do '+lg(d3)):DE?('voraussichtlich bis '+lg(d3)+','):lg(d2);
+  var wk=(t.getUTCDay()===0||t.getUTCDay()===6);
+  box.querySelector('[data-sub]').textContent=IE?(wk?'Orders placed at the weekend go out on Monday – you’ll get a tracking link by email.':'Order today and we’ll pack your MIA carefully and send it by tracked courier. You’ll get a tracking link by email once it’s on its way.'):ES?(wk?'Los pedidos del fin de semana salen el lunes. Te mandamos el enlace de seguimiento por email.':'Si lo pides hoy, lo preparamos con cuidado y te lo enviamos con seguimiento. En cuanto salga, te mandamos el enlace por email.'):PL?(wk?"Zamówienia z weekendu wysyłamy w poniedziałek – numer do śledzenia przesyłki otrzymasz e-mailem.":"Zamów dziś – starannie zapakujemy Twoją MIA i wyślemy ją kurierem InPost lub do wybranego Paczkomatu. Numer do śledzenia przesyłki otrzymasz e-mailem."):DE?(wk?'Bestellungen vom Wochenende verschicken wir am Montag – die Sendungsverfolgung bekommst du per E-Mail.':'Bestell heute – wir verpacken deine MIA sorgfältig und schicken sie mit {{ carrier }} los. Die Sendungsverfolgung bekommst du per E-Mail.'):(wk?'Comenzile din weekend pleacă luni dimineață cu FAN Courier – primești AWB-ul pe e-mail imediat ce geanta e pe drum.':'Comanzi azi, mâine o pregătim și o predăm curierului – primești AWB-ul pe e-mail imediat ce geanta e pe drum.');
+  function go(){box.classList.add('on');var i=box.querySelector('[data-w]');if(i)i.style.width=i.getAttribute('data-w')+'%';}
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){if(es[0].isIntersecting){go();io.disconnect();}},{threshold:.3});io.observe(box);}else{go();}
+})();
+</script>
+{%- endif -%}
+{%- endif -%}
+{% schema %}
+{
+  "name": "MIA RO — Livrare",
+  "settings": [
+    { "type": "select", "id": "mode", "label": "Tip", "options": [{ "value": "bar", "label": "Bară sus" }, { "value": "pdp", "label": "Card produs" }], "default": "bar" },
+    { "type": "number", "id": "free_from", "label": "Gratuit de la (lei)", "default": 350 },
+    { "type": "text", "id": "link", "label": "Link bară", "default": "/pages/intrebari-frecvente" },
+    { "type": "text", "id": "bar_desktop", "label": "Bară desktop", "default": "Livrare <b>gratuită</b> peste 350 lei · FANbox 10 lei · Curier la adresă 19 lei" },
+    { "type": "text", "id": "bar_m1", "label": "Bară mobil 1", "default": "Livrare <b>gratuită</b> peste 350 lei" },
+    { "type": "text", "id": "bar_m2", "label": "Bară mobil 2", "default": "FANbox 10 lei · Curier 19 lei" },
+    { "type": "text", "id": "title", "label": "Titlu card", "default": "Livrare cu FAN Courier · 1–3 zile lucrătoare" },
+    { "type": "text", "id": "l1", "label": "Rând 1", "default": "Ridicare din FANbox" },
+    { "type": "text", "id": "p1", "label": "Preț 1", "default": "10 lei" },
+    { "type": "text", "id": "l2", "label": "Rând 2", "default": "Curier la adresă" },
+    { "type": "text", "id": "p2", "label": "Preț 2", "default": "19 lei" },
+    { "type": "text", "id": "l3", "label": "Rând 3", "default": "Comenzi de peste 350 lei" },
+    { "type": "text", "id": "p3", "label": "Preț 3", "default": "Gratuit" },
+    { "type": "text", "id": "free_yes", "label": "Mesaj produs ≥ prag", "default": "Pentru această geantă, <b>livrarea este gratuită</b>." },
+    { "type": "text", "id": "free_no", "label": "Mesaj produs < prag", "default": "Adaugă încă o geantă în coș și <b>livrarea devine gratuită</b>." }
+  ],
+  "presets": [{ "name": "MIA RO — Livrare" }]
+}
+{% endschema %}

@@ -1,0 +1,6 @@
+{%- assign nm = p.title | remove_first: 'MIA ' | downcase | split: ' ' -%}
+<a class="cd{% unless p.available %} out{% endunless %}" href="{{ p.url }}">
+  <div class="ph">{{ p.featured_image | image_url: width: 1200 | image_tag: loading: 'lazy', alt: p.title, sizes: '280px', widths: '400, 600, 900, 1200' }}</div>
+  <span class="k">Nº {{ n | prepend: '0' | slice: -2, 2 }}</span>{% unless p.available %}<span class="so">{{ soldout }}</span>{% endunless %}
+  <div class="b"><span class="nm">{% for w in nm %}{{ w | capitalize }} {% endfor %}</span><span class="pr">{% if p.compare_at_price > p.price %}<s class="cmp">{{ p.compare_at_price | money }}</s> {% endif %}{{ p.price | money }}</span>{% if localization.market.handle == 'deutschland' %}<span class="pr mia-de-legal" style="font-size:10px;letter-spacing:.04em;text-transform:none;opacity:.75">inkl. MwSt., zzgl. Versand</span>{% elsif localization.market.handle == 'ireland' %}<span class="pr mia-de-legal" style="font-size:10px;letter-spacing:.04em;text-transform:none;opacity:.75">incl. VAT, plus delivery</span>{% elsif localization.market.handle == 'spania' %}<span class="pr mia-de-legal" style="font-size:10px;letter-spacing:.04em;text-transform:none;opacity:.75">IVA incluido · envío gratis</span>{% endif %}</div>
+</a>

@@ -1,0 +1,422 @@
+{%- liquid
+  assign bg_color = section.settings.background-color
+  assign border = section.settings.border
+  assign mobile_spacing_above = section.settings.mobile-spacing-above
+  assign mobile_spacing_below = section.settings.mobile-spacing-below
+  assign spacing_above = section.settings.spacing-above
+  assign spacing_below = section.settings.spacing-below
+  assign white_text = section.settings.white-text
+  assign fb_mk = localization.market.handle
+%}
+
+<div
+  class="footer-bar--root"
+  data-section-id="{{ section.id }}"
+  data-background-color="{{ bg_color }}"
+  data-border="{{ border }}"
+  data-container-width="5"
+  data-mobile-spacing-above="{{ mobile_spacing_above }}"
+  data-mobile-spacing-below="{{ mobile_spacing_below }}"
+  data-spacing-above="{{ spacing_above }}"
+  data-spacing-below="{{ spacing_below }}"
+  {% if white_text %}
+    data-text-color="white"
+  {% endif %}
+>
+  {%- comment -%} v52: WhatsApp-Kontakt im Footer – NUR DE/PL/IE (RO unverändert) {%- endcomment -%}
+  {%- if fb_mk == 'deutschland' or fb_mk == 'polska' or fb_mk == 'ireland' or fb_mk == 'spania' -%}
+    <p class="mia-fb-wa" data-item="nav-text" style="margin:0 0 14px;text-align:center">
+      <a href="https://wa.me/40743088138" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;text-underline-offset:3px">
+        {%- if fb_mk == 'deutschland' -%}WhatsApp: +40 743 088 138 (Mo–Fr 9–18 Uhr){%- elsif fb_mk == 'ireland' -%}WhatsApp: +40 743 088 138 (Mon–Fri, 7am–4pm Irish time){%- elsif fb_mk == 'spania' -%}WhatsApp: +40 743 088 138 (lun.–vie., 8:00–17:00, hora peninsular){%- else -%}WhatsApp: +40 743 088 138 (pon.–pt. 9–18){%- endif -%}
+      </a>
+    </p>
+  {%- endif -%}
+  <div class="footer-bar--wrapper">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        if block.type == 'localization'
+          assign region_enabled = false
+          if block.settings.show-region-selector and localization.available_countries.size > 1
+            assign region_enabled = true
+          endif
+
+          assign locale_enabled = false
+          if block.settings.show-locale-selector and localization.available_languages.size > 1
+            assign locale_enabled = true
+          endif
+
+          unless region_enabled or locale_enabled
+            continue
+          endunless
+
+        elsif block.type == 'payment-icons' and shop.enabled_payment_types == empty
+          continue
+
+        elsif block.type == 'text' and block.settings.text == blank
+          continue
+
+        endif
+      -%}
+
+      <div
+        class="footer-bar--block"
+        data-type="{{ block.type }}"
+        {% if block.type == 'powered-by' %}
+          data-item="nav-text"
+        {% elsif block.type == 'payment-icons' %}
+          data-greyscale-enabled="{{ block.settings.greyscale-enabled }}"
+        {% endif %}
+        {{ block.shopify_attributes }}
+      >
+        {%- case block.type -%}
+          {%- when 'localization' -%}
+            {%-
+              render 'localization',
+              locale_enabled: locale_enabled,
+              region_enabled: region_enabled,
+              id: 'footer-bar'
+            -%}
+
+          {%- when 'powered-by' -%}
+            {%- liquid
+              assign powered_check = powered_by_link | split: '>'
+              unless powered_check[1] == ' </a'
+                echo powered_by_link
+              endunless
+            -%}
+
+          {%- when 'payment-icons' -%}
+            {%- liquid
+              comment
+                v27: payment icons per market. PL = allow-list (works for Polish buyers); DE = hide BLIK, Bizum, MobilePay. RO unchanged.
+                v47: DE/AT – Klarna icon added (Klarna via Mollie is not in shop.enabled_payment_types).
+                IE: same deny-list as DE plus klarna (no Klarna in Ireland); no extra Klarna icon.
+              endcomment
+              assign mia_pay_mk = localization.market.handle
+              assign mia_pl_allow = 'blik,visa,master,maestro,american_express,paypal,apple_pay,google_pay' | split: ','
+              assign mia_de_deny = 'blik,bizum,mobilepay' | split: ','
+              assign mia_es_allow = 'visa,master,maestro,paypal,apple_pay,google_pay' | split: ','
+              for type in shop.enabled_payment_types
+                if mia_pay_mk == 'polska'
+                  unless mia_pl_allow contains type
+                    continue
+                  endunless
+                elsif mia_pay_mk == 'deutschland'
+                  if mia_de_deny contains type
+                    continue
+                  endif
+                elsif mia_pay_mk == 'ireland'
+                  if mia_de_deny contains type or type == 'klarna'
+                    continue
+                  endif
+                elsif mia_pay_mk == 'spania'
+                  unless mia_es_allow contains type
+                    continue
+                  endunless
+                endif
+                echo type | payment_type_svg_tag
+              endfor
+              if mia_pay_mk == 'deutschland'
+                unless shop.enabled_payment_types contains 'klarna'
+                  echo 'klarna' | payment_type_svg_tag
+                endunless
+              endif
+            -%}
+
+          {%- when 'social-icons' -%}
+            {%- render 'social-icons', type: 'follow', mobile_alignment: 'center' -%}
+
+          {%- when 'text' -%}
+            <p class="footer-bar--text" data-item="nav-text">
+              {%- assign current_year = 'now' | date: '%Y' -%}
+              {{- block.settings.text | replace: '[current_year]', current_year -}}
+            </p>
+
+        {%- endcase -%}
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Footer bar",
+  "class": "section--footer-bar",
+  "settings": [
+    {
+      "id": "border",
+      "label": "Border",
+      "type": "select",
+      "options": [
+        {
+          "label": "Top",
+          "value": "top"
+        },
+        {
+          "label": "Bottom",
+          "value": "bottom"
+        },
+        {
+          "label": "Both",
+          "value": "both"
+        },
+        {
+          "label": "None",
+          "value": "none"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "id": "spacing-above",
+      "label": "Spacing above",
+      "type": "select",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Small",
+          "value": "small"
+        },
+        {
+          "label": "Medium",
+          "value": "medium"
+        },
+        {
+          "label": "Large",
+          "value": "large"
+        },
+        {
+          "label": "Extra large",
+          "value": "x-large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "id": "spacing-below",
+      "label": "Spacing below",
+      "type": "select",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Small",
+          "value": "small"
+        },
+        {
+          "label": "Medium",
+          "value": "medium"
+        },
+        {
+          "label": "Large",
+          "value": "large"
+        },
+        {
+          "label": "Extra large",
+          "value": "x-large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "id": "background-color",
+      "label": "Background color",
+      "type": "select",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Light",
+          "value": "light"
+        },
+        {
+          "label": "Dark",
+          "value": "dark"
+        },
+        {
+          "label": "Accent 1",
+          "value": "accent-1"
+        },
+        {
+          "label": "Accent 2",
+          "value": "accent-2"
+        },
+        {
+          "label": "Accent 3",
+          "value": "accent-3"
+        }
+      ],
+      "default": "light"
+    },
+    {
+      "id": "white-text",
+      "label": "Use white text color",
+      "type": "checkbox",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "Mobile"
+    },
+    {
+      "id": "mobile-spacing-above",
+      "label": "Spacing above",
+      "type": "select",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Small",
+          "value": "small"
+        },
+        {
+          "label": "Medium",
+          "value": "medium"
+        },
+        {
+          "label": "Large",
+          "value": "large"
+        },
+        {
+          "label": "Extra large",
+          "value": "x-large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "id": "mobile-spacing-below",
+      "label": "Spacing below",
+      "type": "select",
+      "options": [
+        {
+          "label": "None",
+          "value": "none"
+        },
+        {
+          "label": "Small",
+          "value": "small"
+        },
+        {
+          "label": "Medium",
+          "value": "medium"
+        },
+        {
+          "label": "Large",
+          "value": "large"
+        },
+        {
+          "label": "Extra large",
+          "value": "x-large"
+        }
+      ],
+      "default": "medium"
+    }
+  ],
+  "max_blocks": 3,
+  "blocks": [
+    {
+      "type": "localization",
+      "name": "Localization",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "header",
+          "content": "Country/region Selector",
+          "info": "To add a country/region, go to your [markets settings](/admin/settings/markets)."
+        },
+        {
+          "type": "checkbox",
+          "id": "show-region-selector",
+          "label": "Show country/region selector",
+          "default": true
+        },
+        {
+          "type": "header",
+          "content": "Language Selector",
+          "info": "To add a language, go to your [language settings](/admin/settings/languages)."
+        },
+        {
+          "type": "checkbox",
+          "id": "show-locale-selector",
+          "label": "Show language selector",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "powered-by",
+      "name": "Powered by",
+      "limit": 1,
+      "settings": []
+    },
+    {
+      "type": "payment-icons",
+      "name": "Payment Icons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "To add payment icons, go to your [payment settings](/admin/settings/payments)."
+        },
+        {
+          "type": "checkbox",
+          "id": "greyscale-enabled",
+          "label": "Enable greyscale",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "social-icons",
+      "name": "Social icons",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Social icons are configured in Theme settings > Social media. They will be displayed if links are provided there."
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "Text",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Text",
+          "default": "[current_year] © Your brand name here.",
+          "info": "Inserting the text '[current_year]' will automatically insert the current year."
+        }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "localization"
+      },
+      {
+        "type": "powered-by"
+      },
+      {
+        "type": "payment-icons"
+      }
+    ]
+  },
+  "enabled_on": {
+    "groups": ["footer"]
+  }
+}
+{% endschema %}

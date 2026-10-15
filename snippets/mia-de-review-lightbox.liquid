@@ -1,0 +1,152 @@
+{%- comment -%}
+  MIA DE — Bewertung im Vollbild öffnen (Lightbox).
+  Klick auf eine Bewertung (.mde-rev .tl) öffnet genau diese Bewertung: alle Fotos, voller Text, Name, Datum.
+  Video-Bewertungen: Vorschaubild + Button, der das Video direkt auf Judge.me öffnet.
+  Jede Bewertung hat einen Link "auf Judge.me ansehen" (data-jm).
+  Einmal pro Seite eingebunden.
+{%- endcomment -%}
+{%- liquid
+  assign de = false
+  if localization.market.handle == 'deutschland'
+    assign de = true
+  endif
+  assign ie = false
+  if localization.market.handle == 'ireland'
+    assign ie = true
+  endif
+  assign es = false
+  if localization.market.handle == 'spania'
+    assign es = true
+  endif
+  assign pl = false
+  if localization.market.handle == 'polska'
+    assign pl = true
+  endif
+-%}
+<style>
+  .mde-rev .tl{cursor:pointer;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s}
+  .mde-rev .tl:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(42,26,18,.10)}
+  .mde-rev .tl:focus-visible{outline:2px solid #a87c45;outline-offset:3px}
+  .mde-lb{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(20,14,10,.78);opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;font-family:'Jost','Helvetica Neue',Arial,sans-serif}
+  .mde-lb.on{opacity:1;visibility:visible}
+  .mde-lb .box{position:relative;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);width:min(1040px,94vw);max-height:90vh;background:#fbf8f4;overflow:hidden;transform:translateY(14px) scale(.985);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+  .mde-lb.on .box{transform:none}
+  .mde-lb .ph{position:relative;background:#1c1512;display:flex;align-items:center;justify-content:center;min-height:320px}
+  .mde-lb .ph img{display:block;max-width:100%;max-height:90vh;object-fit:contain}
+  .mde-lb .ph.nopic{display:none}
+  .mde-lb .box.nopic{grid-template-columns:1fr;width:min(620px,94vw)}
+  .mde-lb .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;border-radius:50%;background:rgba(251,248,244,.9);color:#2a1d15;font-size:22px;line-height:44px;cursor:pointer}
+  .mde-lb .nav.p{left:14px}.mde-lb .nav.n{right:14px}
+  .mde-lb .cnt{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.12em;color:#fbf8f4}
+  .mde-lb .vplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:12px;color:#fbf8f4;text-decoration:none;font-size:12px;letter-spacing:.14em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+  .mde-lb .vf{display:none}
+  .mde-lb .ph.isvid .vf{display:flex;align-items:center;justify-content:center;width:100%}
+  .mde-lb .vf iframe,.mde-lb .vf video{display:block;border:0;height:min(88vh,780px);width:auto;max-width:100%;background:#000}
+  .mde-rev .tl .im video.mv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .mde-lb .ph.isvid img,.mde-lb .ph.isvid .nav,.mde-lb .ph.isvid .cnt,.mde-lb .ph.isvid .vplay{display:none!important}
+  .mde-lb .vplay span{background:rgba(20,14,10,.78);padding:9px 16px;border-radius:22px;text-shadow:none}
+  .mde-lb .vplay i{display:block;width:76px;height:76px;border-radius:50%;background:rgba(251,248,244,.94);color:#2a1d15;font-style:normal;font-size:26px;line-height:76px;text-align:center;padding-left:5px;box-shadow:0 8px 26px rgba(0,0,0,.35);text-shadow:none}
+  .mde-lb .tx{padding:44px 38px 34px;overflow:auto;color:#2a1d15;display:flex;flex-direction:column;gap:14px}
+  .mde-lb .st{color:#a87c45;letter-spacing:.18em;font-size:15px}
+  .mde-lb .q{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;line-height:1.35;margin:0}
+  .mde-lb .who{font-size:14px;line-height:1.6;color:#5a4a40}
+  .mde-lb .who b{color:#2a1d15;font-weight:500}
+  .mde-lb .jml{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#2a1d15;text-decoration:underline;text-underline-offset:4px}
+  .mde-lb .jm{margin-top:auto;padding-top:18px;border-top:1px solid #e6ddd1;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6d5a4d}
+  .mde-lb .x{position:absolute;top:12px;right:12px;z-index:2;width:40px;height:40px;border:0;border-radius:50%;background:#fbf8f4;color:#2a1d15;font-size:22px;cursor:pointer}
+  @media (max-width:760px){
+    .mde-lb .box{grid-template-columns:1fr;max-height:92vh;overflow:auto;width:94vw}
+    .mde-lb .ph{min-height:0}.mde-lb .ph img{max-height:58vh}
+    .mde-lb .vf iframe,.mde-lb .vf video{height:min(62vh,640px)}
+    .mde-lb .tx{padding:26px 22px 24px}.mde-lb .q{font-size:21px}
+  }
+</style>
+<div class="mde-lb" id="mde-lb" role="dialog" aria-modal="true" aria-label="{% if de %}Bewertung{% elsif ie %}Review{% elsif es %}Opinión{% elsif pl %}Opinia{% else %}Recenzie{% endif %}" aria-hidden="true">
+  <div class="box">
+    <button class="x" type="button" aria-label="{% if de %}Schließen{% elsif ie %}Close{% elsif es %}Cerrar{% elsif pl %}Zamknij{% else %}Închide{% endif %}">×</button>
+    <div class="ph"><img alt=""><div class="vf"></div><a class="vplay" href="#" target="_blank" rel="noopener"><i>▶</i><span>{% if de %}Video auf Judge.me ansehen{% elsif ie %}Watch the video on Judge.me{% elsif es %}Ver el vídeo en Judge.me{% elsif pl %}Zobacz wideo na Judge.me{% else %}Vezi video-ul pe Judge.me{% endif %}</span></a><button class="nav p" type="button" aria-label="{% if de %}Vorheriges Foto{% elsif ie %}Previous photo{% elsif es %}Foto anterior{% elsif pl %}Poprzednie zdjęcie{% else %}Fotografia anterioară{% endif %}">‹</button><button class="nav n" type="button" aria-label="{% if de %}Nächstes Foto{% elsif ie %}Next photo{% elsif es %}Foto siguiente{% elsif pl %}Następne zdjęcie{% else %}Fotografia următoare{% endif %}">›</button><span class="cnt"></span></div>
+    <div class="tx"><span class="st"></span><p class="q"></p><div class="who"></div><a class="jml" href="#" target="_blank" rel="noopener">{% if de %}Auf Judge.me ansehen →{% elsif ie %}View on Judge.me →{% elsif es %}Ver en Judge.me →{% elsif pl %}Zobacz na Judge.me →{% else %}Vezi recenzia pe Judge.me →{% endif %}</a><div class="jm">{% if de %}Gesammelt über Judge.me{% elsif ie %}Collected via Judge.me{% elsif es %}Opinión recogida en Judge.me{% elsif pl %}Zebrane przez Judge.me{% else %}Colectată și verificată de Judge.me · Recenzie verificată{% endif %}</div></div>
+  </div>
+</div>
+<script>
+(function(){
+  var lb = document.getElementById('mde-lb'); if (!lb || lb.dataset.ready) return; lb.dataset.ready = '1';
+  document.body.appendChild(lb);
+  var box = lb.querySelector('.box'), ph = lb.querySelector('.ph'), img = ph.querySelector('img'),
+      cnt = ph.querySelector('.cnt'), st = lb.querySelector('.st'), q = lb.querySelector('.q'), who = lb.querySelector('.who'),
+      vplay = ph.querySelector('.vplay'), jml = lb.querySelector('.jml'), vf = ph.querySelector('.vf'),
+      pics = [], i = 0, last = null, sx = null;
+  function show(){ if (!pics.length) return; img.src = pics[i]; cnt.textContent = pics.length > 1 ? (i+1) + ' / ' + pics.length : '';
+    ph.querySelectorAll('.nav').forEach(function(b){ b.style.display = pics.length > 1 ? '' : 'none'; }); }
+  function open(tile){
+    last = tile;
+    pics = (tile.getAttribute('data-pics') || '').split('|').filter(Boolean);
+    if (!pics.length){ var im = tile.querySelector('.im img'); if (im) pics = [im.currentSrc || im.src]; }
+    i = 0;
+    var nopic = !pics.length; ph.classList.toggle('nopic', nopic); box.classList.toggle('nopic', nopic);
+    var s = tile.querySelector('.st'); st.textContent = s ? s.textContent : '★★★★★';
+    var p = tile.querySelector('.b p'); q.textContent = p ? p.textContent : '';
+    q.style.display = p ? '' : 'none';
+    var sm = tile.querySelector('.b small'); who.innerHTML = sm ? sm.innerHTML : '';
+    img.alt = (tile.querySelector('.im img') || {}).alt || '';
+    var jm = tile.getAttribute('data-jm') || '', vid = tile.getAttribute('data-vid') || '';
+    jml.href = jm || '#'; jml.style.display = jm ? '' : 'none';
+    vplay.href = jm || '#'; vplay.style.display = vid ? '' : 'none';
+    if (vid) {
+      var ti = tile.querySelector('.im img'), ar = 9/16;
+      if (ti && ti.naturalWidth && ti.naturalHeight && !ti.dataset.fbused) ar = ti.naturalWidth / ti.naturalHeight;
+      var f;
+      if (isBunny(vid)) {
+        f = document.createElement('video');
+        f.src = VB + vid + '/play_720p.mp4'; f.poster = VB + vid + '/thumbnail.jpg';
+        f.controls = true; f.autoplay = true; f.playsInline = true; f.setAttribute('playsinline','');
+      } else {
+        f = document.createElement('iframe');
+        f.src = vidUrl(vid); f.setAttribute('allow','accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;fullscreen'); f.setAttribute('allowfullscreen','');
+      }
+      f.style.aspectRatio = String(ar);
+      vf.innerHTML = ''; vf.appendChild(f); ph.classList.add('isvid'); ph.classList.remove('nopic'); box.classList.remove('nopic');
+    } else { vf.innerHTML = ''; ph.classList.remove('isvid'); }
+    show();
+    lb.classList.add('on'); lb.setAttribute('aria-hidden','false');
+    document.documentElement.style.overflow = 'hidden';
+    lb.querySelector('.x').focus();
+  }
+  var VB = 'https://review-videos.judgeme.com/';
+  function isBunny(v){ return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v); }
+  function vidUrl(v){ if (/^[0-9a-f]{8}-/i.test(v)) { var lib = (window.jdgm && jdgm.BUNNY_STREAM_LIBRARY_ID) || '748386'; return 'https://iframe.mediadelivery.net/embed/' + lib + '/' + v + '?autoplay=true&preload=true'; } return 'https://iframe.videodelivery.net/' + v + '?autoplay=true'; }
+  function close(){ vf.innerHTML = ''; ph.classList.remove('isvid'); lb.classList.remove('on'); lb.setAttribute('aria-hidden','true'); document.documentElement.style.overflow = ''; if (last) last.focus(); }
+  function step(d){ if (pics.length < 2) return; i = (i + d + pics.length) % pics.length; show(); }
+  document.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('.mde-rev .tl');
+    if (t && !e.target.closest('a')) { e.preventDefault(); open(t); }
+  });
+  document.addEventListener('keydown', function(e){
+    var t = e.target.closest && e.target.closest('.mde-rev .tl');
+    if (t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(t); return; }
+    if (!lb.classList.contains('on')) return;
+    if (e.key === 'Escape') close(); else if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
+  });
+  lb.addEventListener('click', function(e){ if (e.target === lb) close(); });
+  lb.querySelector('.x').addEventListener('click', close);
+  ph.querySelector('.p').addEventListener('click', function(){ step(-1); });
+  ph.querySelector('.n').addEventListener('click', function(){ step(1); });
+  ph.addEventListener('touchstart', function(e){ sx = e.touches[0].clientX; }, {passive:true});
+  ph.addEventListener('touchend', function(e){ if (sx === null) return; var dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1); sx = null; });
+  function mark(){ document.querySelectorAll('.mde-rev .tl').forEach(function(t){ if (!t.hasAttribute('tabindex')) { t.setAttribute('tabindex','0'); t.setAttribute('role','button'); t.setAttribute('aria-label','{% if de %}Bewertung öffnen{% elsif ie %}Open review{% elsif es %}Abrir opinión{% elsif pl %}Otwórz opinię{% else %}Deschide recenzia{% endif %}'); } }); motion(); }
+  /* Video-Kacheln: stummes, geloopt abgespieltes Vorschauvideo statt Standbild (nur sichtbar = spielt) */
+  function motion(){
+    var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(es){ es.forEach(function(e){ var v = e.target; if (e.isIntersecting) { if (!v.src) v.src = v.dataset.src; var pr = v.play(); if (pr && pr.catch) pr.catch(function(){}); } else { v.pause(); } }); }, {rootMargin:'100px'}) : null;
+    document.querySelectorAll('.mde-rev .tl[data-vid]').forEach(function(t){
+      var v = t.getAttribute('data-vid'); if (!isBunny(v) || (t.getAttribute('data-pics') || '') !== '' || t.querySelector('video.mv')) return;
+      var im = t.querySelector('.im'); if (!im) return;
+      var mv = document.createElement('video'); mv.className = 'mv'; mv.muted = true; mv.loop = true; mv.playsInline = true; mv.setAttribute('playsinline',''); mv.setAttribute('muted','');
+      mv.preload = 'none'; mv.poster = VB + v + '/thumbnail.jpg'; mv.dataset.src = VB + v + '/play_360p.mp4';
+      mv.addEventListener('loadeddata', function(){ var ii = im.querySelector('img'); if (ii) ii.style.visibility = 'hidden'; });
+      im.insertBefore(mv, im.firstChild);
+      if (io) io.observe(mv); else { mv.src = mv.dataset.src; mv.play(); }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mark); else mark();
+})();
+</script>

@@ -1,0 +1,435 @@
+{%- comment -%}
+  v38 – "Anunță-mă când revine" (back-in-stock waitlist), all markets (RO / DE / PL).
+  Shown only when the product is not available. Replaces the dead sold-out button.
+  E-mail  -> native Shopify customer form (with Shopify's own captcha); the customer gets the tags
+             restock, restock-<product handle>, restock-<market>  (Customers › filter by tag).
+  WhatsApp -> opens a chat with the store number with a ready-made message.
+  Section added to templates/product.context.{ro,deutschland,polska}.json right after main-product.
+{%- endcomment -%}
+{%- if product and product.available == false -%}
+{%- liquid
+  assign mk = localization.market.handle
+  assign de = false
+  assign pl = false
+  assign ie = false
+  assign es = false
+  if mk == 'deutschland'
+    assign de = true
+  elsif mk == 'polska'
+    assign pl = true
+  elsif mk == 'ireland'
+    assign ie = true
+  elsif mk == 'spania'
+    assign es = true
+  endif
+  assign raw = product.title | split: '**' | first | split: ',' | first | split: '.' | first | strip
+  assign words = raw | split: ' '
+  assign pname = ''
+  for w in words
+    if forloop.first
+      assign ww = w | upcase
+    else
+      assign ww = w | downcase | capitalize
+    endif
+    assign pname = pname | append: ww
+    unless forloop.last
+      assign pname = pname | append: ' '
+    endunless
+  endfor
+  if de
+    assign t_k = 'Ausverkauft · bald wieder da'
+    assign t_h = 'Erfahre als Erste, wenn <em>' | append: pname | append: '</em> zurück ist.'
+    assign t_sub = 'Hinterlasse uns deine E-Mail oder WhatsApp-Nummer – wir melden uns, sobald die Tasche wieder verfügbar ist, noch vor allen anderen.'
+    assign t_mail = 'E-Mail'
+    assign t_ph = 'Deine E-Mail-Adresse'
+    assign t_btn = 'Benachrichtigen'
+    assign t_cons = 'Nur eine Nachricht, sobald sie wieder da ist. Mit der Anmeldung stimmst du E-Mails von MIHAILIUC zu – Abmeldung jederzeit möglich.'
+    assign t_wa = 'Benachrichtigen'
+    assign t_wanote = 'Nur eine WhatsApp-Nachricht, sobald die Tasche wieder da ist. Mit der Anmeldung stimmst du zu, dass MIHAILIUC dich per WhatsApp kontaktiert – Abmeldung jederzeit möglich.'
+    assign t_waph = 'Deine WhatsApp-Nummer'
+    assign t_waerr = 'Bitte gib eine gültige Telefonnummer ein.'
+    assign cc0 = '+49'
+    assign t_p1 = 'Als Erste erfahren'
+    assign t_p2 = 'Unverbindlich'
+    assign t_p3 = 'Kein Spam'
+    assign t_ok_k = 'Du bist auf der Liste'
+    assign t_ok_h = 'Danke! Du erfährst es <em>als Erste.</em>'
+    assign t_ok_t = 'Wir schreiben dir an [e], sobald ' | append: pname | append: ' wieder verfügbar ist.'
+    assign t_ok_t2 = 'Wir schreiben dir, sobald ' | append: pname | append: ' wieder verfügbar ist.'
+    assign t_ok_tw = 'Wir schreiben dir auf WhatsApp an [e], sobald ' | append: pname | append: ' wieder verfügbar ist.'
+    assign t_ok_l = 'Jetzt verfügbare Farben ansehen'
+    assign t_bar = 'Benachrichtigen'
+    assign t_err = 'Bitte gib eine gültige E-Mail-Adresse ein.'
+  elsif ie
+    assign t_k = 'Sold out · back soon'
+    assign t_h = 'Want to know when <em>' | append: pname | append: '</em> is back?'
+    assign t_sub = 'Leave your email or WhatsApp number and we’ll send you one message as soon as it’s back in stock.'
+    assign t_mail = 'Email'
+    assign t_ph = 'Your email address'
+    assign t_btn = 'Notify me'
+    assign t_cons = 'Just one message, when it’s back. By signing up you agree to receive emails from MIHAILIUC – you can unsubscribe at any time.'
+    assign t_wa = 'Notify me'
+    assign t_wanote = 'Just one WhatsApp message, when the bag is back. By signing up you agree that MIHAILIUC can contact you on WhatsApp – you can opt out at any time.'
+    assign t_waph = 'Your WhatsApp number'
+    assign t_waerr = 'Please enter a valid phone number.'
+    assign cc0 = '+353'
+    assign t_p1 = 'Be the first to know'
+    assign t_p2 = 'No commitment'
+    assign t_p3 = 'No spam'
+    assign t_ok_k = 'You’re on the list'
+    assign t_ok_h = 'Thanks! You’ll be <em>the first to know.</em>'
+    assign t_ok_t = 'We’ll email you at [e] as soon as ' | append: pname | append: ' is back.'
+    assign t_ok_t2 = 'We’ll let you know as soon as ' | append: pname | append: ' is back.'
+    assign t_ok_tw = 'We’ll message you on WhatsApp at [e] as soon as ' | append: pname | append: ' is back.'
+    assign t_ok_l = 'See the colours available now'
+    assign t_bar = 'Notify me'
+    assign t_err = 'Please enter a valid email address.'
+  elsif es
+    assign t_k = 'Agotado por ahora'
+    assign t_h = '¿Quieres saber cuándo vuelve <em>' | append: pname | append: '</em>?'
+    assign t_sub = 'Déjanos tu email o tu número de WhatsApp y te mandamos un solo mensaje en cuanto vuelva a estar disponible.'
+    assign t_mail = 'Email'
+    assign t_ph = 'Tu dirección de email'
+    assign t_btn = 'Avísame'
+    assign t_cons = 'Solo un mensaje, cuando vuelva. Al apuntarte aceptas recibir emails de MIHAILIUC; puedes darte de baja cuando quieras.'
+    assign t_wa = 'Avísame'
+    assign t_wanote = 'Solo un mensaje por WhatsApp, cuando el bolso vuelva. Al apuntarte aceptas que MIHAILIUC te escriba por WhatsApp; puedes darte de baja cuando quieras.'
+    assign t_waph = 'Tu número de WhatsApp'
+    assign t_waerr = 'Escribe un número de teléfono válido.'
+    assign cc0 = '+34'
+    assign t_p1 = 'Un solo aviso'
+    assign t_p2 = 'Sin compromiso'
+    assign t_p3 = 'Sin spam'
+    assign t_ok_k = 'Ya estás en la lista'
+    assign t_ok_h = '¡Gracias! <em>Te avisaremos.</em>'
+    assign t_ok_t = 'Te escribiremos a [e] en cuanto ' | append: pname | append: ' vuelva.'
+    assign t_ok_t2 = 'Te avisaremos en cuanto ' | append: pname | append: ' vuelva.'
+    assign t_ok_tw = 'Te escribiremos por WhatsApp al [e] en cuanto ' | append: pname | append: ' vuelva.'
+    assign t_ok_l = 'Ver los colores disponibles ahora'
+    assign t_bar = 'Avísame'
+    assign t_err = 'Escribe una dirección de email válida.'
+  elsif pl
+    assign t_k = 'Wyprzedane · wkrótce wraca'
+    assign t_h = 'Dowiedz się pierwsza, gdy <em>' | append: pname | append: '</em> wróci.'
+    assign t_sub = 'Zostaw nam e-mail lub numer WhatsApp – damy Ci znać, gdy tylko torebka będzie znów dostępna, przed wszystkimi.'
+    assign t_mail = 'E-mail'
+    assign t_ph = 'Twój adres e-mail'
+    assign t_btn = 'Powiadom mnie'
+    assign t_cons = 'Tylko jedna wiadomość, gdy torebka wróci. Zapisując się, zgadzasz się na e-maile od MIHAILIUC – możesz zrezygnować w każdej chwili.'
+    assign t_wa = 'Powiadom mnie'
+    assign t_wanote = 'Tylko jedna wiadomość na WhatsApp, gdy torebka wróci. Zapisując się, zgadzasz się na kontakt od MIHAILIUC przez WhatsApp – możesz zrezygnować w każdej chwili.'
+    assign t_waph = 'Twój numer WhatsApp'
+    assign t_waerr = 'Wpisz poprawny numer telefonu.'
+    assign cc0 = '+48'
+    assign t_p1 = 'Dowiesz się pierwsza'
+    assign t_p2 = 'Bez zobowiązań'
+    assign t_p3 = 'Bez spamu'
+    assign t_ok_k = 'Jesteś na liście'
+    assign t_ok_h = 'Dziękujemy! Dowiesz się <em>pierwsza.</em>'
+    assign t_ok_t = 'Napiszemy na [e], gdy tylko ' | append: pname | append: ' wróci.'
+    assign t_ok_t2 = 'Napiszemy, gdy tylko ' | append: pname | append: ' wróci.'
+    assign t_ok_tw = 'Napiszemy na WhatsApp pod numer [e], gdy tylko ' | append: pname | append: ' wróci.'
+    assign t_ok_l = 'Zobacz kolory dostępne teraz'
+    assign t_bar = 'Powiadom mnie'
+    assign t_err = 'Wpisz poprawny adres e-mail.'
+  else
+    assign t_k = 'Stoc epuizat · revine în curând'
+    assign t_h = 'Fii prima care află când <em>' | append: pname | append: '</em> revine.'
+    assign t_sub = 'Lasă-ne e-mailul sau numărul de WhatsApp și te anunțăm imediat ce geanta e din nou disponibilă – înaintea tuturor.'
+    assign t_mail = 'E-mail'
+    assign t_ph = 'Adresa ta de e-mail'
+    assign t_btn = 'Anunță-mă'
+    assign t_cons = 'Un singur mesaj, când geanta revine în stoc. Prin înscriere accepți să primești e-mailuri de la MIHAILIUC – te poți dezabona oricând.'
+    assign t_wa = 'Anunță-mă'
+    assign t_wanote = 'Un singur mesaj pe WhatsApp, când geanta revine în stoc. Prin înscriere accepți să te contactăm pe WhatsApp – te poți dezabona oricând.'
+    assign t_waph = 'Numărul tău de WhatsApp'
+    assign t_waerr = 'Te rugăm să introduci un număr de telefon valid.'
+    assign cc0 = '+40'
+    assign t_p1 = 'Afli prima'
+    assign t_p2 = 'Fără obligații'
+    assign t_p3 = 'Fără spam'
+    assign t_ok_k = 'Ești pe listă'
+    assign t_ok_h = 'Mulțumim! Vei afla <em>prima.</em>'
+    assign t_ok_t = 'Îți scriem pe [e] imediat ce ' | append: pname | append: ' revine în stoc.'
+    assign t_ok_t2 = 'Îți scriem imediat ce ' | append: pname | append: ' revine în stoc.'
+    assign t_ok_tw = 'Îți scriem pe WhatsApp la [e] imediat ce ' | append: pname | append: ' revine în stoc.'
+    assign t_ok_l = 'Vezi nuanțele disponibile acum'
+    assign t_bar = 'Anunță-mă'
+    assign t_err = 'Te rugăm să introduci o adresă de e-mail validă.'
+  endif
+  assign tg = 'restock,restock-' | append: product.handle | append: ',restock-' | append: mk
+-%}
+<style>
+.mnt{--ink:#2a1a12;--ink2:#5a4a40;--rust:#8a4a2a;--gold:#b8924f;--gold2:#e2c79a;--cream:#faf7f2;--line:rgba(42,26,18,.12);position:relative;margin:2px 0 18px;text-align:left;font-family:'Jost','Helvetica Neue',Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;isolation:isolate}
+.mnt *{box-sizing:border-box}
+/* living gold frame */
+.mnt:before{content:"";position:absolute;inset:0;padding:1px;background:conic-gradient(from var(--mnt-a,0deg),rgba(184,146,79,.15),rgba(226,199,154,.95) 12%,rgba(184,146,79,.15) 26%,rgba(184,146,79,.15) 62%,rgba(226,199,154,.8) 74%,rgba(184,146,79,.15) 88%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:mntSpin 9s linear infinite;z-index:1;pointer-events:none}
+@property --mnt-a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes mntSpin{to{--mnt-a:360deg}}
+.mnt-in{position:relative;padding:24px 22px 20px;background:radial-gradient(120% 80% at 100% 0,rgba(226,199,154,.22),transparent 60%),var(--cream);overflow:hidden;overflow:clip}
+.mnt-in:after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;border:1px solid rgba(184,146,79,.18);box-shadow:0 0 0 18px rgba(184,146,79,.05),0 0 0 40px rgba(184,146,79,.035);pointer-events:none}
+.mnt .k{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.24em;text-transform:uppercase;font-weight:500;color:var(--rust)!important;margin:0}
+.mnt .k i{position:relative;width:7px;height:7px;border-radius:50%;background:var(--rust);flex:none}
+.mnt .k i:after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--rust);opacity:0;animation:mntPulse 2.2s ease-out infinite}
+@keyframes mntPulse{0%{transform:scale(.4);opacity:.7}100%{transform:scale(1.5);opacity:0}}
+.mnt h3{margin:12px 0 0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:500;font-size:27px;line-height:1.12;letter-spacing:0;text-transform:none;color:var(--ink)!important}
+.mnt h3 em{font-style:italic;color:var(--rust)!important;white-space:nowrap}
+.mnt .sub{margin:10px 0 18px;font-size:13.5px;line-height:1.55;color:var(--ink2)!important;max-width:44ch}
+/* channel switch */
+.mnt .sw{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:4px;background:#fff;border:1px solid var(--line);border-radius:999px;margin:0 0 12px}
+.mnt .sw .ind{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:999px;background:var(--ink);transition:transform .45s cubic-bezier(.22,1,.36,1);z-index:0}
+.mnt[data-ch="wa"] .sw .ind{transform:translateX(100%)}
+.mnt .sw button{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:8px;height:38px;border:0;background:none;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:var(--ink2);transition:color .35s;-webkit-tap-highlight-color:transparent;padding:0;width:100%!important;margin:0!important;min-height:0!important;font-family:'Jost','Helvetica Neue',Arial,sans-serif!important}
+.mnt .sw button[aria-selected="true"]{color:#faf7f2}
+.mnt .sw svg{width:15px;height:15px;flex:none}
+.mnt .pn{display:none;animation:mntIn .45s cubic-bezier(.22,1,.36,1)}
+.mnt[data-ch="em"] .pn-em,.mnt[data-ch="wa"] .pn-wa{display:block}
+@keyframes mntIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.mnt form{margin:0}
+.mnt .fld{display:flex;align-items:stretch;background:#fff;border:1px solid rgba(42,26,18,.18);border-radius:999px;padding:4px;transition:border-color .25s,box-shadow .25s}
+.mnt .fld:focus-within{border-color:var(--gold);box-shadow:0 0 0 4px rgba(184,146,79,.16)}
+.mnt .fld.bad{border-color:#a2372a;animation:mntShake .4s}
+@keyframes mntShake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.mnt .fld input{flex:1;min-width:0;border:0!important;outline:0;background:transparent!important;box-shadow:none!important;padding:0 6px 0 16px!important;height:46px!important;min-height:0!important;margin:0!important;line-height:46px!important;font-family:'Jost','Helvetica Neue',Arial,sans-serif!important;font-size:16px!important;color:var(--ink);border-radius:999px}
+.mnt .fld input::placeholder{color:#9a8a7c}
+.mnt .go{position:relative;overflow:hidden;flex:none;border:0;cursor:pointer;border-radius:999px;background:var(--ink);color:#faf7f2;font-family:'Jost','Helvetica Neue',Arial,sans-serif!important;margin:0!important;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;padding:0 20px;min-height:46px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .3s,transform .2s;-webkit-tap-highlight-color:transparent;text-decoration:none!important}
+.mnt .go:after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(226,199,154,.45) 48%,transparent 66%);transform:translateX(-120%);transition:transform .9s cubic-bezier(.22,1,.36,1)}
+.mnt .go:hover{background:#3a2619}
+.mnt .go:hover:after{transform:translateX(120%)}
+.mnt .go:active{transform:scale(.98)}
+.mnt .go svg{width:15px;height:15px}
+.mnt .go.busy{pointer-events:none;opacity:.85}
+.mnt .go.busy span{opacity:0}
+.mnt .go.busy:before{content:"";position:absolute;width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(250,247,242,.35);border-top-color:#faf7f2;animation:mntRot .7s linear infinite}
+@keyframes mntRot{to{transform:rotate(360deg)}}
+.mnt .err{display:none;margin:8px 0 0 16px;font-size:12px;color:#a2372a}
+.mnt .err.on{display:block}
+.mnt .cons{margin:10px 2px 0;font-size:11px;line-height:1.5;color:#8a776a!important}
+.mnt .wa{background:#1f5e43;color:#faf7f2!important;display:flex;width:100%;margin-top:8px!important;min-height:50px}
+.mnt .fld-wa .cc{position:relative;flex:none;display:flex;align-items:center;border-right:1px solid var(--line);margin:6px 0;padding:0 2px 0 12px}
+.mnt .fld-wa .cc:after{content:"";position:absolute;right:8px;top:50%;width:5px;height:5px;margin-top:-4px;border-right:1.3px solid var(--ink2);border-bottom:1.3px solid var(--ink2);transform:rotate(45deg);pointer-events:none}
+.mnt .fld-wa select{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;box-shadow:none!important;outline:0;margin:0!important;padding:0 22px 0 0!important;height:34px!important;min-height:0!important;font-family:'Jost','Helvetica Neue',Arial,sans-serif!important;font-size:14px!important;letter-spacing:.02em;color:var(--ink);cursor:pointer;width:auto!important}
+.mnt .fld-wa input{padding-left:12px!important}
+.mnt .wa span{color:#faf7f2!important}
+.mnt .wa:hover{background:#174a34}
+.mnt .wa svg{width:18px;height:18px}
+.mnt .pk{display:flex;flex-wrap:wrap;gap:6px 16px;margin:16px 0 0;padding:14px 0 0;border-top:1px solid var(--line);list-style:none}
+.mnt .pk li{position:relative;padding-left:16px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:var(--ink2)!important}
+.mnt .pk li:before{content:"";position:absolute;left:1px;top:.32em;width:8px;height:4.5px;border-left:1.5px solid var(--gold);border-bottom:1.5px solid var(--gold);transform:rotate(-45deg)}
+/* success */
+.mnt .ok{display:none;text-align:center;padding:8px 4px 4px}
+.mnt.done .frm{display:none}
+.mnt.done .ok{display:block;animation:mntIn .6s cubic-bezier(.22,1,.36,1)}
+.mnt .ok .ck{position:relative;width:76px;height:76px;margin:4px auto 14px}
+.mnt .ok .ck svg{width:100%;height:100%;overflow:visible}
+.mnt .ok .ck circle{fill:none;stroke:var(--gold);stroke-width:1.3;stroke-dasharray:220;stroke-dashoffset:220;animation:mntDraw 1s .1s cubic-bezier(.65,0,.35,1) forwards}
+.mnt .ok .ck path{fill:none;stroke:var(--rust);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:mntDraw .55s .85s cubic-bezier(.65,0,.35,1) forwards}
+@keyframes mntDraw{to{stroke-dashoffset:0}}
+.mnt .ok .ck i{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:var(--gold);opacity:0;animation:mntSpark 1.1s 1s ease-out forwards}
+@keyframes mntSpark{0%{opacity:1;transform:rotate(var(--r)) translateY(0) scale(1)}100%{opacity:0;transform:rotate(var(--r)) translateY(-58px) scale(.4)}}
+.mnt .ok .k{justify-content:center}
+.mnt .ok .k:before,.mnt .ok .k:after{content:"";width:22px;height:1px;background:var(--gold)}
+.mnt .ok h3{text-align:center;font-size:28px}
+.mnt .ok p{margin:10px auto 0;max-width:36ch;font-size:13.5px;line-height:1.55;color:var(--ink2)!important}
+.mnt .ok p b{color:var(--ink)!important;font-weight:500;word-break:break-all}
+.mnt .ok a{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding-bottom:4px;border-bottom:1px solid var(--gold);font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:500;color:var(--ink)!important;text-decoration:none!important}
+/* hide the dead sold-out button and the gift-wrap option while the waitlist is shown */
+html.mnt-on .product-form--block product-buy-buttons-element:not(.mnt-keep) .product-buy-buttons--primary[disabled]{display:none!important}
+html.mnt-on .mgf{display:none!important}
+html.mnt-posted #MhlWelcomePopup{display:none!important}
+/* sold out: no delivery promise ("Primești geanta joi…") */
+#mro-ship{display:none!important}
+.mnt-bar-go{opacity:1!important;cursor:pointer!important}
+@media(max-width:640px){
+  .mnt-in{padding:22px 18px 18px}
+  .mnt .fld-wa .cc{padding-left:10px}
+  .mnt h3{font-size:25px}
+  .mnt .go{padding:0 16px}
+}
+@media(max-width:340px){
+  .mnt .fld{flex-direction:column;border-radius:20px;gap:4px}
+  .mnt .fld input{height:44px}
+  .mnt .go{width:100%}
+}
+@media(prefers-reduced-motion:reduce){.mnt:before,.mnt .k i:after{animation:none}.mnt *{transition:none!important}}
+</style>
+
+<div class="mnt" id="mia-notify" data-ch="em" data-h="{{ product.handle }}" data-p="{{ pname | escape }}" data-mk="{{ mk }}" hidden>
+  <div class="mnt-in">
+    <div class="frm">
+      <p class="k"><i aria-hidden="true"></i>{{ t_k }}</p>
+      <h3>{{ t_h }}</h3>
+      <p class="sub">{{ t_sub }}</p>
+      <div class="sw" role="tablist">
+        <span class="ind" aria-hidden="true"></span>
+        <button type="button" role="tab" aria-selected="true" data-c="em"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6l8.5 7 8.5-7"/></svg>{{ t_mail }}</button>
+        <button type="button" role="tab" aria-selected="false" data-c="wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2a9.7 9.7 0 0 0-8.4 14.6L2.3 21.8l5.1-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 2s.8 2.3.9 2.5c.1.2 1.6 2.5 4 3.5 1.5.6 2.1.7 2.8.6.5-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1l-.3-.2z"/></svg>WhatsApp</button>
+      </div>
+      <div class="pn pn-em" role="tabpanel">
+        <div class="mnt-f">
+          <label class="fld">
+            <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">{{ t_mail }}</span>
+            <input type="email" placeholder="{{ t_ph }}" autocomplete="email" inputmode="email" enterkeyhint="send">
+            <button type="button" class="go"><span>{{ t_btn }}</span></button>
+          </label>
+          <p class="err">{{ t_err }}</p>
+        </div>
+        <p class="cons">{{ t_cons }}</p>
+      </div>
+      <div class="pn pn-wa" role="tabpanel">
+        <label class="fld fld-wa">
+          <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">WhatsApp</span>
+          <span class="cc"><select aria-label="Prefix">
+            {%- comment -%} v45: DE → DE/AT/CH first, PL → PL first, IE → IE/UK first; RO/MD at the end for these markets. RO unchanged. {%- endcomment -%}
+            {%- if de -%}
+              {%- assign ccs = '+49|DE,+43|AT,+41|CH,+48|PL,+39|IT,+34|ES,+33|FR,+31|NL,+32|BE,+44|UK,+353|IE,+420|CZ,+421|SK,+36|HU,+359|BG,+30|GR,+351|PT,+45|DK,+46|SE,+47|NO,+358|FI,+370|LT,+371|LV,+372|EE,+385|HR,+386|SI,+381|RS,+380|UA,+1|US,+40|RO,+373|MD' | split: ',' -%}
+            {%- elsif ie -%}
+              {%- assign ccs = '+353|IE,+44|UK,+49|DE,+43|AT,+41|CH,+48|PL,+39|IT,+34|ES,+33|FR,+31|NL,+32|BE,+420|CZ,+421|SK,+36|HU,+359|BG,+30|GR,+351|PT,+45|DK,+46|SE,+47|NO,+358|FI,+370|LT,+371|LV,+372|EE,+385|HR,+386|SI,+381|RS,+380|UA,+1|US,+40|RO,+373|MD' | split: ',' -%}
+            {%- elsif es -%}
+              {%- assign ccs = '+34|ES,+351|PT,+33|FR,+49|DE,+43|AT,+41|CH,+39|IT,+31|NL,+32|BE,+44|UK,+353|IE,+48|PL,+420|CZ,+421|SK,+36|HU,+359|BG,+30|GR,+45|DK,+46|SE,+47|NO,+358|FI,+370|LT,+371|LV,+372|EE,+385|HR,+386|SI,+381|RS,+380|UA,+1|US,+40|RO,+373|MD' | split: ',' -%}
+            {%- elsif pl -%}
+              {%- assign ccs = '+48|PL,+49|DE,+43|AT,+41|CH,+39|IT,+34|ES,+33|FR,+31|NL,+32|BE,+44|UK,+353|IE,+420|CZ,+421|SK,+36|HU,+359|BG,+30|GR,+351|PT,+45|DK,+46|SE,+47|NO,+358|FI,+370|LT,+371|LV,+372|EE,+385|HR,+386|SI,+381|RS,+380|UA,+1|US,+40|RO,+373|MD' | split: ',' -%}
+            {%- else -%}
+              {%- assign ccs = '+40|RO,+49|DE,+48|PL,+373|MD,+43|AT,+41|CH,+39|IT,+34|ES,+33|FR,+31|NL,+32|BE,+44|UK,+353|IE,+420|CZ,+421|SK,+36|HU,+359|BG,+30|GR,+351|PT,+45|DK,+46|SE,+47|NO,+358|FI,+370|LT,+371|LV,+372|EE,+385|HR,+386|SI,+381|RS,+380|UA,+1|US' | split: ',' -%}
+            {%- endif -%}
+            {%- for c in ccs -%}{%- assign cp = c | split: '|' -%}<option value="{{ cp[0] }}"{% if cp[0] == cc0 %} selected{% endif %}>{{ cp[1] }} {{ cp[0] }}</option>{%- endfor -%}
+          </select></span>
+          <input type="tel" placeholder="{{ t_waph }}" autocomplete="tel-national" inputmode="tel" enterkeyhint="send">
+        </label>
+        <button type="button" class="go wa"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.2a9.7 9.7 0 0 0-8.4 14.6L2.3 21.8l5.1-1.3A9.7 9.7 0 1 0 12 2.2zm0 17.7c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 2s.8 2.3.9 2.5c.1.2 1.6 2.5 4 3.5 1.5.6 2.1.7 2.8.6.5-.1 1.4-.6 1.6-1.1.2-.5.2-1 .1-1.1l-.3-.2z"/></svg><span>{{ t_wa }}</span></button>
+        <p class="err">{{ t_waerr }}</p>
+        <p class="cons">{{ t_wanote }}</p>
+      </div>
+      <ul class="pk"><li>{{ t_p1 }}</li><li>{{ t_p2 }}</li><li>{{ t_p3 }}</li></ul>
+    </div>
+    <div class="ok" aria-live="polite">
+      <div class="ck" aria-hidden="true"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="35"/><path d="M25 39.5l8.5 8.5L52 29.5"/></svg><i style="--r:0deg"></i><i style="--r:60deg"></i><i style="--r:120deg"></i><i style="--r:180deg"></i><i style="--r:240deg"></i><i style="--r:300deg"></i></div>
+      <p class="k">{{ t_ok_k }}</p>
+      <h3>{{ t_ok_h }}</h3>
+      <p class="okt" data-t="{{ t_ok_t | escape }}" data-t2="{{ t_ok_t2 | escape }}" data-tw="{{ t_ok_tw | escape }}">{{ t_ok_t2 }}</p>
+      <a href="#" data-mnt-colors>{{ t_ok_l }} <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</div>
+<div id="mia-notify-real" hidden>
+{%- form 'customer', id: 'MiaNotifyForm' -%}
+  <input type="hidden" name="contact[tags]" value="{{ tg }}">
+  <input type="email" name="contact[email]" value="">
+  <input type="hidden" name="contact[first_name]" value="">
+  <input type="hidden" name="contact[last_name]" value="">
+  <input type="hidden" name="contact[note]" value="">
+  {%- if form.posted_successfully? -%}<span id="mnt-posted"></span>{%- endif -%}
+{%- endform -%}
+</div>
+<script>
+(function(){
+  var box=document.getElementById('mia-notify');if(!box||box.__m)return;box.__m=1;
+  var H=document.documentElement,KEY='mia_notify',BAR={{ t_bar | json }};
+  function store(v){try{if(v)sessionStorage.setItem(KEY,JSON.stringify(v));else sessionStorage.removeItem(KEY);}catch(e){}}
+  function read(){try{return JSON.parse(sessionStorage.getItem(KEY)||'null');}catch(e){return null;}}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  /* place the panel where the sold-out button was */
+  function place(){
+    var el=[].slice.call(document.querySelectorAll('product-buy-buttons-element')).find(function(x){return !x.closest('.product-buy-buttons--drawer');});
+    if(!el)return false;
+    var blk=el.closest('.product-form--block')||el;
+    blk.parentNode.insertBefore(box,blk.nextSibling);
+    box.hidden=false;H.classList.add('mnt-on');return true;
+  }
+  /* channel switch */
+  box.querySelectorAll('.sw button').forEach(function(b){b.addEventListener('click',function(){
+    box.setAttribute('data-ch',b.dataset.c);
+    box.querySelectorAll('.sw button').forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
+  });});
+  /* both channels post the hidden Shopify customer form (with Shopify's captcha); the visible fields live inside the product form */
+  var rf=document.getElementById('MiaNotifyForm');
+  function F(n){return rf&&rf.querySelector('[name="contact['+n+']"]');}
+  var baseTags=F('tags')?F('tags').value:'';
+  /* Shopify's hCaptcha only arms a form after a focusin inside it – forward the focus of our visible fields */
+  var armed=0;function arm(){if(armed||!F('email'))return;armed=Date.now();try{F('email').dispatchEvent(new FocusEvent('focusin',{bubbles:true}));}catch(x){var ev=document.createEvent('Event');ev.initEvent('focusin',true,true);F('email').dispatchEvent(ev);}}
+  function bad(fld){fld.classList.remove('bad');void fld.offsetWidth;fld.classList.add('bad');fld.parentNode.querySelector('.err').classList.add('on');}
+  function post(btn,data){
+    btn.classList.add('busy');
+    F('email').value=data.email;F('tags').value=baseTags+','+data.tag;
+    F('first_name').value=data.fn||'';F('last_name').value=data.ln||'';F('note').value=data.note||'';
+    store({h:box.dataset.h,e:data.show,c:data.c,t:Date.now()});
+    arm();var wait=Math.max(0,1500-(Date.now()-armed));
+    setTimeout(function(){if(rf.requestSubmit)rf.requestSubmit();else rf.submit();},wait);
+    setTimeout(function(){btn.classList.remove('busy');},12000);
+  }
+  /* e-mail */
+  var pe=box.querySelector('.pn-em'),inp=pe.querySelector('input'),fld=pe.querySelector('.fld'),go=pe.querySelector('.go');
+  function sendE(){
+    var v=(inp.value||'').trim();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){bad(fld);inp.focus();return;}
+    if(!rf)return;
+    post(go,{email:v,tag:'restock-email',show:v,c:'em'});
+  }
+  /* WhatsApp: number + country prefix; stored on the customer (name, note, tags) */
+  var pw=box.querySelector('.pn-wa'),tin=pw.querySelector('input'),sel=pw.querySelector('select'),fw=pw.querySelector('.fld'),gw=pw.querySelector('.go');
+  function sendW(){
+    var d=(tin.value||'').replace(/[^\d+]/g,'');
+    if(d.charAt(0)==='+'){var full=d;}else{d=d.replace(/^00/,'+');if(d.charAt(0)==='+'){full=d;}else{full=sel.value+d.replace(/^0+/,'');}}
+    var digits=full.replace(/\D/g,'');
+    if(digits.length<9||digits.length>15){bad(fw);tin.focus();return;}
+    if(!rf)return;
+    var e164='+'+digits;
+    post(gw,{email:'wa'+digits+'@whatsapp.mihailiuc.ro',tag:'restock-whatsapp',fn:e164,ln:'WhatsApp',
+      note:'WhatsApp '+e164+' | '+box.dataset.p+' | '+box.dataset.mk,show:e164,c:'wa'});
+  }
+  [[inp,sendE],[tin,sendW]].forEach(function(x){
+    x[0].addEventListener('focus',arm);x[0].addEventListener('pointerdown',arm);
+    x[0].addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();e.stopPropagation();x[1]();}});
+    x[0].addEventListener('input',function(){var f=x[0].closest('.fld');f.classList.remove('bad');f.parentNode.querySelector('.err').classList.remove('on');});
+  });
+  sel.addEventListener('focus',arm);
+  go.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();sendE();});
+  gw.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();sendW();});
+  /* "available colours" link → swatches */
+  var cl=box.querySelector('[data-mnt-colors]');
+  if(cl)cl.addEventListener('click',function(e){e.preventDefault();var s=document.querySelector('[id*="mia_swatches"]')||document.querySelector('.mia-sw, [class*="swatch"]');if(s)s.scrollIntoView({behavior:'smooth',block:'center'});});
+  /* success after the Shopify customer form round-trip */
+  function success(st){
+    var t=box.querySelector('.okt'),tpl=st.c==='wa'?t.dataset.tw:t.dataset.t;
+    t.innerHTML=st.e?esc(tpl).replace('[e]','<b>'+esc(st.e)+'</b>'):esc(t.dataset.t2);
+    box.classList.add('done');
+  }
+  var st=read(),posted=!!document.getElementById('mnt-posted')||/[?&]customer_posted=true/.test(location.search);
+  /* the welcome popup (-15%) also reacts to a posted customer form – keep it closed after a waitlist signup */
+  var mine=!!(st&&st.h===box.dataset.h&&posted&&Date.now()-st.t<15*60*1000);
+  if(mine){
+    H.classList.add('mnt-posted');
+    var kill=function(){var w=document.getElementById('MhlWelcomePopup');if(w){w.classList.remove('is-open','is-visible');}H.style.overflow='';};
+    document.addEventListener('DOMContentLoaded',kill);window.addEventListener('load',kill);setTimeout(kill,0);setTimeout(kill,1200);
+    success(st);setTimeout(function(){store(null);},3000);
+    if(history.replaceState){var u=new URL(location.href);u.searchParams.delete('customer_posted');u.hash='';history.replaceState(null,'',u.toString());}
+    setTimeout(function(){box.scrollIntoView({behavior:'smooth',block:'center'});},350);setTimeout(function(){box.scrollIntoView({behavior:'smooth',block:'center'});},1400);
+  }
+  /* mobile sticky bar: turn the dead "sold out" button into "notify me" */
+  function bar(){
+    document.querySelectorAll('.product-buy-buttons--drawer button.product-buy-buttons--primary').forEach(function(b){
+      if(b.__mnt)return;b.__mnt=1;
+      b.removeAttribute('disabled');b.classList.add('mnt-bar-go');
+      var tx=b.querySelector('.product-buy-buttons--cta-text');if(tx)tx.textContent=BAR;else b.textContent=BAR;
+      new MutationObserver(function(){if(b.hasAttribute('disabled'))b.removeAttribute('disabled');}).observe(b,{attributes:true,attributeFilter:['disabled']});
+    });
+  }
+  window.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest&&e.target.closest('.product-buy-buttons--drawer button.product-buy-buttons--primary');if(!b||!b.__mnt)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    box.scrollIntoView({behavior:'smooth',block:'center'});
+    if(!box.classList.contains('done')){var fi=box.getAttribute('data-ch')==='wa'?tin:inp;setTimeout(function(){try{fi.focus({preventScroll:true});}catch(x){}},600);}
+  },true);
+  function run(){place();bar();}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+  setTimeout(bar,1500);
+})();
+</script>
+{%- endif -%}
+{% schema %}
+{
+  "name": "MIA — Anunță-mă",
+  "settings": [],
+  "presets": [{ "name": "MIA — Anunță-mă" }]
+}
+{% endschema %}

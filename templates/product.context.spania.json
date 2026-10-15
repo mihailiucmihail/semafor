@@ -1,0 +1,101 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "context": {
+    "market": "spania"
+  },
+  "parent": "product.json",
+  "sections": {
+    "main-product": {
+      "blocks": {
+        "description": {
+          "settings": {
+            "heading": "Descripción"
+          }
+        },
+        "essential_estimated_app_block_xrWkAH": {
+          "disabled": true
+        },
+        "judge_me_reviews_review_widget_7a3nzX": {
+          "disabled": true
+        },
+        "dealeasy_app_block_AJ9rQq": {
+          "disabled": true
+        },
+        "social-sharing-1": {
+          "disabled": true
+        }
+      }
+    },
+    "mia_notify": {
+      "type": "mia-notify",
+      "settings": {}
+    },
+    "mia_swatches": {
+      "type": "mia-pdp-swatches",
+      "settings": {
+        "style": "foto"
+      }
+    },
+    "mro_ship": {
+      "type": "mia-ro-ship",
+      "settings": {
+        "mode": "pdp"
+      }
+    },
+    "mia_extra": {
+      "type": "mia-pdp-extras",
+      "settings": {
+        "tiers": "2:10,3:13,4+:15",
+        "more_es": "Ver más opiniones"
+      }
+    },
+    "mde_pdp_fixes": {
+      "type": "mia-de-pdp-fixes",
+      "settings": {
+        "heading": "Compra con una amiga, tu madre o una compañera y ahorráis las dos.",
+        "qty_label": "Cantidad"
+      }
+    },
+    "mde_pdp_reviews": {
+      "type": "mia-de-pdp-reviews",
+      "settings": {
+        "limit": 40,
+        "all_url": "https://judge.me/reviews/stores/mihailiuc.co",
+        "title": "Lo que dicen <em>nuestras clientas.</em>",
+        "fallback_title": "MIA en <em>otros colores.</em>",
+        "fallback_note": "Todavía no hay opiniones de [product]. Aquí tienes lo que cuentan nuestras clientas del mismo bolso en otros colores.",
+        "all_label": "Todas las opiniones",
+        "jm_label": "Opiniones recogidas en Judge.me",
+        "photo_tag": "Foto de clienta",
+        "anon": "Clienta",
+        "verified": "Compra verificada"
+      }
+    },
+    "related-products": {
+      "settings": {
+        "title": "También te puede gustar"
+      }
+    }
+  },
+  "order": [
+    "main-product",
+    "mia_notify",
+    "mia_swatches",
+    "mro_ship",
+    "mia_extra",
+    "mde_pdp_fixes",
+    "mde_pdp_reviews",
+    "scrolling-content",
+    "text-columns",
+    "featured-video",
+    "related-products"
+  ]
+}
