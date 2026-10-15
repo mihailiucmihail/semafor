@@ -94,21 +94,31 @@ export async function deleteEntry(shopId: string, shopDomain: string, entryId: s
  * Checkout metafield: short plain-SHA256 hashes per kind (the Function cannot keep the HMAC secret).
  * {"v":1,"e":[...],"p":[...],"a":[...],"d":[...],"msg":"..."}
  */
-/** Normalized names of entries that consist of a name only (no e-mail, phone, address or device). */
-export async function nameOnlyRows(shopId: string): Promise<string[]> {
+/** Name-only entries (no e-mail, phone, address or device): normalized name + when it was added to the list. */
+export async function nameOnlyEntries(shopId: string): Promise<{ name: string; at: Date }[]> {
   const rows = (await db.identifier.findMany({
     where: { shopId, kind: "name", entry: { identifiers: { every: { kind: "name" } }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
-    select: { normalized: true },
+    select: { normalized: true, entry: { select: { createdAt: true } } },
   })) as any[];
-  return [...new Set(rows.map((r) => String(r.normalized)).filter(Boolean))];
+  return rows.filter((r) => r.normalized).map((r) => ({ name: String(r.normalized), at: new Date(r.entry.createdAt) }));
+}
+export async function nameOnlyRows(shopId: string): Promise<string[]> {
+  return [...new Set((await nameOnlyEntries(shopId)).map((r) => r.name))];
 }
 
-/** Does a buyer name hit one of the name-only entries? Returns the matching entry name or null. */
-export function nameOnlyHit(names: string[], first?: string | null, last?: string | null): string | null {
+/**
+ * Does a buyer name hit one of the name-only entries? One word = that word anywhere in the name, several = full name.
+ * With `when`, only entries that were already on the list at that moment count.
+ */
+export function nameOnlyHit(names: (string | { name: string; at: Date })[], first?: string | null, last?: string | null, when?: Date): string | null {
   const n = normName(first, last);
   if (!n) return null;
   const w = new Set(n.split(" "));
-  for (const x of names) if (x.includes(" ") ? x === n : w.has(x)) return x;
+  for (const e of names) {
+    const x = typeof e === "string" ? e : e.name;
+    if (when && typeof e !== "string" && +e.at > +when) continue;
+    if (x.includes(" ") ? x === n : w.has(x)) return x;
+  }
   return null;
 }
 

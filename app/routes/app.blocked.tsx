@@ -8,7 +8,7 @@ import { Kpi, IdLine, SectionHead } from "../components/semafor-ui";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
-import { buildIdentifiers, nameOnlyRows, nameOnlyHit } from "../semafor/entries.server";
+import { buildIdentifiers, nameOnlyEntries, nameOnlyHit } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
 import db from "../db.server";
 import { useT, useLang, dateLocale } from "../i18n";
@@ -35,9 +35,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const per = attempts.map((a) => buildIdentifiers({ email: a.email ?? undefined, phone: a.phone ?? undefined, firstName: a.firstName ?? undefined, lastName: a.lastName ?? undefined, address1: a.address1 ?? undefined, city: a.city ?? undefined, reason: "other" }, shop.country)
     .filter((i) => KINDS.includes(i.kind)).map((i) => ({ ...i, hash: hmacId(SECRET, i.kind, i.normalized) })));
   const hashes = [...new Set(per.flat().map((i) => i.hash))];
-  const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true } } } })) as any[]) : [];
-  const hitMap = new Map(hits.map((h) => [h.hash, h.entry.reason as string]));
-  const nameOnly = await nameOnlyRows(shop.id);
+  const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true, createdAt: true } } } })) as any[]) : [];
+  // a try only counts if the customer was ALREADY on the list at that moment (added later = not a blocked try)
+  const hitMap = new Map<string, { reason: string; at: number }>();
+  for (const h of hits) { const at = +new Date(h.entry.createdAt); const prev = hitMap.get(h.hash); if (!prev || at < prev.at) hitMap.set(h.hash, { reason: h.entry.reason, at }); }
+  const nameOnly = await nameOnlyEntries(shop.id);
 
   type Row = { dev: string; first: Date; last: Date; names: Set<string>; emails: Set<string>; phones: Set<string>; city: string | null;
     matched: Map<string, string>; reasons: Set<string>; tries: number; total: number | null; currency: string | null; items: any[]; completed: boolean; orderId: string | null };
@@ -45,8 +47,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   attempts.forEach((a, k) => {
     const m = new Map<string, string>();
     const reasons = new Set<string>();
-    for (const i of per[k]) if (hitMap.has(i.hash)) { m.set(i.raw, i.kind === "name_address" ? "name" : i.kind); reasons.add(hitMap.get(i.hash)!); }
-    const nm = nameOnly.length ? nameOnlyHit(nameOnly, a.firstName, a.lastName) : null;
+    for (const i of per[k]) { const h = hitMap.get(i.hash); if (h && h.at <= +a.createdAt) { m.set(i.raw, i.kind === "name_address" ? "name" : i.kind); reasons.add(h.reason); } }
+    const nm = nameOnly.length ? nameOnlyHit(nameOnly, a.firstName, a.lastName, a.createdAt) : null;
     if (nm) m.set([a.firstName, a.lastName].filter(Boolean).join(" "), "name");
     const known = devs.get(a.deviceId);
     if (!m.size && !known) return;

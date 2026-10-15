@@ -12,7 +12,7 @@ import { attributionSummary, backfillAttribution } from "../semafor/attribution.
 import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
-import { buildIdentifiers, nameOnlyRows, nameOnlyHit } from "../semafor/entries.server";
+import { buildIdentifiers, nameOnlyEntries, nameOnlyHit } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
 import { normEmail, normPhone, normName } from "../../core/normalize";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
@@ -35,9 +35,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     .filter((i) => ["email", "phone", "name_address", "address"].includes(i.kind))
     .map((i) => ({ ...i, hash: hmacId(SECRET, i.kind, i.normalized) })));
   const hashes = [...new Set(perAttempt.flat().map((i) => i.hash))];
-  const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true } } } })) as any[]) : [];
-  const hitSet = new Map(hits.map((h) => [h.hash, h.entry.reason]));
-  const nameOnly = await nameOnlyRows(shop.id);
+  const hits = hashes.length ? ((await db.identifier.findMany({ where: { shopId: shop.id, hash: { in: hashes } }, select: { hash: true, entry: { select: { reason: true, createdAt: true } } } })) as any[]) : [];
+  // only tries made while the customer was already on the list count as "blacklisted tried" / "slipped through"
+  const hitAt = new Map<string, number>();
+  for (const h of hits) { const at = +new Date(h.entry.createdAt); if (!hitAt.has(h.hash) || at < hitAt.get(h.hash)!) hitAt.set(h.hash, at); }
+  const nameOnly = await nameOnlyEntries(shop.id);
 
   type Dev = { id: string; first: Date; last: Date; emails: Set<string>; phones: Set<string>; names: Set<string>; steps: number; completed: boolean; matched: string[]; events: string[]; orderId: string | null; city: string | null };
   const devs = new Map<string, Dev>();
@@ -51,8 +53,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const e = a.email && normEmail(a.email); if (e) d.emails.add(a.email);
     const p = a.phone && normPhone(a.phone, shop.country); if (p) d.phones.add(a.phone);
     const n = normName(a.firstName, a.lastName); if (n) d.names.add([a.firstName, a.lastName].filter(Boolean).join(" "));
-    for (const i of perAttempt[idx]) if (hitSet.has(i.hash) && !d.matched.includes(i.raw)) d.matched.push(i.raw);
-    if (nameOnly.length && nameOnlyHit(nameOnly, a.firstName, a.lastName)) { const raw = [a.firstName, a.lastName].filter(Boolean).join(" "); if (!d.matched.includes(raw)) d.matched.push(raw); }
+    let hitNow = false;
+    for (const i of perAttempt[idx]) if (hitAt.has(i.hash) && hitAt.get(i.hash)! <= +a.createdAt) { hitNow = true; if (!d.matched.includes(i.raw)) d.matched.push(i.raw); }
+    if (nameOnly.length && nameOnlyHit(nameOnly, a.firstName, a.lastName, a.createdAt)) { hitNow = true; const raw = [a.firstName, a.lastName].filter(Boolean).join(" "); if (!d.matched.includes(raw)) d.matched.push(raw); }
+    if (hitNow && !(d as any).blackSince) (d as any).blackSince = a.createdAt;
+    if (a.event === "completed" && (d as any).blackSince) (d as any).completedAfter = true;
     devs.set(a.deviceId, d);
   });
   // "cart" rows (before checkout) only matter for browsers whose e-mail is known from the pop-up
@@ -62,7 +67,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const checkoutDevs = all.filter(inCheckout);
   const black = all.filter((d) => d.matched.length);
   const hopping = all.filter((d) => d.emails.size >= 3 || d.phones.size >= 3 || d.names.size >= 3 || d.emails.size + d.phones.size + d.names.size >= 6);
-  const slipped = black.filter((d) => d.completed);
+  const slipped = black.filter((d) => (d as any).completedAfter);
 
   const checks = (await db.orderCheck.findMany({ where: { shopId: shop.id, checkedAt: { gt: since } }, select: { level: true, networkLevel: true } })) as any[];
   const rank = { green: 0, yellow: 1, red: 2 } as const;
@@ -71,7 +76,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const suspicious = [...new Set([...black, ...hopping])]
     .sort((a, b) => +b.last - +a.last).slice(0, 50)
-    .map((d) => ({ id: d.id.slice(0, 6), last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], matched: d.matched, completed: d.completed, hopping: hopping.includes(d) }));
+    .map((d) => ({ id: d.id.slice(0, 6), last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], matched: d.matched, completed: d.matched.length ? !!(d as any).completedAfter : d.completed, hopping: hopping.includes(d) }));
 
   // every device, newest first, with the order it ended in (if any)
   const orderIds = all.map((d) => d.orderId).filter(Boolean) as string[];
