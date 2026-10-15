@@ -181,7 +181,7 @@ test('popup: storefront config fills {shop} and {pct} in every language', () => 
   assert.match(cfg.texts.ro.text, /noutățile MIHAILIUC și primești 20% reducere/);
   assert.match(cfg.texts.de.text, /20 % Rabatt/);
   assert.ok(!/\{(shop|pct)\}/.test(JSON.stringify(cfg)));
-  assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'pl', 'ro']);
+  assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'es', 'pl', 'ro']);
 });
 
 // ── skip reasons read as sentences (app/i18n.ts trMsg) ──
@@ -241,4 +241,43 @@ test('pop-up code per storefront language', async () => {
   const p = { code: 'BUNVENIT15', localCodes: { ro: 'BUNVENIT15', de: 'WILLKOMMEN15' } };
   assert.equal(codeForLang(p, 'de'), 'WILLKOMMEN15');
   assert.equal(codeForLang(p, 'pl'), 'BUNVENIT15'); // not created yet → main code
+});
+
+test('pop-up: Spanish + percentage per language', async () => {
+  const { localCodeName, pctFor, cleanPopup, buildPopupConfig, isLocalCodeFor, popupDefaults, promisesEmail, WELCOME_DEFAULT_TEXTS, WELCOME_KEYS, POPUP_TEXT_KEYS } = await import('../core/popup.ts');
+  const { POPUP_LANGS, settingsOf } = await import('../core/settings.ts');
+  assert.ok(POPUP_LANGS.includes('es'));
+  assert.equal(localCodeName('es', 10), 'BIENVENIDA10');
+  // every key in every language
+  for (const l of POPUP_LANGS) {
+    for (const k of POPUP_TEXT_KEYS) assert.ok(popupDefaults(l)[k], `${l}.${k}`);
+    for (const k of WELCOME_KEYS) assert.ok(WELCOME_DEFAULT_TEXTS[l][k], `welcome ${l}.${k}`);
+  }
+  // the Spanish defaults promise the e-mail only while the welcome e-mail is on
+  assert.equal(promisesEmail(popupDefaults('es', true)), true);
+  assert.equal(promisesEmail(popupDefaults('es', false)), false);
+
+  // stored settings without the field: no override → the general percentage everywhere
+  const old = settingsOf({ popup: { pct: 15 } }).popup;
+  assert.equal(pctFor(old, 'es'), 15);
+  assert.equal(pctFor(old, 'de'), 15);
+
+  const p = cleanPopup({ pct: 15, pctByLang: { es: 10, de: 15 as any, pl: '' as any, en: 500 } });
+  assert.deepEqual(p.pctByLang, { es: 10 }); // same as general / empty / out of range → dropped
+  assert.equal(pctFor(p, 'es'), 10);
+  assert.equal(pctFor(p, 'ro'), 15);
+  assert.equal(localCodeName('es', pctFor(p, 'es')), 'BIENVENIDA10');
+  assert.equal(localCodeName('de', pctFor(p, 'de')), 'WILLKOMMEN15');
+
+  const cfg = buildPopupConfig({ ...p, enabled: true, localCodes: { es: 'BIENVENIDA15', de: 'WILLKOMMEN15' } }, 'Shop');
+  assert.equal(cfg.texts.es.bigLabel, '-10%');
+  assert.match(cfg.texts.es.text, /10 % de descuento/);
+  assert.equal(cfg.texts.de.bigLabel, '-15%');
+  assert.equal(cfg.pcts.es, 10);
+  assert.equal(cfg.codes.es, undefined); // stale 15 % code is not handed to Spanish visitors
+  assert.equal(cfg.codes.de, 'WILLKOMMEN15');
+
+  assert.equal(isLocalCodeFor('BIENVENIDA10', 'BIENVENIDA10'), true);
+  assert.equal(isLocalCodeFor('BIENVENIDA10S', 'BIENVENIDA10'), true);
+  assert.equal(isLocalCodeFor('BIENVENIDA10', 'BIENVENIDA1'), false);
 });

@@ -11,7 +11,7 @@ import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, en
 import db from "../db.server";
 import { can } from "../../core/plans";
 import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts, type WelcomeTexts } from "../../core/settings";
-import { PCT_CHOICES, WELCOME_KEYS, autoCode, buildPopupConfig, cleanPopup, popupTexts, popupDefaults, promisesEmail, welcomeTexts } from "../../core/popup";
+import { PCT_CHOICES, WELCOME_KEYS, autoCode, buildPopupConfig, cleanPopup, popupTexts, popupDefaults, promisesEmail, welcomeTexts, pctFor, localCodeName, isLocalCodeFor } from "../../core/popup";
 import { sendWelcome } from "../semafor/welcome.server";
 import { senderOf, MAIL_DOMAIN, mailReady } from "../semafor/recovery.server";
 import { Kpi, SectionHead } from "../components/semafor-ui";
@@ -96,7 +96,7 @@ const THUMB: Record<string, { visual: string; bg: string; accent: string; line: 
   summer: { visual: "linear-gradient(180deg,#f5d083 0%,#eaa660 34%,#2d9c98 68%,#135d5d 100%)", bg: "#fcf7ee", accent: "#1b8584", line: "#e8b545" },
   autumn: { visual: "linear-gradient(155deg,#d08236 0%,#a3531f 45%,#4c2a10 100%)", bg: "#faf3e7", accent: "#b4561d", line: "#dc9c3f" },
 };
-const LANG_NAME: Record<PopupLang, string> = { ro: "Română", de: "Deutsch", pl: "Polski", en: "English" };
+const LANG_NAME: Record<PopupLang, string> = { ro: "Română", de: "Deutsch", pl: "Polski", en: "English", es: "Español" };
 const GROUPS: Array<{ key: TKey; fields: Array<keyof PopupTexts> }> = [
   { key: "popup.groupBefore", fields: ["bigLabel", "bigSub", "eyebrow", "heading", "text", "placeholder", "button", "note", "decline"] },
   { key: "popup.groupAfter", fields: ["successEyebrow", "successHeading", "successText", "successButton", "successNote"] },
@@ -118,7 +118,7 @@ html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Seg
 <script>${popupJs}</script>
 <script>
 var cur=null;
-function draw(d){try{var ui=window.SemaforPopupUI.render(d.cfg,d.lang,{preview:true,instant:true,state:d.state,code:d.cfg.code});if(cur&&cur.parentNode)cur.parentNode.removeChild(cur);document.body.appendChild(ui.root);cur=ui.root;}catch(e){console.error(e)}}
+function draw(d){try{var ui=window.SemaforPopupUI.render(d.cfg,d.lang,{preview:true,instant:true,state:d.state,code:window.SemaforPopupUI.codeOf(d.cfg,d.lang)});if(cur&&cur.parentNode)cur.parentNode.removeChild(cur);document.body.appendChild(ui.root);cur=ui.root;}catch(e){console.error(e)}}
 window.addEventListener('message',function(e){if(e.data&&e.data.type==='smf-pp')draw(e.data)});
 parent.postMessage({type:'smf-pp-ready'},'*');
 </script></body></html>`;
@@ -181,6 +181,13 @@ export default function PopupPage() {
   const [state, setState] = useState<"form" | "success">("form");
   const [advanced, setAdvanced] = useState(p.codeMode === "own");
   const [otherPct, setOtherPct] = useState(!PCT_CHOICES.includes(Number(p.pct)));
+  const [langPctOpen, setLangPctOpen] = useState(Object.keys(p.pctByLang ?? {}).length > 0);
+  /** Per-language percentage override; "" removes it (the language uses the general percentage). */
+  const setLangPct = (l: PopupLang, v: string) => setP((x) => {
+    const m = { ...(x.pctByLang ?? {}) } as Record<string, number>;
+    if (v.trim() === "") delete m[l]; else m[l] = Number(v);
+    return { ...x, pctByLang: m };
+  });
   const set = <K extends keyof PopupSettings>(k: K, v: PopupSettings[K]) => setP((x) => ({ ...x, [k]: v }));
   const tl = POPUP_LANGS[tab];
 
@@ -191,7 +198,13 @@ export default function PopupPage() {
 
   const draft = useMemo(() => ({ ...p, texts, welcomeTexts: wtexts }), [p, texts, wtexts]);
   const promiseWarn = !p.welcome && POPUP_LANGS.some((l) => promisesEmail(texts[l]));
-  const cfg = useMemo(() => { const c = cleanPopup({ ...draft, enabled: true }); if (c.codeMode === "auto" && draft.code?.startsWith(c.code)) c.code = draft.code; return buildPopupConfig(c, data.shopName); }, [draft, data.shopName]);
+  const cfg = useMemo(() => {
+    const c = cleanPopup({ ...draft, enabled: true });
+    if (c.codeMode === "auto" && draft.code?.startsWith(c.code)) c.code = draft.code;
+    // preview: the code each language will get after saving (BIENVENIDA10 when Spanish has 10 %)
+    c.localCodes = Object.fromEntries(POPUP_LANGS.map((l) => { const want = localCodeName(l, pctFor(c, l)); const have = c.localCodes?.[l]; return [l, isLocalCodeFor(have, want) ? have : want]; }));
+    return buildPopupConfig(c, data.shopName);
+  }, [draft, data.shopName]);
   const save = useCallback(() => fetcher.submit({ payload: JSON.stringify(draft) }, { method: "post" }), [fetcher, draft]);
   const checkCode = () => codeFetcher.submit({ intent: "checkCode", code: p.code }, { method: "post" });
 
@@ -285,6 +298,21 @@ export default function PopupPage() {
                     {res?.codeError && <Banner tone="critical">{tr("popup.autoError", { error: res.codeError })}</Banner>}
                   </BlockStack>
                 ) : null}
+                <Box>
+                  <Button variant="plain" disclosure={langPctOpen ? "up" : "down"} onClick={() => setLangPctOpen((v) => !v)}>{tr("popup.pctByLangToggle")}</Button>
+                </Box>
+                <Collapsible id="sf-pp-langpct" open={langPctOpen}>
+                  <BlockStack gap="200">
+                    <InlineGrid columns={{ xs: 2, md: 5 }} gap="200">
+                      {POPUP_LANGS.map((l) => (
+                        <TextField key={l} label={LANG_NAME[l]} type="number" min={1} max={90} suffix="%" placeholder={String(p.pct)} autoComplete="off"
+                          value={p.pctByLang?.[l] != null ? String(p.pctByLang[l]) : ""} onChange={(v) => setLangPct(l, v)}
+                          helpText={localCodeName(l, pctFor(p, l))} />
+                      ))}
+                    </InlineGrid>
+                    <Text as="p" variant="bodySm" tone="subdued">{tr("popup.pctByLangHelp", { pct: p.pct })}</Text>
+                  </BlockStack>
+                </Collapsible>
                 <Box>
                   <Button variant="plain" disclosure={advanced ? "up" : "down"} onClick={() => setAdvanced((v) => !v)}>{tr("popup.advanced")}</Button>
                 </Box>

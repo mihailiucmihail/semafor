@@ -82,6 +82,24 @@ export const POPUP_DEFAULT_TEXTS: Record<PopupLang, PopupTexts> = {
     invalid: 'Please enter a valid e-mail address.',
     failed: 'Something went wrong. Please try again.',
   },
+  es: {
+    bigLabel: '-{pct}%', bigSub: 'en tu primer pedido',
+    eyebrow: 'Te damos la bienvenida',
+    heading: 'Un buen comienzo merece un detalle especial.',
+    text: 'Suscríbete a las novedades de {shop} y consigue un {pct} % de descuento en tu primer pedido. Te enviamos el código por correo, listo para usar.',
+    placeholder: 'Tu correo electrónico',
+    button: 'Quiero mi descuento',
+    note: 'Recibirás el código y el enlace por correo justo después de suscribirte. Puedes darte de baja cuando quieras.',
+    decline: 'Ahora no, gracias',
+    successEyebrow: 'Suscripción confirmada',
+    successHeading: 'Gracias. Tu descuento ya está listo.',
+    successText: 'Te hemos enviado el código y el enlace por correo para que los tengas siempre a mano. También puedes usarlo ahora mismo:',
+    successButton: 'Aplicar el descuento y ver la colección',
+    successNote: 'El descuento se aplica automáticamente al finalizar la compra.',
+    copy: 'Copiar', copied: 'Copiado', close: 'Cerrar',
+    invalid: 'Introduce un correo electrónico válido.',
+    failed: 'Algo ha fallado. Inténtalo de nuevo.',
+  },
 };
 
 /** Pop-up defaults that would promise an e-mail, replaced when the welcome e-mail is OFF. */
@@ -90,6 +108,11 @@ export const POPUP_NO_EMAIL_TEXTS: Partial<Record<PopupLang, Partial<PopupTexts>
     text: 'Abonează-te la noutățile {shop} și primești {pct}% reducere la prima comandă. Codul apare imediat, gata de folosit.',
     note: 'Te poți dezabona oricând.',
     successText: 'Iată codul tău — îl poți folosi chiar acum:',
+  },
+  es: {
+    text: 'Suscríbete a las novedades de {shop} y consigue un {pct} % de descuento en tu primer pedido. El código aparece al momento, listo para usar.',
+    note: 'Puedes darte de baja cuando quieras.',
+    successText: 'Aquí tienes tu código; puedes usarlo ahora mismo:',
   },
 };
 
@@ -127,6 +150,14 @@ export const WELCOME_DEFAULT_TEXTS: Record<PopupLang, WelcomeTexts> = {
     button: 'Apply my discount',
     note: 'The discount is applied automatically when you tap the button. The code can be used once.',
   },
+  es: {
+    subject: 'Tu descuento de bienvenida: {pct} % en {shop}',
+    heading: '¡Te damos la bienvenida! Aquí tienes tu {pct} % de descuento',
+    text: 'Gracias por suscribirte a las novedades de {shop}. Con el código de abajo tienes un {pct} % de descuento en tu primer pedido; úsalo cuando quieras.',
+    codeLabel: 'tu código de bienvenida',
+    button: 'Aplicar mi descuento',
+    note: 'El descuento se aplica automáticamente al pulsar el botón. El código se puede usar una sola vez.',
+  },
 };
 
 export function welcomeTexts(p: Pick<PopupSettings, 'welcomeTexts'>, lang: PopupLang): WelcomeTexts {
@@ -147,7 +178,7 @@ export function popupDefaults(lang: PopupLang, welcome = true): PopupTexts {
 }
 /** true when pop-up texts say the code comes by e-mail (warn when the welcome e-mail is off). */
 export function promisesEmail(t: Partial<PopupTexts>): boolean {
-  return /(pe e-mail|per e-?mail|e-mailem|by e-?mail|to your inbox|ți-am trimis|wysłaliśmy|haben wir dir)/i.test([t.text, t.note, t.successText].filter(Boolean).join(' '));
+  return /(pe e-mail|per e-?mail|e-mailem|by e-?mail|to your inbox|ți-am trimis|wysłaliśmy|haben wir dir|por correo|te hemos enviado|te enviamos)/i.test([t.text, t.note, t.successText].filter(Boolean).join(' '));
 }
 
 /** Texts of one language as the merchant sees them in the editor (defaults + overrides, placeholders kept). */
@@ -188,6 +219,7 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
       ? String(p.code ?? DEFAULT_POPUP.code).trim().replace(/\s+/g, '').toUpperCase().slice(0, 60)
       : autoCode(n(p.pct, DEFAULT_POPUP.pct, 1, 100)),
     pct: n(p.pct, DEFAULT_POPUP.pct, 1, 100),
+    pctByLang: cleanPctByLang(p.pctByLang, n(p.pct, DEFAULT_POPUP.pct, 1, 100)),
     design: POPUP_DESIGNS.includes(p.design as any) ? (p.design as PopupSettings['design']) : 'classic',
     imageUrl: /^https:\/\//i.test(img) ? img.slice(0, 1000) : '',
     texts,
@@ -198,8 +230,29 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
 }
 
 /** Word for "welcome" per language, used to name the per-language code: BUNVENIT15, WILLKOMMEN15 … */
-export const LOCAL_CODE_PREFIX: Record<PopupLang, string> = { ro: 'BUNVENIT', de: 'WILLKOMMEN', pl: 'WITAJ', en: 'WELCOME' };
+export const LOCAL_CODE_PREFIX: Record<PopupLang, string> = { ro: 'BUNVENIT', de: 'WILLKOMMEN', pl: 'WITAJ', en: 'WELCOME', es: 'BIENVENIDA' };
 export const localCodeName = (lang: PopupLang, pct: number) => `${LOCAL_CODE_PREFIX[lang]}${Math.round(pct)}`;
+
+/** Percentage for one storefront language: its override (pctByLang) or the general `pct`. */
+export function pctFor(p: Pick<PopupSettings, 'pct'> & { pctByLang?: PopupSettings['pctByLang'] }, lang: PopupLang): number {
+  const v = Number(p.pctByLang?.[lang]);
+  return Number.isFinite(v) && v >= 1 && v <= 100 ? Math.round(v) : p.pct;
+}
+
+/** Keeps only valid overrides (1–100) that differ from the general percentage; missing / empty = no override. */
+function cleanPctByLang(m: unknown, pct: number): Partial<Record<PopupLang, number>> {
+  const out: Partial<Record<PopupLang, number>> = {};
+  if (m && typeof m === 'object') for (const l of POPUP_LANGS) {
+    const raw = (m as any)[l];
+    if (raw == null || raw === '') continue;
+    const x = Math.round(Number(raw));
+    if (Number.isFinite(x) && x >= 1 && x <= 100 && x !== pct) out[l] = x;
+  }
+  return out;
+}
+
+/** true when `have` is the per-language code Semafor would create for `want` (WILLKOMMEN15, or its variants …S / …-SMF). */
+export const isLocalCodeFor = (have: string | null | undefined, want: string) => !!have && (have === want || have === `${want}S` || have === `${want}-SMF`);
 
 function cleanLocalCodes(m: unknown): Partial<Record<PopupLang, string>> {
   const out: Partial<Record<PopupLang, string>> = {};
@@ -223,15 +276,23 @@ export const PCT_CHOICES = [5, 10, 15, 20, 25];
 export type PopupConfig = {
   v: 1; enabled: boolean; mode: 'smart' | 'site' | 'cart'; delay: number; cartDelay: number; exitIntent: boolean; hideDays: number;
   code: string; design: string; image: string; texts: Record<PopupLang, PopupTexts>;
+  /** general percentage, percentage and code per language (cart offer, success screen fallback) */
+  pct: number; pcts: Record<PopupLang, number>; codes: Partial<Record<PopupLang, string>>;
 };
 
 /** What the storefront embed receives (texts resolved for every language, placeholders filled). */
 export function buildPopupConfig(p: PopupSettings, shopName: string): PopupConfig {
-  const fill = (s: string) => s.replace(/\{shop\}/g, shopName || '').replace(/\{pct\}/g, String(p.pct)).replace(/\s{2,}/g, ' ').trim();
+  const fill = (s: string, pct: number) => s.replace(/\{shop\}/g, shopName || '').replace(/\{pct\}/g, String(pct)).replace(/\s{2,}/g, ' ').trim();
   const texts = {} as Record<PopupLang, PopupTexts>;
+  const pcts = {} as Record<PopupLang, number>;
+  const codes: Partial<Record<PopupLang, string>> = {};
   for (const l of POPUP_LANGS) {
     const t = popupTexts(p, l);
-    texts[l] = Object.fromEntries(POPUP_TEXT_KEYS.map((k) => [k, fill(t[k])])) as unknown as PopupTexts;
+    pcts[l] = pctFor(p, l);
+    texts[l] = Object.fromEntries(POPUP_TEXT_KEYS.map((k) => [k, fill(t[k], pcts[l])])) as unknown as PopupTexts;
+    // only a code that matches this language's percentage (a stale BIENVENIDA15 after switching ES to 10 % is left out)
+    const have = p.localCodes?.[l];
+    if (have && (isLocalCodeFor(have, localCodeName(l, pcts[l])) || (have === p.code && pcts[l] === p.pct))) codes[l] = have;
   }
-  return { v: 1, enabled: p.enabled, mode: p.mode, delay: p.delay, cartDelay: p.cartDelay, exitIntent: p.exitIntent, hideDays: p.hideDays, code: p.code, design: p.design, image: p.imageUrl, texts };
+  return { v: 1, enabled: p.enabled, mode: p.mode, delay: p.delay, cartDelay: p.cartDelay, exitIntent: p.exitIntent, hideDays: p.hideDays, code: p.code, design: p.design, image: p.imageUrl, texts, pct: p.pct, pcts, codes };
 }

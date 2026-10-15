@@ -7,7 +7,7 @@
  */
 import db from "../db.server";
 import { can } from "../../core/plans";
-import { buildPopupConfig, autoCode, localCodeName, codeForLang } from "../../core/popup";
+import { buildPopupConfig, autoCode, localCodeName, codeForLang, pctFor, isLocalCodeFor } from "../../core/popup";
 import { POPUP_LANGS, type PopupLang } from "../../core/settings";
 import { saveSettings } from "./shop.server";
 import type { PopupSettings, ShopSettings } from "../../core/settings";
@@ -107,16 +107,17 @@ export async function ensurePopupDiscount(admin: Admin, pct: number, name?: stri
 }
 
 /**
- * One code per storefront language with the pop-up percentage — a German visitor gets WILLKOMMEN15, not the Romanian
- * BUNVENIT15. The merchant's own code is used for the language whose name it already has; the others are created
+ * One code per storefront language with that language's percentage (pctFor: its override or the general one) —
+ * a German visitor gets WILLKOMMEN15, not the Romanian BUNVENIT15; a Spanish one BIENVENIDA10 when ES is set to 10 %. The merchant's own code is used for the language whose name it already has; the others are created
  * (or reused) in Shopify. A language that fails keeps falling back to the main code.
  */
 export async function ensureLocalCodes(admin: Admin, p: PopupSettings): Promise<Partial<Record<PopupLang, string>>> {
   const out: Partial<Record<PopupLang, string>> = {};
   for (const lang of POPUP_LANGS) {
-    const name = localCodeName(lang, p.pct);
-    if (name === p.code) { out[lang] = p.code; continue; }
-    try { out[lang] = (await ensurePopupDiscount(admin, p.pct, name)).code; }
+    const pct = pctFor(p, lang);
+    const name = localCodeName(lang, pct);
+    if (name === p.code && pct === p.pct) { out[lang] = p.code; continue; }
+    try { out[lang] = (await ensurePopupDiscount(admin, pct, name)).code; }
     catch (e: any) { console.error("[semafor] popup local code", lang, e?.message || e); }
   }
   return out;
@@ -125,9 +126,9 @@ export async function ensureLocalCodes(admin: Admin, p: PopupSettings): Promise<
 /** Code for a visitor's language; creates the per-language codes once if this shop doesn't have them yet. */
 export async function popupCodeFor(admin: Admin | null, shop: { id: string; settings: ShopSettings }, lang: PopupLang) {
   const p = shop.settings.popup;
-  const want = localCodeName(lang, p.pct);
+  const want = localCodeName(lang, pctFor(p, lang));
   const have = p.localCodes?.[lang];
-  if (admin && (!have || (have !== want && !have.startsWith(want)))) {
+  if (admin && !(have === p.code && want === p.code) && !isLocalCodeFor(have, want)) {
     try {
       const localCodes = await ensureLocalCodes(admin, p);
       const next = await saveSettings(shop.id, { popup: { ...p, localCodes } }, "semafor");

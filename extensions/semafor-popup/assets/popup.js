@@ -40,6 +40,11 @@
     var T = (cfg && cfg.texts) || {}, l = String(lang || '').toLowerCase();
     return T[l] || T[l.slice(0, 2)] || T.en || T.ro || {};
   }
+  /** Code of the visitor's language (WILLKOMMEN15, BIENVENIDA10 …), else the main code. */
+  function codeOf(cfg, lang) {
+    var C = (cfg && cfg.codes) || {}, l = String(lang || '').toLowerCase();
+    return C[l] || C[l.slice(0, 2)] || (cfg && cfg.code) || '';
+  }
 
   /** Builds the pop-up element. o: { preview, instant, state, code, onSubmit(email, done), onClose(remember) } */
   function render(cfg, lang, o) {
@@ -86,7 +91,7 @@
       });
     }
     function success(code) {
-      code = code || cfg.code || '';
+      code = code || codeOf(cfg, lang);
       var back = (W.location && !o.preview) ? W.location.pathname + W.location.search : '/';
       var href = '/discount/' + encodeURIComponent(code) + '?redirect=' + encodeURIComponent(back);
       content.innerHTML = '<p class="smf-pp__eyebrow">' + esc(t.successEyebrow) + '</p>' +
@@ -113,7 +118,7 @@
     return { root: root, form: form, success: success, focus: focus };
   }
 
-  W.SemaforPopupUI = { render: render, textsOf: textsOf };
+  W.SemaforPopupUI = { render: render, textsOf: textsOf, codeOf: codeOf };
 
   // ─────────────────────────── storefront ───────────────────────────
   var B = W.SemaforPopup;
@@ -224,12 +229,12 @@
   }
   function submit(source) {
     return function (email, done) {
-      if (designMode) { setTimeout(function () { done(null, cfg.code); }, 300); return; }
+      if (designMode) { setTimeout(function () { done(null, codeOf(cfg, lang)); }, 300); return; }
       var body = JSON.stringify({ email: email, deviceId: dev, source: source, locale: lang, host: W.location.host, pageUrl: String(W.location.href).slice(0, 500), consent: true });
       fetch(proxy + '/popup', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: body })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (j) {
-          if (j && j.ok) { saveState({ s: 'subscribed', code: j.code || cfg.code }); ssSet('_smf_pp_k', '1'); done(null, j.code || cfg.code); }
+          if (j && j.ok) { saveState({ s: 'subscribed', code: j.code || codeOf(cfg, lang) }); ssSet('_smf_pp_k', '1'); done(null, j.code || codeOf(cfg, lang)); }
           else done(new Error((j && j.error) || 'failed'));
         })
         .catch(function (e) { done(e); });
@@ -275,10 +280,13 @@
     ro: { title: 'Ia {pct}% reducere la această comandă', text: 'Lasă-ne e-mailul și reducerea se aplică imediat.', ph: 'Adresa ta de e-mail', btn: 'Vreau -{pct}%', ok: 'Gata! Reducerea de {pct}% e a ta.', okText: 'Codul {code} se aplică automat la finalizare.', go: 'Finalizează cu -{pct}%', err: 'Verifică adresa de e-mail.', fail: 'Nu a mers. Încearcă din nou.', note: 'Primești și noutățile noastre. Te poți dezabona oricând.' },
     de: { title: 'Sichere dir {pct} % Rabatt auf diese Bestellung', text: 'Hinterlasse deine E-Mail – der Rabatt gilt sofort.', ph: 'Deine E-Mail-Adresse', btn: '-{pct} % sichern', ok: 'Geschafft! Deine {pct} % gehören dir.', okText: 'Der Code {code} wird an der Kasse automatisch angewendet.', go: 'Mit -{pct} % zur Kasse', err: 'Bitte prüfe deine E-Mail-Adresse.', fail: 'Das hat nicht geklappt. Bitte versuche es erneut.', note: 'Du erhältst auch unsere Neuigkeiten. Abmeldung jederzeit möglich.' },
     pl: { title: 'Odbierz {pct}% rabatu na to zamówienie', text: 'Zostaw e-mail – rabat działa od razu.', ph: 'Twój adres e-mail', btn: 'Chcę -{pct}%', ok: 'Gotowe! Twoje {pct}% rabatu czeka.', okText: 'Kod {code} zostanie dodany automatycznie przy płatności.', go: 'Zamów z -{pct}%', err: 'Sprawdź adres e-mail.', fail: 'Nie udało się. Spróbuj ponownie.', note: 'Otrzymasz też nasze nowości. Możesz zrezygnować w każdej chwili.' },
+    es: { title: 'Llévate un {pct} % de descuento en este pedido', text: 'Déjanos tu correo y el descuento se aplica al momento.', ph: 'Tu correo electrónico', btn: 'Quiero mi -{pct} %', ok: '¡Listo! Ya tienes tu {pct} % de descuento.', okText: 'El código {code} se aplica automáticamente al finalizar la compra.', go: 'Finalizar con -{pct} %', err: 'Revisa tu correo electrónico.', fail: 'No ha funcionado. Inténtalo de nuevo.', note: 'También recibirás nuestras novedades. Puedes darte de baja cuando quieras.' },
     en: { title: 'Take {pct}% off this order', text: 'Leave your e-mail and the discount applies right away.', ph: 'Your e-mail address', btn: 'Get -{pct}%', ok: 'Done! Your {pct}% is ready.', okText: 'Code {code} is applied automatically at checkout.', go: 'Checkout with -{pct}%', err: 'Please check your e-mail address.', fail: 'That didn’t work. Please try again.', note: 'You’ll also get our news. Unsubscribe anytime.' },
   };
-  var ciT = CI[String(lang).slice(0, 2)] || CI.en;
-  var ciPct = String(Number(cfg.pct) || (String((textsOf(cfg, lang) || {}).bigLabel || '').match(/\d+/) || [15])[0]);
+  var ciL = String(lang).slice(0, 2).toLowerCase();
+  var ciT = CI[ciL] || CI.en;
+  // percentage of the visitor's language (pcts: per-language override), else the general one
+  var ciPct = String(Number((cfg.pcts || {})[ciL]) || Number(cfg.pct) || (String((textsOf(cfg, lang) || {}).bigLabel || '').match(/\d+/) || [15])[0]);
   function ciFill(s, code) { return String(s).replace(/\{pct\}/g, ciPct).replace(/\{code\}/g, code || ''); }
   var ciState = null; // null = not decided, 'hide', 'show', or { code }
   function ciRender(slot) {
@@ -308,7 +316,7 @@
       b.disabled = true; er.hidden = true;
       submit('cart')(email, function (error, code) {
         if (error) { b.disabled = false; er.textContent = ciT.fail; er.hidden = false; return; }
-        ciState = { code: code || cfg.code };
+        ciState = { code: code || codeOf(cfg, lang) };
         // attach the code to the cart right away (cookie), so the checkout already shows it
         try { fetch('/discount/' + encodeURIComponent(ciState.code), { credentials: 'same-origin' }).catch(function () {}); } catch (x) { /* ignore */ }
         ciMountAll();
