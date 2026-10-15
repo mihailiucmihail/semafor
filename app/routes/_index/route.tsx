@@ -1,57 +1,31 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Form, useLoaderData } from "@remix-run/react";
-
-import { login } from "../../shopify.server";
 
 import styles from "./styles.module.css";
 
+// Public landing page of the app URL. Shopify opens the app with ?shop=… (embedded); anyone else
+// only sees what Semafor is. There is deliberately NO "enter your shop domain" form —
+// installation starts from the Shopify App Store / Shopify admin (App Store requirement 2.3.1).
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-
-  if (url.searchParams.get("shop")) {
-    throw redirect(`/app?${url.searchParams.toString()}`);
-  }
-
-  return { showForm: Boolean(login) };
+  if (url.searchParams.get("shop")) throw redirect(`/app?${url.searchParams.toString()}`);
+  return null;
 };
 
 export default function App() {
-  const { showForm } = useLoaderData<typeof loader>();
-
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
+        <h1 className={styles.heading}>Semafor: COD Fraud &amp; Recovery</h1>
         <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
+          Stop repeat cash-on-delivery refusers before they order, and bring back abandoned checkouts.
         </p>
-        {showForm && (
-          <Form className={styles.form} method="post" action="/auth/login">
-            <label className={styles.label}>
-              <span>Shop domain</span>
-              <input className={styles.input} type="text" name="shop" />
-              <span>e.g: my-shop-domain.myshopify.com</span>
-            </label>
-            <button className={styles.button} type="submit">
-              Log in
-            </button>
-          </Form>
-        )}
         <ul className={styles.list}>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
-          <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
-          </li>
+          <li><strong>Blacklist at checkout.</strong> Buyers on your list can't pay, so the order never reaches your courier.</li>
+          <li><strong>Traffic light on every order.</strong> Green, yellow or red, based on the buyer's history.</li>
+          <li><strong>Abandoned-checkout recovery.</strong> Timed reminder e-mails and an on-site welcome offer.</li>
         </ul>
+        <p className={styles.text}>Install Semafor from the Shopify App Store, then open it from your Shopify admin.</p>
       </div>
     </div>
   );
