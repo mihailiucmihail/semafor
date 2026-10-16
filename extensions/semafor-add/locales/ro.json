@@ -18,5 +18,21 @@
     "return_fraud": "Retur fraudulos",
     "abuse": "Abuz / amenințări",
     "other": "Altul"
+  },
+  "checking": "Verific dacă clientul e deja în lista neagră…",
+  "sameOrderTitle": "Comanda aceasta e deja în lista neagră",
+  "existsTitle": "Clientul e deja în lista neagră ({{n}}×)",
+  "existsHint": "Poți adăuga totuși comanda ca incident nou — contează ca refuz repetat.",
+  "matches": "potrivire: {{kinds}}",
+  "addAgain": "Adaugă ca incident nou",
+  "repeatDone": "{{n}} dintre ei erau deja în listă (incident repetat).",
+  "alreadyDone": "{{n}} erau deja în listă din aceeași comandă — sărite.",
+  "kinds": {
+    "email": "e-mail",
+    "phone": "telefon",
+    "name": "nume",
+    "address": "adresă",
+    "name_address": "nume + adresă",
+    "device": "dispozitiv"
   }
 }

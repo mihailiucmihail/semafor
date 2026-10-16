@@ -12,7 +12,7 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { catchUpOrders } from "../semafor/backfill.server";
-import { createEntry, deleteEntry, pushCheckoutMetafield } from "../semafor/entries.server";
+import { createEntry, deleteEntry, findExisting, pushCheckoutMetafield } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
 import { shopLang } from "../i18n.server";
@@ -50,13 +50,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const actor = (session as any).email || session.shop;
   try {
     if (intent === "create") {
-      await createEntry({
-        shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: shop.settings, actor,
-        input: {
-          email: str(fd, "email"), phone: str(fd, "phone"), firstName: str(fd, "firstName"), lastName: str(fd, "lastName"),
-          address1: str(fd, "address1"), city: str(fd, "city"), reason: (str(fd, "reason") as Reason) || "other", note: str(fd, "note"),
-        },
-      });
+      const input = {
+        email: str(fd, "email"), phone: str(fd, "phone"), firstName: str(fd, "firstName"), lastName: str(fd, "lastName"),
+        address1: str(fd, "address1"), city: str(fd, "city"), reason: (str(fd, "reason") as Reason) || "other", note: str(fd, "note"),
+      };
+      // same e-mail / phone / name + address already on the list → ask before adding a duplicate
+      if (fd.get("force") !== "1") {
+        const existing = await findExisting(shop.id, input, shop.country);
+        if (existing.length) {
+          return { ok: false, duplicate: existing.slice(0, 5).map((e) => ({ reason: e.reason, createdAt: e.createdAt, orderName: e.orderName, matched: e.matched })) };
+        }
+      }
+      await createEntry({ shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: shop.settings, actor, input });
     } else if (intent === "delete") {
       await deleteEntry(shop.id, shop.domain, String(fd.get("id")), actor);
     }
@@ -89,6 +94,8 @@ export default function Index() {
   const [netFilter, setNetFilter] = useState("");
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  // earlier entries of the same customer, returned by the server instead of saving a duplicate
+  const [dup, setDup] = useState<any[] | null>(null);
   const busy = fetcher.state !== "idle";
   const deletingId = busy && fetcher.formData?.get("intent") === "delete" ? String(fetcher.formData.get("id")) : null;
   const tr = useT();
@@ -98,13 +105,14 @@ export default function Index() {
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data) {
-      if (fetcher.data.ok) { app.toast.show(tr("common.saved")); setOpen(false); setToDelete(null); setForm(EMPTY_FORM); }
+      if (fetcher.data.ok) { app.toast.show(tr("common.saved")); setOpen(false); setToDelete(null); setForm(EMPTY_FORM); setDup(null); }
+      else if ((fetcher.data as any).duplicate) setDup((fetcher.data as any).duplicate);
       else app.toast.show((fetcher.data as any).error || tr("common.error"), { isError: true });
     }
   }, [fetcher.state, fetcher.data, app, tr]);
 
-  const submit = () => fetcher.submit({ intent: "create", ...form }, { method: "post" });
-  const set = (k: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const submit = () => fetcher.submit({ intent: "create", ...form, force: dup ? "1" : "" }, { method: "post" });
+  const set = (k: keyof typeof form) => (v: string) => { setDup(null); setForm((f) => ({ ...f, [k]: v })); };
   const runSearch = () => setParams(search.trim() ? { q: search.trim() } : {});
 
   const rows = useMemo(() => (entries as any[])
@@ -273,10 +281,25 @@ export default function Index() {
         </Modal.Section>
       </Modal>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={tr("index.modalTitle")}
-        primaryAction={{ content: tr("common.save"), onAction: submit, loading: busy }}
-        secondaryActions={[{ content: tr("common.cancel"), onAction: () => setOpen(false) }]}>
+      <Modal open={open} onClose={() => { setOpen(false); setDup(null); }} title={tr("index.modalTitle")}
+        primaryAction={{ content: dup ? tr("index.dupAddAnyway") : tr("common.save"), onAction: submit, loading: busy }}
+        secondaryActions={[{ content: tr("common.cancel"), onAction: () => { setOpen(false); setDup(null); } }]}>
         <Modal.Section>
+          {dup && (
+            <Box paddingBlockEnd="400">
+              <Banner tone="warning" title={tr("index.dupTitle", { n: String(dup.length) })}>
+                <BlockStack gap="100">
+                  {dup.map((e: any, k: number) => (
+                    <Text as="p" key={k}>
+                      {[new Date(e.createdAt).toLocaleDateString(dateLocale(lang)), e.orderName, reasonLabel(e.reason)].filter(Boolean).join(" · ")}
+                      {e.matched?.length ? ` — ${tr("index.dupMatches", { kinds: [...new Set(e.matched.map((m: any) => tr(`kind.${m.kind}` as TKey)))].join(", ") })}` : ""}
+                    </Text>
+                  ))}
+                  <Text as="p" tone="subdued">{tr("index.dupHint")}</Text>
+                </BlockStack>
+              </Banner>
+            </Box>
+          )}
           <FormLayout>
             <FormLayout.Group>
               <TextField label={tr("index.email")} value={form.email} onChange={set("email")} autoComplete="off" type="email" />

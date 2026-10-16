@@ -40,6 +40,40 @@ export function buildIdentifiers(i: EntryInput, country = "RO"): Ident[] {
   return out;
 }
 
+/** Kinds strong enough to say "this is the same customer" (a name or an address alone is not). */
+const SAME_PERSON_KINDS = new Set(["email", "phone", "name_address"]);
+
+export interface ExistingMatch {
+  entryId: string; reason: string; createdAt: Date; orderId: string | null; orderName: string | null;
+  source: string; sameOrder: boolean;
+  matched: { kind: string; raw: string }[];
+}
+
+/**
+ * Entries of this shop that already hold the same customer (same e-mail, phone or name + address),
+ * newest first. Used to warn the merchant before adding a duplicate.
+ */
+export async function findExisting(shopId: string, input: Partial<EntryInput>, country = "RO"): Promise<ExistingMatch[]> {
+  const ids = buildIdentifiers({ reason: "other", ...input } as EntryInput, country).filter((x) => SAME_PERSON_KINDS.has(x.kind));
+  const hashes = ids.map((x) => hmacId(SECRET, x.kind, x.normalized));
+  const or: any[] = [];
+  if (hashes.length) or.push({ identifiers: { some: { hash: { in: hashes } } } });
+  if (input.orderId) or.push({ orderId: input.orderId });
+  if (!or.length) return [];
+  const rows: any[] = await db.blockEntry.findMany({
+    where: { shopId, OR: or },
+    include: { identifiers: { select: { kind: true, raw: true, hash: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  const want = new Set(hashes);
+  return rows.map((e) => ({
+    entryId: e.id, reason: e.reason, createdAt: e.createdAt, orderId: e.orderId, orderName: e.orderName, source: e.source,
+    sameOrder: !!input.orderId && e.orderId === input.orderId,
+    matched: (e.identifiers as any[]).filter((x) => want.has(x.hash)).map((x) => ({ kind: x.kind, raw: x.raw })),
+  }));
+}
+
 export async function createEntry(opts: { shopId: string; shopDomain: string; country: string; settings: ShopSettings; input: EntryInput; actor: string }) {
   const { shopId, input } = opts;
   const ids = buildIdentifiers(input, opts.country);

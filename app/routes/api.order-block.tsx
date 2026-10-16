@@ -4,7 +4,7 @@ import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { checkOrder } from "../semafor/check-order.server";
 import { fetchOrder } from "../semafor/backfill.server";
-import { createEntry, pushCheckoutMetafield } from "../semafor/entries.server";
+import { createEntry, findExisting, pushCheckoutMetafield, type EntryInput } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
 import { trMsg, type Lang } from "../i18n";
 
@@ -18,7 +18,26 @@ const json = (data: unknown, status = 200) => new Response(JSON.stringify(data),
  * Backend for the Semafor block on the order page (admin UI extension).
  * GET  ?orderId=gid://shopify/Order/…  → traffic light for this order (checks it now if never checked)
  * POST {orderId, reason, note}          → add the order's customer to the blacklist, re-check the order
+ *
+ * Both answers carry `existing`: entries of this shop that already hold the same customer (e-mail, phone or
+ * name + address), so the merchant sees "already in the list" before adding. The same order is never added twice.
  */
+
+/** The customer of an order as blacklist input. */
+function orderInput(o: any, orderId: string): Omit<EntryInput, "reason"> {
+  const a = o.shipping_address || o.billing_address || {};
+  return {
+    email: o.email || o.customer?.email || undefined, phone: o.phone || a.phone || o.customer?.phone || undefined,
+    firstName: a.first_name || o.customer?.first_name || undefined, lastName: a.last_name || o.customer?.last_name || undefined,
+    address1: a.address1 || undefined, address2: a.address2 || undefined, city: a.city || undefined,
+    source: "order", orderId, orderName: o.name,
+  };
+}
+
+const existingJson = (rows: Awaited<ReturnType<typeof findExisting>>) => rows.map((r) => ({
+  reason: r.reason, createdAt: r.createdAt, orderName: r.orderName, sameOrder: r.sameOrder, source: r.source,
+  matched: r.matched.map((m) => ({ kind: m.kind, raw: m.raw })),
+}));
 async function status(admin: any, shop: any, orderId: string, recheck = false) {
   let c: any = recheck ? null : await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId: shop.id, orderId } } });
   if (!c) {
@@ -39,7 +58,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const orderId = sp.get("orderId") || "";
   const lang = langOf(sp.get("lang"));
   if (!orderId) return cors(json({ error: trMsg(lang, "orderId lipsă") }, 400));
-  try { return cors(json(localized(await status(admin, shop, orderId), lang))); }
+  try {
+    const st = await status(admin, shop, orderId);
+    const o: any = await fetchOrder(admin, orderId);
+    const existing = await findExisting(shop.id, orderInput(o, orderId), shop.country);
+    return cors(json({ ...localized(st, lang), existing: existingJson(existing) }));
+  }
   catch (e: any) { return cors(json({ error: trMsg(lang, String(e?.message || e)) }, 500)); }
 };
 
@@ -53,18 +77,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const orderId = String(b.orderId || "");
     const reason: Reason = (REASONS as string[]).includes(b.reason) ? b.reason : "other";
     const o: any = await fetchOrder(admin, orderId);
-    const a = o.shipping_address || o.billing_address || {};
+    const input = orderInput(o, orderId);
+    const existing = await findExisting(shop.id, input, shop.country);
+    // the same order is already in the list: nothing to add
+    if (existing.some((e) => e.sameOrder)) {
+      return cors(json({ ...localized(await status(admin, shop, orderId), lang), already: true, existing: existingJson(existing) }));
+    }
     await createEntry({
       shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: shop.settings, actor: (session as any).email || session.shop,
-      input: {
-        email: o.email || o.customer?.email || undefined, phone: o.phone || a.phone || o.customer?.phone || undefined,
-        firstName: a.first_name || o.customer?.first_name || undefined, lastName: a.last_name || o.customer?.last_name || undefined,
-        address1: a.address1 || undefined, address2: a.address2 || undefined, city: a.city || undefined,
-        reason, note: String(b.note || "").slice(0, 500) || undefined, source: "order", orderId, orderName: o.name,
-      },
+      input: { ...input, reason, note: String(b.note || "").slice(0, 500) || undefined },
     });
     await pushCheckoutMetafield(admin, shop.id);
-    return cors(json(localized(await status(admin, shop, orderId, true), lang)));
+    return cors(json({ ...localized(await status(admin, shop, orderId, true), lang), already: false, existing: existingJson(existing) }));
   } catch (e: any) {
     return cors(json({ error: trMsg(lang, String(e?.message || e)) }, 500));
   }

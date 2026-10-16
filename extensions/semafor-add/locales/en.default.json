@@ -18,5 +18,21 @@
     "return_fraud": "Return fraud",
     "abuse": "Abuse / threats",
     "other": "Other"
+  },
+  "checking": "Checking whether this customer is already on the blacklist…",
+  "sameOrderTitle": "This order is already on the blacklist",
+  "existsTitle": "This customer is already on the blacklist ({{n}}×)",
+  "existsHint": "You can still add this order as a new incident — it counts as a repeat refusal.",
+  "matches": "matches: {{kinds}}",
+  "addAgain": "Add as new incident",
+  "repeatDone": "{{n}} of them were already on the list (repeat incident).",
+  "alreadyDone": "{{n}} already on the list from the same order — skipped.",
+  "kinds": {
+    "email": "e-mail",
+    "phone": "phone",
+    "name": "name",
+    "address": "address",
+    "name_address": "name + address",
+    "device": "device"
   }
 }
