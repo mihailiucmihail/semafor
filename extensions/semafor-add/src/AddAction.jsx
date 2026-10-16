@@ -74,11 +74,11 @@ function Action() {
         )}
 
         {single && existing === null && <s-text color="subdued">{tr("checking")}</s-text>}
-        <s-text color="subdued">
-          {ids.length > 1 ? tr("selected", { n: ids.length }) : ""}{tr("info")}
-        </s-text>
         {!sameOrder && (
           <>
+            <s-text color="subdued">
+              {ids.length > 1 ? tr("selected", { n: ids.length }) : ""}{tr("info")}
+            </s-text>
             <s-select label={tr("reason")} value={reason} onChange={(e) => setReason(e.currentTarget.value)}>
               {REASONS.map((v) => <s-option key={v} value={v}>{tr(`reasons.${v}`)}</s-option>)}
             </s-select>
