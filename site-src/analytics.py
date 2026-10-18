@@ -23,6 +23,8 @@ try{if(localStorage.getItem('kl_consent')==='granted')gtag('consent','update',{a
 gtag('js',new Date());gtag('config','%s');
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
 ''' % (GA_ID, GA_ID)
 
 CSS = '''
@@ -67,7 +69,7 @@ JS = r'''<script>
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
       p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}}
+    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
