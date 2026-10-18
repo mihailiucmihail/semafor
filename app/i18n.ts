@@ -893,6 +893,21 @@ const D = {
   "cust.addThis": { en: "Block", ro: "Blochează" },
   "cust.addAll": { en: "Block all", ro: "Blochează toate" },
   "cust.audit.add_data": { en: "Details added", ro: "Date adăugate" },
+  "bl.count": { en: "{n} customers", ro: "{n} clienți" },
+  "bl.sub": { en: "+{a} this week · {t} tried to order today · {s} shared with the network", ro: "+{a} săptămâna aceasta · {t} au încercat să comande azi · {s} raportați în rețea" },
+  "bl.all": { en: "All", ro: "Toți" },
+  "bl.sorted": { en: "Customers who tried to order recently come first", ro: "Primii sunt clienții care au încercat recent să comande" },
+  "bl.viewCards": { en: "Cards", ro: "Carduri" },
+  "bl.viewTable": { en: "Table", ro: "Tabel" },
+  "bl.since": { en: "on the list since {date} · {source}", ro: "în listă din {date} · {source}" },
+  "bl.triedToday": { en: "tried today", ro: "a încercat azi" },
+  "bl.moreData": { en: "{n} e-mails / phones", ro: "{n} e-mailuri / telefoane" },
+  "bl.fChecks": { en: "Flagged orders", ro: "Comenzi marcate" },
+  "bl.fTries": { en: "Checkout tries", ro: "Încercări" },
+  "bl.fLast": { en: "Last seen", ro: "Ultima dată" },
+  "bl.todayAt": { en: "today, {time}", ro: "azi, {time}" },
+  "cust.risk": { en: "Risk", ro: "Risc" },
+  "cust.timelineHint": { en: "Orders, checkout attempts, Semafor checks and changes to this customer, newest first.", ro: "Comenzi, încercări în checkout, verificări Semafor și modificări, cele mai noi primele." },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

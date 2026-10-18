@@ -6,7 +6,7 @@ import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner, FormLayout, TextField } from "@shopify/polaris";
 import { EmailIcon, PhoneIcon, LocationIcon, MobileIcon, PersonIcon } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { IdLine, Dot, SectionHead, worst, type Level } from "../components/semafor-ui";
+import { IdLine, SectionHead, Lamp, worst, type Level } from "../components/semafor-ui";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
@@ -165,6 +165,11 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
 const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning" };
 const FIN_TONE: Record<string, "success" | "attention" | "critical" | "info" | undefined> = { PAID: "success", PENDING: "attention", AUTHORIZED: "attention", REFUNDED: "critical", PARTIALLY_REFUNDED: "warning" as any, VOIDED: "critical" };
+const REASON_HOT: Record<string, boolean> = { refuz_colet: true, chargeback: true, abuse: true };
+const initialsOf = (t: string) => {
+  const parts = t.replace(/[^\p{L}\p{N}\s@.]/gu, " ").split(/[\s@.]+/).filter(Boolean);
+  return ((parts[0]?.[0] || "?") + (parts.length > 1 && !t.includes("@") ? parts[1][0] : "")).toUpperCase();
+};
 const STEPS = ["started", "contact", "address", "shipping", "payment", "completed"];
 
 export default function Customer() {
@@ -192,18 +197,61 @@ export default function Customer() {
   const stepLabel = (s: string) => (STEPS.includes(s) ? tr(`cust.step.${s}` as TKey) : s);
   const actionLabel = (a: string) => (["entry.create", "entry.delete", "entry.link_device", "entry.add_data"].includes(a) ? tr(`cust.audit.${a.replace("entry.", "")}` as TKey) : a);
 
+  type Ev = { at: string; tone: "red" | "yellow" | "green" | "gray"; title: string; text?: string; href?: string; device?: string };
+  const timeline: Ev[] = [
+    ...(d.orders as ShopOrder[]).map((o): Ev => ({
+      at: o.createdAt, tone: o.cancelledAt ? "red" : o.financial === "PAID" ? "green" : "gray", href: admin(`orders/${o.id}`),
+      title: `${tr("checks.colOrder")} ${o.name} · ${money(o.total, o.currency)}`,
+      text: [o.cancelledAt ? tr("cust.cancelled") : null, o.financial?.replace(/_/g, " ").toLowerCase(), o.fulfillment?.replace(/_/g, " ").toLowerCase(), o.gateways.join(", ")].filter(Boolean).join(" · "),
+    })),
+    ...(d.checks as any[]).map((c): Ev => {
+      const lv: Level = worst(c.level, c.networkLevel);
+      return { at: c.checkedAt, tone: lv === "red" ? "red" : lv === "yellow" ? "yellow" : "green", href: admin(`orders/${String(c.orderId).split("/").pop()}`),
+        title: `Semafor: ${tr(`level.${lv}` as TKey)} · ${c.orderName || ""}`,
+        text: String(c.actionTaken || "").split("+").filter(Boolean).map((a: string) => (["tag", "risk", "cancel", "prepaid", "none"].includes(a) ? tr(`action.${a}` as TKey) : a)).join(", ") };
+    }),
+    ...(d.attempts as any[]).map((a): Ev => ({
+      at: a.createdAt, tone: a.event === "completed" ? "red" : "gray", device: a.deviceId,
+      title: stepLabel(a.event),
+      text: [a.email, a.phone, [a.firstName, a.lastName].filter(Boolean).join(" "), a.city, a.total != null ? money(a.total, a.currency || d.stats.currency) : null].filter(Boolean).join(" · "),
+    })),
+    ...(d.history as any[]).map((h): Ev => ({
+      at: h.at, tone: "gray", title: actionLabel(h.action),
+      text: h.payload?.added ? (h.payload.added as any[]).map((x) => (x.kind === "device" ? tr("kind.device").toLowerCase() : x.raw)).join(", ") : undefined,
+    })),
+  ].sort((x, y) => +new Date(y.at) - +new Date(x.at)).slice(0, 60);
+
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) { app.toast.show(tr("common.saved")); navigate("/app/blacklist"); }
   }, [fetcher.state, fetcher.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Page backAction={{ content: tr("nav.blacklist"), url: "/app/blacklist" }} title={title}
-      titleMetadata={<Badge tone={REASON_TONE[d.entry.reason]}>{tr(`reason.${d.entry.reason}` as TKey)}</Badge>}
-      secondaryActions={[
-        ...(d.customerId ? [{ content: tr("cust.openShopify"), url: admin(`customers/${d.customerId}`), target: "_top" as const }] : []),
-        { content: tr("cust.remove"), destructive: true, onAction: () => setConfirm(true) },
-      ]}>
+    <Page backAction={{ content: tr("nav.blacklist"), url: "/app/blacklist" }}>
       <TitleBar title={title} />
+      {/* dossier header */}
+      <div className="sf-cu-hero">
+        <span className="sf-bl-ini sf-cu-ini" aria-hidden="true">{initialsOf(title)}</span>
+        <div className="sf-cu-who">
+          <div className="sf-cu-name-row">
+            <h1 className="sf-cu-name">{title}</h1>
+            <span className={`sf-cu-reason ${REASON_HOT[d.entry.reason] ? "hot" : ""}`}>{tr(`reason.${d.entry.reason}` as TKey)}</span>
+          </div>
+          <p className="sf-cu-sub">
+            {tr("cust.addedOn", { date: when(d.entry.createdAt, false), source: sourceLabel(d.entry.source) })}
+            {d.entry.orderName ? ` · ${d.entry.orderName}` : ""}
+            {d.entry.shared ? ` · ${tr("cust.shared")}` : ""}
+          </p>
+        </div>
+        <div className="sf-cu-risk">
+          <span className="sf-bl-eyebrow">{tr("cust.risk")}</span>
+          <span className="sf-bl-lamp"><Lamp level={REASON_HOT[d.entry.reason] ? "red" : "yellow"} label={tr("cust.risk")} /></span>
+        </div>
+        <div className="sf-bl-actions sf-cu-actions">
+          {d.customerId && <a className="sf-bl-btn ghost" href={admin(`customers/${d.customerId}`)} target="_top">{tr("cust.openShopify")}</a>}
+          <button type="button" className="sf-bl-btn ghost danger" onClick={() => setConfirm(true)}>{tr("cust.remove")}</button>
+        </div>
+      </div>
+      <Box paddingBlockEnd="400" />
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -248,51 +296,26 @@ export default function Customer() {
               )}
             </Card>
 
-            {/* checkout attempts */}
-            <Card padding="0">
-              <Box padding="400"><SectionHead title={tr("cust.attemptsTitle")} description={tr("cust.attemptsHint")} /></Box>
-              {d.attempts.length === 0 ? (
-                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("cust.noAttempts")}</Text></Box>
-              ) : (
-                <ul className="sf-ov-attn">
-                  {(d.attempts as any[]).map((a, i) => (
-                    <li key={i}>
-                      <div className="sf-cust-row">
-                        <span className="sf-ov-when">{when(a.createdAt)}</span>
-                        <Badge tone={a.event === "completed" ? "critical" : undefined}>{stepLabel(a.event)}</Badge>
-                        <span className="sf-ov-why">{[a.email, a.phone, [a.firstName, a.lastName].filter(Boolean).join(" "), a.city].filter(Boolean).join(" · ") || "—"}</span>
-                        {a.total != null && <span className="sf-ov-when">{money(a.total, a.currency || d.stats.currency)}</span>}
-                        {d.clientPage && <Link to={`/app/client/${a.deviceId}`}>{tr("cust.device")} {String(a.deviceId).slice(0, 6)}</Link>}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-
-            {/* Semafor checks */}
-            <Card padding="0">
-              <Box padding="400"><SectionHead title={tr("cust.checksTitle")} description={tr("cust.checksHint")} /></Box>
-              {d.checks.length === 0 ? (
-                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("cust.noChecks")}</Text></Box>
-              ) : (
-                <ul className="sf-ov-attn">
-                  {(d.checks as any[]).map((c) => {
-                    const lv: Level = worst(c.level, c.networkLevel);
-                    const acts = String(c.actionTaken || "").split("+").filter(Boolean);
-                    return (
-                      <li key={c.id}>
-                        <a href={admin(`orders/${String(c.orderId).split("/").pop()}`)} target="_top">
-                          <Dot level={lv} />
-                          <span className="sf-ov-order">{c.orderName || "—"}</span>
-                          <span className="sf-ov-why">{tr(`level.${lv}` as TKey)}{acts.length ? ` · ${acts.map((a) => (["tag", "risk", "cancel", "prepaid", "none"].includes(a) ? tr(`action.${a}` as TKey) : a)).join(", ")}` : ""}</span>
-                          <span className="sf-ov-when">{when(c.checkedAt)}</span>
-                        </a>
+            {/* one timeline: orders, checkout attempts, Semafor checks and changes to the entry */}
+            <Card>
+              <BlockStack gap="400">
+                <SectionHead title={tr("cust.historyTitle")} description={tr("cust.timelineHint")} />
+                {timeline.length === 0 ? <Text as="p" tone="subdued">{tr("cust.noAttempts")}</Text> : (
+                  <ol className="sf-cu-tl">
+                    {timeline.map((ev, i) => (
+                      <li key={i}>
+                        <span className={`sf-cu-dot ${ev.tone}`} aria-hidden="true" />
+                        <div>
+                          <p className="sf-cu-when">{when(ev.at)}</p>
+                          <p className="sf-cu-title">{ev.href ? <a href={ev.href} target="_top">{ev.title}</a> : ev.title}</p>
+                          {ev.text && <p className="sf-cu-text">{ev.text}</p>}
+                          {ev.device && d.clientPage && <Link to={`/app/client/${ev.device}`} className="sf-cu-text">{tr("cust.device")} {String(ev.device).slice(0, 6)} →</Link>}
+                        </div>
                       </li>
-                    );
-                  })}
-                </ul>
-              )}
+                    ))}
+                  </ol>
+                )}
+              </BlockStack>
             </Card>
           </BlockStack>
         </Layout.Section>
@@ -385,20 +408,6 @@ export default function Customer() {
               </BlockStack>
             </Card>
 
-            {/* history of the entry */}
-            {d.history.length > 0 && (
-              <Card>
-                <BlockStack gap="200">
-                  <Text as="h2" variant="headingMd">{tr("cust.historyTitle")}</Text>
-                  {(d.history as any[]).map((h, i) => (
-                    <BlockStack key={i} gap="050">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">{actionLabel(h.action)}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{when(h.at)}{h.payload?.added ? ` · ${(h.payload.added as any[]).map((x) => x.kind === "device" ? tr("kind.device").toLowerCase() : x.raw).join(", ")}` : ""}</Text>
-                    </BlockStack>
-                  ))}
-                </BlockStack>
-              </Card>
-            )}
           </BlockStack>
         </Layout.Section>
       </Layout>

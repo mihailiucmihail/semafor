@@ -6,7 +6,8 @@ import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 import semaforStyles from "../styles/semafor.css?url";
 import { authenticate } from "../shopify.server";
-import { ensureShop } from "../semafor/shop.server";
+import { ensureShop, saveSettings } from "../semafor/shop.server";
+import { backfillDeviceLinks } from "../semafor/device-block.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 import { refreshPlan, isOwnerShop } from "../semafor/plan.server";
 import { mailQuota } from "../semafor/quota.server";
@@ -29,6 +30,15 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
   await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
   await rememberLangHints(admin as any, shop, request);
+  // once per shop: link browsers that typed blacklisted data before live device linking existed
+  if (shop.settings.deviceBackfill !== 1) {
+    await Promise.race([
+      backfillDeviceLinks(shop as any, admin as any)
+        .then(() => saveSettings(shop.id, { deviceBackfill: 1 }, "semafor:system"))
+        .catch((e) => console.error("[semafor] device backfill", e)),
+      new Promise((r) => setTimeout(r, 8000)),
+    ]);
+  }
   // key includes the access token tail: a reinstall gets a new token → immediate re-sync (metafields were wiped)
   const installKey = (session.accessToken || "").slice(-8);
   const syncKey = shop.id + ":" + installKey;

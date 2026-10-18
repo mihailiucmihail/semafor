@@ -822,7 +822,22 @@
   "cust.otherHint": "E-mails, téléphones et adresses saisis au checkout depuis les appareils de ce client et pas encore dans la liste.",
   "cust.addThis": "Bloquer",
   "cust.addAll": "Tout bloquer",
-  "cust.audit.add_data": "Données ajoutées"
+  "cust.audit.add_data": "Données ajoutées",
+  "bl.count": "{n} clients",
+  "bl.sub": "+{a} cette semaine · {t} ont tenté de commander aujourd’hui · {s} partagés avec le réseau",
+  "bl.all": "Tous",
+  "bl.sorted": "D’abord ceux qui ont tenté de commander récemment",
+  "bl.viewCards": "Cartes",
+  "bl.viewTable": "Tableau",
+  "bl.since": "dans la liste depuis le {date} · {source}",
+  "bl.triedToday": "a essayé aujourd’hui",
+  "bl.moreData": "{n} e-mails / téléphones",
+  "bl.fChecks": "Commandes signalées",
+  "bl.fTries": "Tentatives",
+  "bl.fLast": "Vu la dernière fois",
+  "bl.todayAt": "aujourd’hui, {time}",
+  "cust.risk": "Risque",
+  "cust.timelineHint": "Commandes, tentatives au checkout, vérifications Semafor et modifications, les plus récentes d’abord."
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

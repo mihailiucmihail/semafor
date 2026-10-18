@@ -67,3 +67,60 @@ export async function linkDeviceAttempt(
     console.error("[semafor] linkDeviceAttempt", e);
   }
 }
+
+/**
+ * One-off catch-up for a shop: browsers that typed a blacklisted e-mail / phone / address BEFORE live linking existed.
+ * Each such browser is added to the entry it matched, plus the e-mails / phones / addresses typed from it after the
+ * customer was put on the list (the same rule as the live link). Then the blocklist is pushed once.
+ */
+export async function backfillDeviceLinks(shop: { id: string; domain: string; plan: string | null; country: string }, admin: { graphql: (q: string, o?: any) => Promise<Response> }) {
+  if (!can(planOf(shop), "checkout_block") || !can(planOf(shop), "device_links")) return 0;
+  const attempts = (await db.checkoutAttempt.findMany({
+    where: { shopId: shop.id, event: { not: "cart" }, createdAt: { gt: new Date(Date.now() - 120 * 86_400_000) } },
+    orderBy: { createdAt: "asc" }, take: 20000,
+    select: { deviceId: true, email: true, phone: true, firstName: true, lastName: true, address1: true, city: true, country: true, createdAt: true },
+  })) as any[];
+  const per = attempts.map((a) => buildIdentifiers({
+    email: a.email ?? undefined, phone: a.phone ?? undefined, firstName: a.firstName ?? undefined, lastName: a.lastName ?? undefined,
+    address1: a.address1 ?? undefined, city: a.city ?? undefined, reason: "other",
+  }, a.country || shop.country).filter((i) => LINK_KINDS.includes(i.kind) || i.kind === "name_address").map((i) => ({ ...i, hash: hmacId(SECRET, i.kind, i.normalized) })));
+  const hashes = [...new Set(per.flat().map((i) => i.hash))];
+  if (!hashes.length) return 0;
+  const hits = (await db.identifier.findMany({
+    where: { shopId: shop.id, hash: { in: hashes }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+    select: { hash: true, entryId: true, entry: { select: { createdAt: true } } },
+  })) as any[];
+  const entryOf = new Map<string, { id: string; at: number }>();
+  for (const h of hits) { const cur = entryOf.get(h.hash); const at = +new Date(h.entry.createdAt); if (!cur || at < cur.at) entryOf.set(h.hash, { id: h.entryId, at }); }
+
+  // device → entry it belongs to (first match), and when it was first seen typing blacklisted data
+  const devEntry = new Map<string, { id: string; at: number }>();
+  attempts.forEach((a, k) => {
+    for (const i of per[k]) { const e = entryOf.get(i.hash); if (e && !devEntry.has(a.deviceId)) devEntry.set(a.deviceId, e); }
+  });
+  if (!devEntry.size) return 0;
+
+  const add = new Map<string, Array<{ kind: IdKind; raw: string; normalized: string; hash: string }>>();
+  const push = (entryId: string, x: { kind: IdKind; raw: string; normalized: string; hash: string }) => { const l = add.get(entryId) ?? []; if (!l.some((y) => y.hash === x.hash)) l.push(x); add.set(entryId, l); };
+  for (const [dev, e] of devEntry) {
+    const n = normDevice(dev);
+    if (n) push(e.id, { kind: "device", raw: dev, normalized: n, hash: hmacId(SECRET, "device", n) });
+  }
+  attempts.forEach((a, k) => {
+    const e = devEntry.get(a.deviceId);
+    if (!e || +a.createdAt < e.at) return; // only what was typed after the customer was on the list
+    for (const i of per[k]) if (LINK_KINDS.includes(i.kind)) push(e.id, i);
+  });
+
+  let total = 0;
+  for (const [entryId, list] of add) {
+    const have = new Set((await db.identifier.findMany({ where: { entryId }, select: { hash: true } })).map((r) => r.hash));
+    const fresh = list.filter((x) => !have.has(x.hash));
+    if (!fresh.length) continue;
+    await db.identifier.createMany({ data: fresh.map((x) => ({ entryId, shopId: shop.id, kind: x.kind, raw: x.raw, normalized: x.normalized, hash: x.hash, normVersion: NORM_VERSION })) });
+    await db.auditLog.create({ data: { shopId: shop.id, actor: "semafor:device", action: "entry.link_device", entryId, payload: { added: fresh.map((x) => ({ kind: x.kind, raw: x.raw })) } as any } }).catch(() => {});
+    total += fresh.length;
+  }
+  if (total) await pushCheckoutMetafield(admin as any, shop.id);
+  return total;
+}

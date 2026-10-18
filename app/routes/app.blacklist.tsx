@@ -3,10 +3,10 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import {
   Page, Layout, Card, BlockStack, InlineStack, Text, TextField, Select, Button, Badge, Avatar,
-  IndexTable, EmptyState, Banner, Box, Modal, FormLayout, Icon,
+  IndexTable, EmptyState, Banner, Box, Modal, FormLayout, Icon, ButtonGroup,
 } from "@shopify/polaris";
 import { DeleteIcon, EmailIcon, PhoneIcon, LocationIcon, MobileIcon, SearchIcon } from "@shopify/polaris-icons";
-import { IdLine } from "../components/semafor-ui";
+import { IdLine, Lamp } from "../components/semafor-ui";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
@@ -22,15 +22,50 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const q = new URL(request.url).searchParams.get("q")?.trim() || "";
   const entries = await db.blockEntry.findMany({
     where: { shopId: shop.id, ...(q ? { identifiers: { some: { OR: [{ raw: { contains: q, mode: "insensitive" } }, { normalized: { contains: q.toLowerCase() } }] } } } : {}) },
-    include: { identifiers: { select: { kind: true, raw: true } } },
+    include: { identifiers: { select: { kind: true, raw: true, normalized: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
   const total = await db.blockEntry.count({ where: { shopId: shop.id } });
   const shared = await db.blockEntry.count({ where: { shopId: shop.id, shared: true } });
+  // activity per customer: checkout tries from their browsers / e-mails (90 days) and Semafor checks that matched them
+  const devOf = new Map<string, string>(), mailOf = new Map<string, string>();
+  for (const e of entries) for (const i of e.identifiers) {
+    if (i.kind === "device") devOf.set(i.normalized, e.id);
+    if (i.kind === "email") mailOf.set(i.raw.toLowerCase(), e.id);
+  }
+  const act = new Map<string, { tries: number; last: number; checks: number }>();
+  const bump = (id: string | undefined, at: Date, k: "tries" | "checks") => {
+    if (!id) return;
+    const a = act.get(id) ?? { tries: 0, last: 0, checks: 0 };
+    a[k]++; a.last = Math.max(a.last, +at); act.set(id, a);
+  };
+  const since90 = new Date(Date.now() - 90 * 86_400_000);
+  if (devOf.size || mailOf.size) {
+    const tries = (await db.checkoutAttempt.findMany({
+      where: { shopId: shop.id, createdAt: { gt: since90 }, event: { not: "cart" }, OR: [...(devOf.size ? [{ deviceId: { in: [...devOf.keys()] } }] : []), ...(mailOf.size ? [{ email: { in: [...mailOf.keys()], mode: "insensitive" as const } }] : [])] },
+      select: { deviceId: true, email: true, createdAt: true }, take: 5000,
+    })) as any[];
+    for (const t of tries) bump(devOf.get(t.deviceId) ?? mailOf.get(String(t.email || "").toLowerCase()), t.createdAt, "tries");
+  }
+  const checks = (await db.orderCheck.findMany({
+    where: { shopId: shop.id, checkedAt: { gt: new Date(Date.now() - 365 * 86_400_000) }, NOT: { level: "green" } },
+    select: { matched: true, checkedAt: true }, take: 5000,
+  })) as any[];
+  const inList = new Set(entries.map((e) => e.id));
+  for (const c of checks) {
+    const ids = new Set(((c.matched as any[]) || []).map((m) => m?.entryId).filter((x: any) => x && inList.has(x)));
+    for (const id of ids) bump(id as string, c.checkedAt, "checks");
+  }
+  const reasons = (await (db.blockEntry.groupBy as any)({ by: ["reason"], where: { shopId: shop.id }, _count: { _all: true } })) as any[];
+  const added7 = await db.blockEntry.count({ where: { shopId: shop.id, createdAt: { gt: new Date(Date.now() - 7 * 86_400_000) } } });
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const activity = Object.fromEntries([...act].map(([k, v]) => [k, v]));
+  const triedToday = [...act.values()].filter((a) => a.tries && a.last >= +today).length;
+
   const url = new URL(request.url);
   const net = url.searchParams.get("net");
-  return { entries, total, shared, q, network: shop.settings.shareNetwork, net: net === "shared" || net === "local" ? net : "", add: url.searchParams.get("add") === "1" };
+  return { entries, total, shared, q, activity, added7, triedToday, reasonCounts: Object.fromEntries(reasons.map((r) => [r.reason, r._count._all])), network: shop.settings.shareNetwork, net: net === "shared" || net === "local" ? net : "", add: url.searchParams.get("add") === "1" };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -67,6 +102,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 function str(fd: FormData, k: string) { const v = fd.get(k); return typeof v === "string" && v.trim() ? v.trim() : undefined; }
 
 const EMPTY_FORM = { email: "", phone: "", firstName: "", lastName: "", address1: "", city: "", reason: "refuz_colet", note: "" };
+const REASON_BAND: Record<string, string> = { refuz_colet: "red", chargeback: "amber", abuse: "red", return_fraud: "gray", other: "gray" };
 const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning", other: undefined };
 
 function initials(s: string) {
@@ -75,7 +111,11 @@ function initials(s: string) {
 }
 
 export default function Index() {
-  const { entries, total, q, network, net, add } = useLoaderData<typeof loader>();
+  const { entries, total, shared, q, network, net, add, activity, added7, triedToday, reasonCounts } = useLoaderData<typeof loader>();
+  // cards (default) or the table; remembered per browser
+  const [view, setView] = useState<"cards" | "table">("cards");
+  useEffect(() => { try { if (window.localStorage.getItem("sf-bl-view") === "table") setView("table"); } catch { /* storage blocked */ } }, []);
+  const pickView = (v: "cards" | "table") => { setView(v); try { window.localStorage.setItem("sf-bl-view", v); } catch { /* storage blocked */ } };
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [open, setOpen] = useState(add);
@@ -112,8 +152,16 @@ export default function Index() {
       const of = (k: string) => e.identifiers.filter((x: any) => x.kind === k).map((x: any) => x.raw as string);
       const emails = of("email"), phones = of("phone"), names = of("name"), addresses = of("address"), devices = of("device");
       const title = names[0] || emails[0] || phones[0] || addresses[0] || tr("common.customer");
-      return { ...e, emails, phones, names, addresses, devices, title };
-    }), [entries, reasonFilter, netFilter, tr]);
+      const a = (activity as Record<string, { tries: number; last: number; checks: number }>)[e.id];
+      return { ...e, emails, phones, names, addresses, devices, title, tries: a?.tries ?? 0, checks: a?.checks ?? 0, last: a?.last || 0 };
+    }), [entries, reasonFilter, netFilter, tr, activity]);
+  const cards = useMemo(() => [...rows].sort((x: any, y: any) => (y.last - x.last) || (+new Date(y.createdAt) - +new Date(x.createdAt))), [rows]);
+  const ago = (t: number) => {
+    if (!t) return "—";
+    const d = new Date(t), now = new Date();
+    if (d.toDateString() === now.toDateString()) return tr("bl.todayAt", { time: d.toLocaleTimeString(dateLocale(lang), { hour: "2-digit", minute: "2-digit" }) });
+    return d.toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" });
+  };
 
   const filtered = !!(reasonFilter || netFilter);
 
@@ -127,36 +175,81 @@ export default function Index() {
           <BlockStack gap="400">
             {!network && <Banner tone="warning" action={{ content: tr("nav.settings"), url: "/app/settings" }}>{tr("index.networkOffBanner")}</Banner>}
 
+            {/* hero: count, search, reason chips */}
+            <div className="sf-bl-hero">
+              <div className="sf-bl-hero-top">
+                <div className="sf-bl-hero-title">
+                  <span className="sf-lamp-v sf-bl-lamp"><Lamp size="lg" level="red" label={tr("nav.blacklist")} /></span>
+                  <div>
+                    <p className="sf-bl-eyebrow">Semafor · {tr("nav.blacklist")}</p>
+                    <h1 className="sf-bl-count">{tr("bl.count", { n: total })}</h1>
+                    <p className="sf-bl-sub">{tr("bl.sub", { a: added7, t: triedToday, s: shared })}</p>
+                  </div>
+                </div>
+                <div className="sf-bl-actions">
+                  <Link to="/app/import" className="sf-bl-btn ghost">{tr("nav.import")}</Link>
+                  <button type="button" className="sf-bl-btn" onClick={() => setOpen(true)}>+ {tr("index.addCustomer")}</button>
+                </div>
+              </div>
+              <form className="sf-bl-search" onSubmit={(ev) => { ev.preventDefault(); runSearch(); }} role="search">
+                <Icon source={SearchIcon} tone="subdued" />
+                <label className="sf-visually-hidden" htmlFor="sf-bl-q">{tr("common.search")}</label>
+                <input id="sf-bl-q" value={search} onChange={(ev) => setSearch(ev.target.value)} placeholder={tr("index.searchPlaceholder")} autoComplete="off" />
+                {(search || q) && <button type="button" className="sf-bl-clear" onClick={() => { setSearch(""); setParams({}); }}>{tr("dash.clearFilters")}</button>}
+              </form>
+              <div className="sf-bl-chips">
+                <button type="button" className={`sf-bl-chip${!reasonFilter && !netFilter ? " on" : ""}`} onClick={() => { setReasonFilter(""); setNetFilter(""); }}>{tr("bl.all")} · {total}</button>
+                {REASONS.filter((r) => (reasonCounts as any)[r]).map((r) => (
+                  <button type="button" key={r} className={`sf-bl-chip${reasonFilter === r ? " on" : ""}`} onClick={() => setReasonFilter(reasonFilter === r ? "" : r)}>{reasonLabel(r)} · {(reasonCounts as any)[r]}</button>
+                ))}
+                <button type="button" className={`sf-bl-chip${netFilter === "shared" ? " on" : ""}`} onClick={() => setNetFilter(netFilter === "shared" ? "" : "shared")}>{tr("dash.netShared")} · {shared}</button>
+              </div>
+            </div>
+
+            <InlineStack align="space-between" blockAlign="center" gap="200">
+              <Text as="p" tone="subdued">{filtered || q ? tr("dash.showing", { n: rows.length, total }) : tr("bl.sorted")}</Text>
+              <ButtonGroup variant="segmented">
+                <Button pressed={view === "cards"} onClick={() => pickView("cards")}>{tr("bl.viewCards")}</Button>
+                <Button pressed={view === "table"} onClick={() => pickView("table")}>{tr("bl.viewTable")}</Button>
+              </ButtonGroup>
+            </InlineStack>
+
+            {view === "cards" && total > 0 && rows.length > 0 ? (
+              <div className="sf-bl-grid">
+                {cards.map((e: any) => (
+                  <Link key={e.id} to={`/app/blacklist/${e.id}`} className="sf-bl-card">
+                    <span className={`sf-bl-band ${REASON_BAND[e.reason] ?? "gray"}`} aria-hidden="true" />
+                    <div className="sf-bl-card-body">
+                      <div className="sf-bl-card-head">
+                        <span className="sf-bl-ini" aria-hidden="true">{initials(e.title)}</span>
+                        <div className="sf-bl-who">
+                          <span className="sf-bl-name">{e.title}</span>
+                          <span className="sf-bl-since">{tr("bl.since", { date: new Date(e.createdAt).toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" }), source: e.orderName ? `${sourceLabel(e.source)} ${e.orderName}` : sourceLabel(e.source) })}</span>
+                        </div>
+                        <Badge tone={REASON_TONE[e.reason]}>{reasonLabel(e.reason)}</Badge>
+                      </div>
+                      <div className="sf-bl-ids">
+                        {e.emails.slice(0, 2).map((x: string) => <IdLine key={x} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
+                        {e.phones.slice(0, 2).map((x: string) => <IdLine key={x} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                        {e.addresses.slice(0, 1).map((x: string) => <IdLine key={x} icon={LocationIcon} label={tr("kind.address")}>{x}</IdLine>)}
+                      </div>
+                      <div className="sf-bl-tags">
+                        {e.tries > 0 && e.last >= new Date().setHours(0, 0, 0, 0) && <span className="hot">{tr("bl.triedToday")}</span>}
+                        {e.devices.length > 0 && <span>{tr("dash.devices", { n: e.devices.length })}</span>}
+                        {e.emails.length + e.phones.length > 2 && <span>{tr("bl.moreData", { n: e.emails.length + e.phones.length })}</span>}
+                        {e.shared && <span>{tr("index.reported")}</span>}
+                      </div>
+                    </div>
+                    <div className="sf-bl-foot">
+                      <div><span>{tr("bl.fChecks")}</span><b>{e.checks}</b></div>
+                      <div><span>{tr("bl.fTries")}</span><b className={e.tries ? "red" : ""}>{e.tries}</b></div>
+                      <div><span>{tr("bl.fLast")}</span><b className="sm">{ago(e.last)}</b></div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
             <Card padding="0">
-              <Box padding="400" paddingBlockEnd="300">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center" gap="200">
-                    <BlockStack gap="050">
-                      <Text as="h2" variant="headingMd">{tr("nav.blacklist")}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{filtered || q ? tr("dash.showing", { n: rows.length, total }) : tr("dash.totalCustomers", { n: total })}</Text>
-                    </BlockStack>
-                    <Button variant="primary" onClick={() => setOpen(true)}>{tr("index.addCustomer")}</Button>
-                  </InlineStack>
-                  <InlineStack gap="200" wrap blockAlign="start">
-                    <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-                      <form onSubmit={(ev) => { ev.preventDefault(); runSearch(); }}>
-                        <TextField label={tr("common.search")} labelHidden placeholder={tr("index.searchPlaceholder")} value={search} onChange={setSearch} autoComplete="off"
-                          prefix={<Icon source={SearchIcon} tone="subdued" />}
-                          clearButton onClearButtonClick={() => { setSearch(""); setParams({}); }}
-                          connectedRight={<Button submit>{tr("common.search")}</Button>} />
-                      </form>
-                    </div>
-                    <div style={{ flex: "0 1 220px" }}>
-                      <Select label={tr("index.colReason")} labelHidden value={reasonFilter} onChange={setReasonFilter}
-                        options={[{ label: tr("dash.allReasons"), value: "" }, ...REASONS.map((r) => ({ label: reasonLabel(r), value: r }))]} />
-                    </div>
-                    <div style={{ flex: "0 1 200px" }}>
-                      <Select label={tr("common.network")} labelHidden value={netFilter} onChange={setNetFilter}
-                        options={[{ label: tr("dash.allNetwork"), value: "" }, { label: tr("dash.netShared"), value: "shared" }, { label: tr("dash.netLocal"), value: "local" }]} />
-                    </div>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
               {total === 0 ? (
                 <EmptyState heading={tr("index.emptyHeading")} action={{ content: tr("index.emptyAction"), onAction: () => setOpen(true) }} secondaryAction={{ content: tr("nav.import"), url: "/app/import" }} image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png">
                   <p>{tr("index.emptyText")}</p>
@@ -219,6 +312,7 @@ export default function Index() {
                 </div>
               )}
             </Card>
+            )}
           </BlockStack>
         </Layout.Section>
       </Layout>

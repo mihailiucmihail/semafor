@@ -822,7 +822,22 @@
   "cust.otherHint": "E-maile, telefony i adresy wpisane w kasie z urządzeń tego klienta, których jeszcze nie ma na liście.",
   "cust.addThis": "Zablokuj",
   "cust.addAll": "Zablokuj wszystkie",
-  "cust.audit.add_data": "Dodano dane"
+  "cust.audit.add_data": "Dodano dane",
+  "bl.count": "Klienci: {n}",
+  "bl.sub": "+{a} w tym tygodniu · próbowali dziś zamówić: {t} · w sieci: {s}",
+  "bl.all": "Wszyscy",
+  "bl.sorted": "Najpierw ci, którzy niedawno próbowali zamówić",
+  "bl.viewCards": "Karty",
+  "bl.viewTable": "Tabela",
+  "bl.since": "na liście od {date} · {source}",
+  "bl.triedToday": "próbował dziś",
+  "bl.moreData": "E-maile / telefony: {n}",
+  "bl.fChecks": "Oznaczone zamówienia",
+  "bl.fTries": "Próby",
+  "bl.fLast": "Ostatnio",
+  "bl.todayAt": "dziś, {time}",
+  "cust.risk": "Ryzyko",
+  "cust.timelineHint": "Zamówienia, próby w kasie, sprawdzenia Semafor i zmiany, od najnowszych."
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

@@ -30,6 +30,8 @@ export interface ShopSettings {
   popupSeenAt?: string | null;
   /** One-way shipping cost of a parcel in the shop currency — the overview's "saved" estimate (stopped × 2 × cost). */
   shipCost?: number | null;
+  /** 1 once the one-off device catch-up (app/semafor/device-block.server.ts) ran for this shop. */
+  deviceBackfill?: number | null;
 }
 
 export interface DnsRecord { record?: string; type: string; name: string; value: string; priority?: number | null; ttl?: string | null; status?: string | null }
