@@ -127,7 +127,9 @@ export function useTableLabels() {
       });
     };
     label();
-    const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(label); });
+    // only re-label when a table itself changed (rows added / replaced) — not on every hover, tooltip or keystroke
+    const inTable = (n: Node | null) => { const el = n instanceof Element ? n : n?.parentElement; return !!el && (!!el.closest(".sf-table") || !!el.querySelector?.(".sf-table")); };
+    const mo = new MutationObserver((ms) => { if (raf) return; for (const m of ms) { if (m.type === "childList" && inTable(m.target)) { raf = requestAnimationFrame(label); return; } } });
     mo.observe(document.body, { childList: true, subtree: true });
     return () => { mo.disconnect(); if (raf) cancelAnimationFrame(raf); };
   }, []);

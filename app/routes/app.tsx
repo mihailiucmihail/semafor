@@ -1,5 +1,7 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
-import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import { Link, Outlet, useLoaderData, useLocation, useRouteError } from "@remix-run/react";
+import { useEffect } from "react";
+import { startVitals } from "../components/vitals";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
@@ -27,10 +29,13 @@ export const links = () => [{ rel: "stylesheet", href: polarisStyles }, { rel: "
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
-  const plan = await refreshPlan(admin as any, shop);
-  await ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e));
-  await ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e));
-  await rememberLangHints(admin as any, shop, request);
+  // independent checks with Shopify — in parallel, not one after another (each is cached after the first run)
+  const [plan] = await Promise.all([
+    refreshPlan(admin as any, shop),
+    ensureWebhooks(admin as any, session.shop).catch((e) => console.error("[semafor] ensureWebhooks", e)),
+    ensurePixel(admin as any, session.shop).catch((e) => console.error("[semafor] ensurePixel", e)),
+    rememberLangHints(admin as any, shop, request),
+  ]);
   // once per shop: link browsers that typed blacklisted data before live device linking existed
   if (shop.settings.deviceBackfill !== 1) {
     await Promise.race([
@@ -47,15 +52,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     blockSynced.set(syncKey, Date.now());
     pushCheckoutMetafield(admin as any, shop.id).catch((e) => console.error("[semafor] blocklist sync", e));
   }
-  await ensurePopupConfig(admin as any, shop as any, installKey).catch((e) => console.error("[semafor] ensurePopupConfig", e));
   // Resend plan limits are global for all shops — only the app owner sees (and can act on) this warning
-  const quota = isOwnerShop(session.shop) ? await mailQuota().catch(() => null) : null;
+  const [, quota] = await Promise.all([
+    ensurePopupConfig(admin as any, shop as any, installKey).catch((e) => console.error("[semafor] ensurePopupConfig", e)),
+    isOwnerShop(session.shop) ? mailQuota().catch(() => null) : null,
+  ]);
   return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null };
 };
 
 export default function App() {
   const { apiKey, pro, basic, lang, quota } = useLoaderData<typeof loader>();
   useTableLabels();
+  // page speed beacon: one per page (full load or in-app navigation)
+  const { pathname } = useLocation();
+  useEffect(() => startVitals(), [pathname]);
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <LangProvider lang={lang}>

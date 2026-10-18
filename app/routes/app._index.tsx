@@ -23,11 +23,9 @@ const PERIODS = [1, 7, 30, 90] as const;
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
-  // orders whose orders/create webhook was lost still get a verdict before the numbers below are read
-  await Promise.race([
-    catchUpOrders(admin as any, shop as any).catch((e) => console.error("[semafor] catch-up", e)),
-    new Promise((r) => setTimeout(r, 5000)),
-  ]);
+  // orders whose orders/create webhook was lost: checked in the background (also every 5 min by the automation),
+  // never holding the page — the numbers include them on the next view
+  catchUpOrders(admin as any, shop as any).catch((e) => console.error("[semafor] catch-up", e));
   const d = Number(new URL(request.url).searchParams.get("d"));
   const days = (PERIODS as readonly number[]).includes(d) ? d : 30;
   const since = days === 1 ? new Date(new Date().setHours(0, 0, 0, 0)) : new Date(Date.now() - days * DAY);
@@ -49,14 +47,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const verdicts = { green: 0, yellow: 0, red: 0 };
   for (const g of groups) verdicts[worst(g.level, g.networkLevel)] += g._count._all;
 
-  const blocked = can(plan, "checkout_block") ? await blockedSummary(shop, since).catch(() => null) : null;
-  const attr = await attributionSummary(db, shop.id, Math.max(1, Math.ceil((Date.now() - +since) / DAY))).catch(() => null);
-  const emailsSent = can(plan, "recovery") ? await db.emailSend.count({ where: { shopId: shop.id, status: "sent", createdAt: { gt: since } } }) : null;
-  const leads = can(plan, "popup") ? await db.popupLead.count({ where: { shopId: shop.id, createdAt: { gt: since } } }) : null;
-  const usedChecks = can(plan, "unlimited_checks") ? null : await checksThisMonth(shop.id);
+  const [blocked, attr, emailsSent, leads, usedChecks, trial] = await Promise.all([
+    can(plan, "checkout_block") ? blockedSummary(shop, since).catch(() => null) : null,
+    attributionSummary(db, shop.id, Math.max(1, Math.ceil((Date.now() - +since) / DAY))).catch(() => null),
+    can(plan, "recovery") ? db.emailSend.count({ where: { shopId: shop.id, status: "sent", createdAt: { gt: since } } }) : null,
+    can(plan, "popup") ? db.popupLead.count({ where: { shopId: shop.id, createdAt: { gt: since } } }) : null,
+    can(plan, "unlimited_checks") ? null : checksThisMonth(shop.id),
+    trialBanner(shop).catch(() => null),
+  ]);
   const shipCost = typeof s.shipCost === "number" && s.shipCost > 0 ? s.shipCost : null;
 
-  const trial = await trialBanner(shop).catch(() => null);
   return {
     trial, days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
     attr: attr ? { email: attr.bySource.email.count, popup: attr.bySource.popup_site.count + attr.bySource.popup_cart.count, currency: attr.currency } : null,

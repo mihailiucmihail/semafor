@@ -6,11 +6,17 @@ export const SECRET = process.env.SEMAFOR_HASH_SECRET || "dev-secret-change-me";
 
 /** Ensure a Shop row exists for this session's shop; returns it with parsed settings. */
 export async function ensureShop(domain: string, accessToken: string) {
-  let shop = await db.shop.upsert({
-    where: { domain },
-    create: { domain, accessToken, country: "RO", trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000) },
-    update: { accessToken, uninstalledAt: null },
-  });
+  // read first: the row only needs a write when the token changed or the shop came back after an uninstall
+  let shop = await db.shop.findUnique({ where: { domain } });
+  if (!shop) {
+    shop = await db.shop.upsert({
+      where: { domain },
+      create: { domain, accessToken, country: "RO", trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000) },
+      update: { accessToken, uninstalledAt: null },
+    });
+  } else if (shop.accessToken !== accessToken || shop.uninstalledAt) {
+    shop = await db.shop.update({ where: { id: shop.id }, data: { accessToken, uninstalledAt: null } });
+  }
   // stores installed shortly before the trial existed get the rest of their 14 days (once; a reinstall never renews it)
   if (!shop.trialEndsAt && shop.installedAt.getTime() > Date.now() - TRIAL_DAYS * 86_400_000) {
     shop = await db.shop.update({ where: { id: shop.id }, data: { trialEndsAt: new Date(shop.installedAt.getTime() + TRIAL_DAYS * 86_400_000) } });
