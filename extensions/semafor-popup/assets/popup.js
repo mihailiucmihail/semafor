@@ -303,7 +303,7 @@
       if (has || cartCount <= 0) return;
       serverKnown(function (known) {
         if (known || ui || ssGet('_smf_pp_cart')) return;
-        if (show('cart')) ssSet('_smf_pp_cart', '1');
+        if (show('cart')) { ssSet('_smf_pp_cart', '1'); ssSet('_smf_pp_co', '1'); }
       });
     });
   }
@@ -374,7 +374,7 @@
     var gatePassed = false;
     D.addEventListener('click', function (e) {
       var t = checkoutTarget(e);
-      if (!t || gatePassed || ui || ssGet('_smf_pp_co') || knownLocally()) return;
+      if (!t || gatePassed || ui || ssGet('_smf_pp_co') || ssGet('_smf_pp_cart') || knownLocally()) return;
       e.preventDefault(); e.stopImmediatePropagation();
       var proceed = function () {
         gatePassed = true;
@@ -392,7 +392,11 @@
   }
 
   if (cfg.mode !== 'cart') setTimeout(function () { open('site'); }, Math.max(0, Number(cfg.delay) || 0) * 1000);
-  if (B.pageType === 'cart' && cartCount > 0) cartActivity('open');
+  // the full cart page (not the drawer): smart mode asks there too — once per visit, shared with the checkout ask
+  if (B.pageType === 'cart' && cartCount > 0) {
+    if (smart) setTimeout(reoffer, Math.max(1, Number(cfg.cartDelay) || 2) * 1000);
+    else cartActivity('open');
+  }
 
   // exit intent (desktop): the mouse leaves through the top while the cart has items — once
   if (cfg.exitIntent && W.matchMedia && W.matchMedia('(pointer: fine)').matches) {
