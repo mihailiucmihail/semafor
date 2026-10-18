@@ -949,6 +949,8 @@ const D = {
   "net.hitsHint": { en: "Last 30 days: why other stores reported the buyer and how many.", ro: "Ultimele 30 de zile: de ce au raportat alte magazine clientul și câte." },
   "net.hitsEmpty": { en: "No order matched the network in the last 30 days.", ro: "Nicio comandă nu s-a potrivit cu rețeaua în ultimele 30 de zile." },
   "net.reportedBy": { en: "Reported by {n} store(s)", ro: "Raportat de {n} magazin(e)" },
+  "cust.viaDevice": { en: "same device · placed as {name}", ro: "același dispozitiv · pe numele {name}" },
+  "cust.kViaDevice": { en: "{n} under other names from the same device", ro: "{n} pe alte nume, de pe același dispozitiv" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;
@@ -992,6 +994,8 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^mai multe comenzi$/, "multiple orders"],
   [/^comandă în drum$/, "order in transit"],
   [/^schimbă datele$/, "changing details"],
+  [/^de pe același dispozitiv mai există comenzile: (.+)$/, "other orders from the same device: $1"],
+  [/^același dispozitiv$/, "same device"],
 ];
 
 /** SERVER_MSG read the other way round: [English text as a pattern, the Romanian text with $1…]. */

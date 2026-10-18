@@ -13,7 +13,7 @@ const DAY = 86_400_000;
  *  - if any identity tried from that device is on the blacklist → red (weight 100)
  *  - if the device cycled through several identities within 48 h → yellow (weight 40)
  */
-export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO", ro = true) {
+export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO", ro = true, orderId?: string) {
   if (!checkoutToken) return { findings: [] as DeviceFinding[], identities: [] as string[] };
   const seed = await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken }, select: { deviceId: true, fingerprint: true, ip: true } }) as any[];
   if (!seed.length) return { findings: [], identities: [] };
@@ -57,6 +57,20 @@ export async function deviceLinks(db: PrismaClient, secret: string, shopId: stri
   const rN = new Set(recent.map((a) => normName(a.firstName, a.lastName)).filter(Boolean));
   if (rE.size >= 3 || rP.size >= 3 || rN.size >= 3 || rE.size + rP.size + rN.size >= 6) {
     findings.push({ kind: "device", normalized: ro ? `${rE.size} e-mailuri, ${rP.size} telefoane, ${rN.size} nume în 48 h de pe același dispozitiv` : `${rE.size} e-mails, ${rP.size} phones, ${rN.size} names in 48 h from the same device`, entryId: "", reason: ro ? "schimbă datele" : "changes identity", weight: 40 });
+  }
+  // other orders placed from the same browser (90 days), whatever name / e-mail / address they used
+  const devOrders = (await db.checkoutAttempt.findMany({
+    where: { shopId, deviceId: { in: devices }, orderId: { not: null }, createdAt: { gt: new Date(Date.now() - 90 * DAY) }, ...(orderId ? { NOT: { orderId } } : {}) },
+    orderBy: { createdAt: "desc" }, select: { orderId: true, firstName: true, lastName: true, email: true },
+  })) as any[];
+  const byOrder = new Map<string, string>();
+  for (const a of devOrders) if (a.orderId && !byOrder.has(a.orderId)) byOrder.set(a.orderId, [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email || "");
+  if (byOrder.size) {
+    const names = (await db.orderCheck.findMany({ where: { shopId, orderId: { in: [...byOrder.keys()] } }, select: { orderId: true, orderName: true } })) as any[];
+    const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));
+    const list = [...byOrder].slice(0, 5).map(([id, who]) => `${nameOf.get(id) || "#" + String(id).split("/").pop()}${who ? ` (${who})` : ""}`).join(", ");
+    // stored in Romanian (canonical); app/i18n.ts translates it for the admin language
+    findings.push({ kind: "device", normalized: `de pe același dispozitiv mai există comenzile: ${list}`, entryId: "", reason: "același dispozitiv", weight: 40 });
   }
   return { findings, identities };
 }

@@ -19,6 +19,8 @@ import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
 type ShopOrder = {
   id: string; name: string; createdAt: string; financial: string | null; fulfillment: string | null; cancelledAt: string | null;
   total: number; currency: string; gateways: string[]; city: string | null; address: string | null; customerId: string | null;
+  /** set when the order was found through the customer's browser, not their e-mail / phone: the name it was placed under */
+  viaDevice?: string;
 };
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
@@ -98,6 +100,35 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     select: { deviceId: true, event: true, email: true, phone: true, firstName: true, lastName: true, address1: true, city: true, total: true, currency: true, orderId: true, createdAt: true },
   })) as any[]) : [];
 
+  // orders placed from the customer's browsers under OTHER names / e-mails (not found by e-mail / phone above)
+  const known = new Set(orders.map((o) => o.id));
+  const extraIds = [...new Set((attempts as any[]).map((a) => a.orderId).filter((x: string | null) => x && !known.has(String(x).split("/").pop()!)))].slice(0, 30) as string[];
+  if (extraIds.length) {
+    try {
+      const r = await admin.graphql(`#graphql
+        query($ids: [ID!]!) { nodes(ids: $ids) { ... on Order {
+          id name createdAt cancelledAt displayFinancialStatus displayFulfillmentStatus paymentGatewayNames
+          totalPriceSet { shopMoney { amount currencyCode } }
+          shippingAddress { name address1 address2 city }
+          customer { id }
+        } } }`, { variables: { ids: extraIds } });
+      const j: any = await r.json();
+      for (const o of (j?.data?.nodes ?? []).filter(Boolean)) {
+        if (!o.id) continue;
+        orders.push({
+          id: String(o.id).split("/").pop()!, name: o.name, createdAt: o.createdAt, financial: o.displayFinancialStatus ?? null, fulfillment: o.displayFulfillmentStatus ?? null,
+          cancelledAt: o.cancelledAt ?? null, total: Number(o.totalPriceSet?.shopMoney?.amount) || 0, currency: o.totalPriceSet?.shopMoney?.currencyCode || "",
+          gateways: o.paymentGatewayNames ?? [], city: o.shippingAddress?.city ?? null,
+          address: [o.shippingAddress?.address1, o.shippingAddress?.address2].filter(Boolean).join(", ") || null,
+          customerId: o.customer?.id ? String(o.customer.id).split("/").pop()! : null, viaDevice: o.shippingAddress?.name || "—",
+        });
+      }
+      orders.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+    } catch (e) {
+      console.error("[semafor] device orders", e);
+    }
+  }
+
   // e-mails / phones / addresses typed from the same browsers that are NOT on the entry yet → one click to add them
   const lc = (x: string) => x.trim().toLowerCase();
   const digits = (x: string) => x.replace(/\D/g, "").slice(-9);
@@ -123,6 +154,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     orders, ordersError, checks, attempts, history, otherData,
     stats: {
       orders: orders.length,
+      viaDevice: orders.filter((o) => o.viaDevice).length,
       cancelled: orders.length - live.length,
       paid: live.filter((o) => o.financial === "PAID").reduce((s, o) => s + o.total, 0),
       currency: orders[0]?.currency || "",
@@ -229,7 +261,7 @@ export default function Customer() {
     ...(d.orders as ShopOrder[]).map((o): Ev => ({
       at: o.createdAt, tone: o.cancelledAt ? "red" : o.financial === "PAID" ? "green" : "gray", href: admin(`orders/${o.id}`),
       title: `${tr("checks.colOrder")} ${o.name} · ${money(o.total, o.currency)}`,
-      text: [o.cancelledAt ? tr("cust.cancelled") : null, o.financial?.replace(/_/g, " ").toLowerCase(), o.fulfillment?.replace(/_/g, " ").toLowerCase(), o.gateways.join(", ")].filter(Boolean).join(" · "),
+      text: [o.viaDevice ? tr("cust.viaDevice", { name: o.viaDevice }) : null, o.cancelledAt ? tr("cust.cancelled") : null, o.financial?.replace(/_/g, " ").toLowerCase(), o.fulfillment?.replace(/_/g, " ").toLowerCase(), o.gateways.join(", ")].filter(Boolean).join(" · "),
     })),
     ...(d.checks as any[]).map((c): Ev => {
       const lv: Level = worst(c.level, c.networkLevel);
@@ -286,7 +318,7 @@ export default function Customer() {
             {/* numbers */}
             <Card>
               <div className="sf-ov-kpis">
-                <div><Text as="p" variant="bodySm" tone="subdued">{tr("cust.kOrders")}</Text><span className="sf-ov-num">{d.stats.orders}</span></div>
+                <div><Text as="p" variant="bodySm" tone="subdued">{tr("cust.kOrders")}</Text><span className="sf-ov-num">{d.stats.orders}</span>{d.stats.viaDevice > 0 && <Text as="p" variant="bodySm" tone="caution">{tr("cust.kViaDevice", { n: d.stats.viaDevice })}</Text>}</div>
                 <div><Text as="p" variant="bodySm" tone="subdued">{tr("cust.kCancelled")}</Text><span className={`sf-ov-num${d.stats.cancelled ? " red" : ""}`}>{d.stats.cancelled}</span></div>
                 <div><Text as="p" variant="bodySm" tone="subdued">{tr("cust.kPaid")}</Text><span className="sf-ov-num">{money(d.stats.paid, d.stats.currency)}</span></div>
                 <div><Text as="p" variant="bodySm" tone="subdued">{tr("cust.kAttempts")}</Text><span className="sf-ov-num">{d.attempts.length}</span></div>
@@ -310,6 +342,7 @@ export default function Customer() {
                         <IndexTable.Cell><Text as="span" variant="bodySm">{o.gateways.join(", ") || "—"}</Text></IndexTable.Cell>
                         <IndexTable.Cell>
                           <InlineStack gap="100">
+                            {o.viaDevice ? <Badge tone="attention">{tr("cust.viaDevice", { name: o.viaDevice })}</Badge> : null}
                             {o.cancelledAt ? <Badge tone="critical">{tr("cust.cancelled")}</Badge> : null}
                             {o.financial && <Badge tone={FIN_TONE[o.financial]}>{o.financial.replace(/_/g, " ").toLowerCase()}</Badge>}
                             {o.fulfillment && <Badge>{o.fulfillment.replace(/_/g, " ").toLowerCase()}</Badge>}

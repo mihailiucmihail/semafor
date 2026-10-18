@@ -878,7 +878,9 @@
   "net.hitsTitle": "Vos commandes reconnues par le réseau",
   "net.hitsHint": "30 derniers jours : pourquoi d’autres boutiques ont signalé l’acheteur, et combien.",
   "net.hitsEmpty": "Aucune commande n’a correspondu au réseau ces 30 derniers jours.",
-  "net.reportedBy": "Signalé par {n} boutique(s)"
+  "net.reportedBy": "Signalé par {n} boutique(s)",
+  "cust.viaDevice": "même appareil · au nom de {name}",
+  "cust.kViaDevice": "{n} sous d’autres noms depuis le même appareil"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",
@@ -900,7 +902,9 @@
   "a déjà la commande $1 en paiement à la livraison en cours d'acheminement — attendez qu'il la récupère",
   "plusieurs commandes",
   "commande en transit",
-  "change de coordonnées"
+  "change de coordonnées",
+  "autres commandes depuis le même appareil : $1",
+  "même appareil"
  ],
  "skip": [
   "Non envoyé : l'article du panier est en rupture de stock ($1).",

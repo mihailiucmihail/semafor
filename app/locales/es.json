@@ -878,7 +878,9 @@
   "net.hitsTitle": "Tus pedidos que reconoció la red",
   "net.hitsHint": "Últimos 30 días: por qué otras tiendas reportaron al comprador y cuántas.",
   "net.hitsEmpty": "Ningún pedido coincidió con la red en los últimos 30 días.",
-  "net.reportedBy": "Reportado por {n} tienda(s)"
+  "net.reportedBy": "Reportado por {n} tienda(s)",
+  "cust.viaDevice": "mismo dispositivo · a nombre de {name}",
+  "cust.kViaDevice": "{n} con otros nombres desde el mismo dispositivo"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",
@@ -900,7 +902,9 @@
   "ya tiene el pedido contra entrega $1 en tránsito — espera a que lo recoja",
   "varios pedidos",
   "pedido en tránsito",
-  "cambia sus datos"
+  "cambia sus datos",
+  "otros pedidos desde el mismo dispositivo: $1",
+  "mismo dispositivo"
  ],
  "skip": [
   "No enviado: el artículo del carrito está agotado ($1).",

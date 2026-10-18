@@ -71,7 +71,7 @@ export async function checkOrder(opts: {
   });
   // Device chain: identities tried from the same device in checkout (Semafor pixel)
   if (can(plan, 'device_links')) try {
-    const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country, ro);
+    const dl = await deviceLinks(db, secret, shopId, order.checkout_token, opts.country, true, order.admin_graphql_api_id);
     if (dl.findings.length) {
       result.matches.push(...(dl.findings as any));
       result.score += Math.max(...dl.findings.map((f) => f.weight));

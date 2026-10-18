@@ -878,7 +878,9 @@
   "net.hitsTitle": "Twoje zamówienia rozpoznane przez sieć",
   "net.hitsHint": "Ostatnie 30 dni: dlaczego inne sklepy zgłosiły klienta i ile ich było.",
   "net.hitsEmpty": "Żadne zamówienie nie pasowało do sieci w ostatnich 30 dniach.",
-  "net.reportedBy": "Zgłoszone przez sklepy: {n}"
+  "net.reportedBy": "Zgłoszone przez sklepy: {n}",
+  "cust.viaDevice": "to samo urządzenie · na nazwisko {name}",
+  "cust.kViaDevice": "Na inne nazwiska z tego samego urządzenia: {n}"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",
@@ -900,7 +902,9 @@
   "ma już w drodze zamówienie za pobraniem $1 — poczekaj, aż je odbierze",
   "wiele zamówień",
   "zamówienie w drodze",
-  "zmienia dane"
+  "zmienia dane",
+  "inne zamówienia z tego samego urządzenia: $1",
+  "to samo urządzenie"
  ],
  "skip": [
   "Nie wysłano: produkt z koszyka jest niedostępny ($1).",
