@@ -624,7 +624,7 @@
   "popup.off": "Wyłączony",
   "popup.whenHeading": "Kiedy się pojawia",
   "popup.modeSmart": "Inteligentny",
-  "popup.modeSmartDesc": "Nowi odwiedzający widzą go na dowolnej stronie po kilku sekundach. Nieznani jeszcze odwiedzający, którzy otworzą koszyk bez rabatu, dostają ofertę ponownie (raz na wizytę) — dzięki temu zdobywasz e-mail przed kasą.",
+  "popup.modeSmartDesc": "Nowi odwiedzający widzą go na dowolnej stronie po kilku sekundach. Kto nie zostawił jeszcze e-maila i kliknie „Zamów”, dostaje ofertę jeszcze raz, tuż przed otwarciem kasy — dzięki temu zdobywasz e-mail przed płatnością.",
   "popup.recommended": "Zalecany",
   "popup.cartDelaySmart": "W koszyku: pokaż po (sekundy)",
   "popup.discountDescSimple": "Wybierz rabat powitalny. Semafor utworzy kod w Shopify za Ciebie.",

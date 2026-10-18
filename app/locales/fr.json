@@ -624,7 +624,7 @@
   "popup.off": "Désactivée",
   "popup.whenHeading": "Quand elle apparaît",
   "popup.modeSmart": "Intelligent",
-  "popup.modeSmartDesc": "Les nouveaux visiteurs la voient sur n'importe quelle page après quelques secondes. Les visiteurs encore inconnus qui ouvrent le panier sans réduction se voient reproposer l'offre (une fois par visite) — vous récupérez ainsi l'e-mail avant le checkout.",
+  "popup.modeSmartDesc": "Les nouveaux visiteurs la voient sur n'importe quelle page après quelques secondes. Un visiteur dont on ne connaît pas encore l'e-mail et qui clique sur « Passer commande » reçoit l'offre une dernière fois, juste avant l'ouverture du checkout — vous obtenez ainsi l'e-mail avant le paiement.",
   "popup.recommended": "Recommandé",
   "popup.cartDelaySmart": "Dans le panier : afficher après (secondes)",
   "popup.discountDescSimple": "Choisissez la réduction de bienvenue. Semafor crée le code dans Shopify pour vous.",

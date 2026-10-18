@@ -624,7 +624,7 @@
   "popup.off": "Desactivado",
   "popup.whenHeading": "Cuándo aparece",
   "popup.modeSmart": "Inteligente",
-  "popup.modeSmartDesc": "Los visitantes nuevos lo ven en cualquier página tras unos segundos. Los visitantes que aún no conocemos y abren el carrito sin descuento vuelven a recibir la oferta (una vez por visita) — así captas el correo antes del checkout.",
+  "popup.modeSmartDesc": "Los visitantes nuevos lo ven en cualquier página tras unos segundos. Quien aún no nos ha dejado su correo y pulsa «Finalizar pedido» recibe la oferta una vez más, justo antes de que se abra el checkout — así consigues el correo antes del pago.",
   "popup.recommended": "Recomendado",
   "popup.cartDelaySmart": "En el carrito: mostrar tras (segundos)",
   "popup.discountDescSimple": "Elige el descuento de bienvenida. Semafor crea el código en Shopify por ti.",

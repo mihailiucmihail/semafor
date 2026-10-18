@@ -272,7 +272,7 @@ export default function PopupPage() {
                 </div>
                 <InlineGrid columns={{ xs: 1, md: 2 }} gap="300">
                   {p.mode !== "cart" && <TextField label={tr("popup.delay")} type="number" min={0} max={300} value={String(p.delay)} onChange={(v) => set("delay", Number(v))} autoComplete="off" />}
-                  {p.mode !== "site" && <TextField label={tr(p.mode === "smart" ? "popup.cartDelaySmart" : "popup.cartDelay")} type="number" min={0} max={120} value={String(p.cartDelay)} onChange={(v) => set("cartDelay", Number(v))} autoComplete="off" helpText={tr("popup.cartDelayHelp")} />}
+                  {p.mode === "cart" && <TextField label={tr("popup.cartDelay")} type="number" min={0} max={120} value={String(p.cartDelay)} onChange={(v) => set("cartDelay", Number(v))} autoComplete="off" helpText={tr("popup.cartDelayHelp")} />}
                   <TextField label={tr("popup.hideDays")} type="number" min={1} max={365} value={String(p.hideDays)} onChange={(v) => set("hideDays", Number(v))} autoComplete="off" />
                 </InlineGrid>
                 <Checkbox label={tr("popup.exitIntent")} checked={p.exitIntent} onChange={(v) => set("exitIntent", v)} />

@@ -691,7 +691,7 @@ const D = {
   "popup.off": { en: "Off", ro: "Oprit" },
   "popup.whenHeading": { en: "When it appears", ro: "Când apare" },
   "popup.modeSmart": { en: "Smart", ro: "Inteligent" },
-  "popup.modeSmartDesc": { en: "New visitors see it on any page after a few seconds. Visitors we don't know yet who open the cart without a discount get the offer again (once per visit) — so you capture the email before checkout.", ro: "Vizitatorii noi îl văd pe orice pagină după câteva secunde. Vizitatorii pe care încă nu-i cunoaștem și deschid coșul fără reducere primesc oferta din nou (o dată pe vizită) — așa afli e-mailul înainte de checkout." },
+  "popup.modeSmartDesc": { en: "New visitors see it on any page after a few seconds. A visitor whose e-mail we don't know yet who presses “Checkout” gets the offer once more, right before the checkout opens — so you get the e-mail before payment.", ro: "Vizitatorii noi îl văd pe orice pagină după câteva secunde. Cine nu ne-a lăsat încă e-mailul și apasă „Finalizează comanda” primește oferta încă o dată, chiar înainte să se deschidă checkout-ul — așa afli e-mailul înainte de plată." },
   "popup.recommended": { en: "Recommended", ro: "Recomandat" },
   "popup.cartDelaySmart": { en: "In the cart: show after (seconds)", ro: "În coș: apare după (secunde)" },
   "popup.discountDescSimple": { en: "Choose the welcome discount. Semafor creates the code in Shopify for you.", ro: "Alege reducerea de bun venit. Semafor creează singur codul în Shopify." },

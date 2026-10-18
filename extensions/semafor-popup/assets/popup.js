@@ -292,10 +292,8 @@
       if (siteShown) return;
       clearTimeout(cartTimer);
       cartTimer = setTimeout(function () { open('cart'); }, Math.max(0, Number(cfg.cartDelay) || 0) * 1000);
-    } else if (smart && how === 'open') {
-      clearTimeout(cartTimer);
-      cartTimer = setTimeout(reoffer, Math.max(0, Number(cfg.cartDelay) || 0) * 1000);
     }
+    // smart mode: no pop-up when the cart opens — the cart offer comes when the visitor presses checkout (below)
   }
   function seenCartUrl(url, body) {
     url = String(url || '');
