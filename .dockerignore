@@ -6,3 +6,5 @@ test
 extensions/*/node_modules
 extensions/*/dist
 drafts
+site
+site-src

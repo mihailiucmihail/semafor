@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semafor — ochrona przed nieodebranymi paczkami za pobraniem i odzyskiwanie koszyków dla Shopify</title>
+<meta name="description" content="Semafor w kilka sekund nadaje każdemu zamówieniu w Shopify zielone, żółte lub czerwone światło, dyskretnie zatrzymuje kupujących, którzy nie odbierają paczek za pobraniem — nawet pod nowym nazwiskiem — i odzyskuje porzucone koszyki.">
+<meta property="og:title" content="Semafor — każde zamówienie dostaje sygnał">
+<meta property="og:description" content="Ochrona przed oszustwami przy płatności za pobraniem, wspólna sieć sklepów i automatyczne odzyskiwanie porzuconych koszyków dla Shopify. 14 dni planu Pro za darmo.">
+<meta property="og:image" content="https://kastellabs.com/assets/icon-512.png">
+<link rel="canonical" href="https://kastellabs.com/pl/">
+<link rel="alternate" hreflang="en" href="https://kastellabs.com/">
+<link rel="alternate" hreflang="ro" href="https://kastellabs.com/ro/">
+<link rel="alternate" hreflang="es" href="https://kastellabs.com/es/">
+<link rel="alternate" hreflang="fr" href="https://kastellabs.com/fr/">
+<link rel="alternate" hreflang="pl" href="https://kastellabs.com/pl/">
+<link rel="alternate" hreflang="ru" href="https://kastellabs.com/ru/">
+<link rel="alternate" hreflang="x-default" href="https://kastellabs.com/">
+<meta property="og:url" content="https://kastellabs.com/pl/">
+<meta property="og:locale" content="pl_PL">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0F0E0C; --night-2:#171512; --night-3:#211E1A; --edge:#2E2A25; --mute:#8F877B; --soft:#BDB5A8; --cream:#F4EFE6;
+  --ivory:#F1EDE5; --paper:#F8F5EF; --line:#DED7CA; --ink:#1B1916; --ink-2:#4A453E; --ink-3:#7C756A;
+  --red:#E0483C; --amber:#F2A23A; --green:#27B874;
+  --serif:"Instrument Serif","Cormorant Garamond",Georgia,serif; --sans:"Inter Tight",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--night);color:var(--cream);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px;position:relative}
+.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.012em}
+.eyebrow{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:500}
+.light-sec{background:var(--ivory);color:var(--ink)}
+.light-sec .eyebrow{color:var(--ink-3)}
+section{padding:120px 0;position:relative}
+h2.big{font-size:clamp(40px,5.6vw,72px);line-height:1}
+.lead{font-size:18.5px;color:var(--soft);max-width:540px;margin-top:22px}
+.light-sec .lead{color:var(--ink-2)}
+em.it{font-style:italic}
+.grain::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-size:15.5px;font-weight:500;text-decoration:none;transition:transform .25s,box-shadow .25s,background .25s,border-color .25s;white-space:nowrap;cursor:pointer;border:0}
+.btn-glow{background:var(--cream);color:var(--night);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 10px 40px -10px rgba(39,184,116,.55)}
+.btn-glow:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(255,255,255,.2),0 16px 50px -10px rgba(39,184,116,.75)}
+.btn-line{border:1px solid var(--edge);color:var(--cream);background:rgba(255,255,255,.02)}
+.btn-line:hover{border-color:var(--mute)}
+.btn-ink{background:var(--ink);color:var(--paper)}
+.btn-ink:hover{transform:translateY(-2px);box-shadow:0 12px 30px -12px rgba(0,0,0,.5)}
+.btn-sm{padding:10px 17px;font-size:14px}
+
+/* nav */
+nav.top{position:fixed;top:0;left:0;right:0;z-index:40;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+nav.top.scrolled{background:rgba(15,14,12,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom-color:var(--edge)}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:600;font-size:17px;letter-spacing:-.01em}
+.brand img{width:30px;height:30px;border-radius:8px}
+.brand small{font-weight:400;color:var(--mute);font-size:13px;margin-left:2px}
+.navlinks{display:flex;gap:28px;align-items:center;font-size:15px}
+.navlinks > a:not(.btn){text-decoration:none;color:var(--soft)}
+.navlinks > a:not(.btn):hover{color:var(--cream)}
+
+/* hero */
+.hero{min-height:100vh;padding:150px 0 90px;display:flex;align-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 78% 40%,#1E1B17 0%,var(--night) 60%)}
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;width:100%}
+.hero h1{font-size:clamp(54px,8vw,112px);line-height:.95}
+.hero h1 em{font-style:italic;color:#D8CFC1}
+.hero .lead{font-size:19.5px;max-width:560px}
+.hero .cta{display:flex;gap:12px;margin-top:38px;flex-wrap:wrap}
+.hero .note{margin-top:18px;font-size:14px;color:var(--mute);display:flex;gap:18px;flex-wrap:wrap}
+.hero .note span::before{content:"✓";color:var(--green);margin-right:7px}
+.pill{display:inline-flex;align-items:center;gap:9px;font-size:13px;padding:7px 14px 7px 8px;border-radius:999px;border:1px solid var(--edge);background:rgba(255,255,255,.03);color:var(--soft);margin-bottom:28px;text-decoration:none}
+.pill b{background:var(--green);color:#06210F;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;letter-spacing:.04em}
+
+.stage{position:relative;height:620px;display:grid;place-items:center}
+.halo{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(90px);opacity:.35;transition:background .8s;background:var(--green)}
+.pole{position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:22px;height:260px;background:linear-gradient(90deg,#1A1815,#3B3631 50%,#1A1815)}
+.tl{position:relative;width:150px;padding:22px 0;border-radius:52px;background:linear-gradient(160deg,#2E2A25,#151310 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 6px rgba(0,0,0,.6),0 40px 80px -30px rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
+.lamp{width:100px;height:100px;border-radius:50%;position:relative;background:#0A0908;box-shadow:inset 0 4px 10px rgba(0,0,0,.9)}
+.lamp::before{content:"";position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--hi) 0%,var(--c) 42%,var(--lo) 100%);opacity:.16;transition:opacity .45s,box-shadow .45s}
+.lamp::after{content:"";position:absolute;top:18px;left:26px;width:30px;height:16px;border-radius:50%;background:rgba(255,255,255,.55);filter:blur(3px);opacity:.15;transform:rotate(-20deg);transition:opacity .45s}
+.lamp .visor{position:absolute;left:-8px;right:-8px;top:-9px;height:26px;border-radius:60px 60px 6px 6px;background:linear-gradient(180deg,#36322D,#171512);z-index:1}
+.lamp.r{--c:#E0483C;--hi:#FFB3A8;--lo:#7E1A12}.lamp.y{--c:#F2A23A;--hi:#FFE6B0;--lo:#8D500B}.lamp.g{--c:#27B874;--hi:#B6F7D6;--lo:#0B5C36}
+.lamp.on::before{opacity:1;box-shadow:0 0 30px 6px var(--c),0 0 90px 10px color-mix(in srgb,var(--c) 45%,transparent)}
+.lamp.on::after{opacity:.9}
+.mini .lamp{width:auto}
+
+.feed{position:absolute;inset:0;pointer-events:none}
+.oc{position:absolute;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:16px;background:rgba(30,27,23,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--edge);font-size:13.5px;box-shadow:0 20px 40px -20px rgba(0,0,0,.8);opacity:0;transform:translateY(14px) scale(.97);transition:opacity .6s,transform .6s;white-space:nowrap;z-index:3}
+.oc.show{opacity:1;transform:none}
+.oc .n{font-weight:600}
+.oc small{display:block;color:var(--mute);font-size:12.5px}
+.oc .dot{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
+.oc1{top:9%;left:-2%}.oc2{top:44%;right:-4%}.oc3{bottom:12%;left:2%}
+
+/* marquee */
+.strip{border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);overflow:hidden;background:var(--night-2)}
+.marq{display:flex;gap:56px;padding:20px 0;width:max-content;animation:marq 48s linear infinite;font-size:15px;color:var(--soft)}
+.marq span{display:flex;align-items:center;gap:14px}
+.marq span::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c,var(--green));box-shadow:0 0 10px var(--c,var(--green))}
+.marq span:nth-child(3n+2){--c:var(--amber)}.marq span:nth-child(3n){--c:var(--red)}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* signal / checkout demo */
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.tabs{display:flex;gap:8px;margin-top:36px;flex-wrap:wrap}
+.tab{display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:999px;border:1px solid var(--edge);background:transparent;color:var(--soft);font:inherit;font-size:15px;cursor:pointer;transition:all .3s}
+.tab i{width:11px;height:11px;border-radius:50%;background:var(--c);opacity:.45;transition:all .3s}
+.tab.on{color:var(--cream);border-color:color-mix(in srgb,var(--c) 60%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent)}
+.tab.on i{opacity:1;box-shadow:0 0 12px var(--c)}
+.tab.g{--c:var(--green)}.tab.y{--c:var(--amber)}.tab.r{--c:var(--red)}
+.explain{margin-top:30px;min-height:190px}
+.explain > div{display:none}
+.explain > div.on{display:block;animation:fade .5s}
+.explain h3{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.1}
+.explain p{color:var(--soft);margin-top:10px}
+.explain ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:8px;font-size:15px;color:#D9D2C6}
+.explain li::before{content:"—";color:var(--mute);margin-right:10px}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.phone{width:min(380px,100%);margin:0 auto;border-radius:44px;padding:14px;background:linear-gradient(160deg,#2A2622,#121110);box-shadow:0 0 0 1px #34302A,0 50px 100px -40px rgba(0,0,0,.9)}
+.screen{border-radius:32px;background:#FBFAF7;color:#1B1916;padding:26px 22px 30px;min-height:540px;position:relative;overflow:hidden}
+.screen .bar{display:flex;justify-content:space-between;font-size:12px;color:#8A8378;margin-bottom:20px}
+.screen h4{font-size:19px;font-weight:600}
+.screen .sub{font-size:13px;color:#8A8378;margin-top:2px}
+.sumline{display:flex;justify-content:space-between;align-items:center;border:1px solid #ECE6DA;border-radius:14px;padding:12px 14px;margin-top:18px;font-size:14px}
+.sumline .ph{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#D9CDB8,#B9A88C);margin-right:12px}
+.sumline > div{display:flex;align-items:center}
+.paylbl{font-size:13px;font-weight:600;margin:22px 0 10px;color:#4A453E}
+.pm{display:flex;align-items:center;gap:12px;border:1px solid #E3DCCF;border-radius:12px;padding:14px;font-size:14.5px;margin-bottom:8px;transition:all .45s;max-height:60px;overflow:hidden}
+.pm .rad{width:17px;height:17px;border-radius:50%;border:1.5px solid #B6AD9F;flex:none}
+.pm.sel{border-color:#1B1916;box-shadow:inset 0 0 0 1px #1B1916}
+.pm.sel .rad{border:5px solid #1B1916}
+.pm small{margin-left:auto;color:#8A8378;font-size:12.5px}
+.pm.gone{opacity:0;max-height:0;padding:0 14px;margin:0;border-width:0}
+.nopay{display:none;border-radius:12px;padding:16px;background:#F3EEE5;color:#6B6458;font-size:14px;line-height:1.45}
+.nopay.show{display:block;animation:fade .5s}
+.paybtn{margin-top:20px;border-radius:12px;padding:15px;text-align:center;background:#1B1916;color:#fff;font-weight:600;font-size:15px;transition:opacity .4s}
+.paybtn.dis{opacity:.25}
+.tagline{position:absolute;left:22px;right:22px;bottom:18px;font-size:11.5px;color:#A39B8E;text-align:center}
+
+/* device */
+.dev{display:grid;grid-template-columns:.95fr 1.05fr;gap:64px;align-items:center}
+.graph{position:relative;aspect-ratio:1/1;max-width:540px;width:100%;margin:0 auto}
+.graph svg{position:absolute;inset:0;width:100%;height:100%}
+.graph .flow{stroke-dasharray:6 8;animation:dash 1.4s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+.idc{position:absolute;padding:12px 14px;border-radius:14px;background:var(--night-3);border:1px solid var(--edge);font-size:13px;line-height:1.45;width:46%;max-width:230px;box-shadow:0 20px 40px -24px #000}
+.idc b{display:block;font-size:14px;font-weight:600;color:var(--cream)}
+.idc span{color:var(--mute)}
+.idc .o{display:inline-block;margin-top:6px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:#2A2520;color:var(--soft)}
+.id1{top:2%;left:0}.id2{top:2%;right:0}.id3{bottom:2%;left:0}.id4{bottom:2%;right:0}
+.devcore{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:50%;display:grid;place-items:center;text-align:center;background:radial-gradient(circle,#2B1A17,#16110F);border:1px solid #5A2A23;box-shadow:0 0 0 10px rgba(224,72,60,.05),0 0 80px -10px rgba(224,72,60,.5)}
+.devcore svg{position:static;width:34px;height:34px;margin:0 auto 6px}
+.devcore b{display:block;font-family:var(--serif);font-weight:400;font-size:26px;line-height:1}
+.devcore small{font-size:11.5px;color:#E7A39B;letter-spacing:.08em;text-transform:uppercase}
+.checks{list-style:none;margin-top:30px;display:flex;flex-direction:column;gap:16px}
+.checks li{display:flex;gap:14px;color:var(--soft)}
+.checks li b{color:var(--cream);font-weight:600;display:block}
+.checks li::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;margin-top:2px;background:radial-gradient(circle,var(--c,var(--green)) 30%,transparent 34%),rgba(255,255,255,.04);border:1px solid var(--edge)}
+
+/* dossier */
+.dos{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center}
+.dcard{border-radius:24px;overflow:hidden;background:var(--paper);border:1px solid var(--line);box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
+.dhead{background:var(--ink);color:var(--paper);padding:24px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.dhead h4{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1}
+.dhead p{color:#A9A195;font-size:13.5px;margin-top:6px}
+.mtl{display:flex;flex-direction:column;gap:5px;padding:7px;border-radius:12px;background:#0B0A09;flex:none}
+.mtl i{width:13px;height:13px;border-radius:50%;background:#2A2622}
+.mtl i.on{background:var(--c);box-shadow:0 0 10px var(--c)}
+.mtl.h{flex-direction:row}
+.dbody{padding:22px 26px 26px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:12.5px;padding:6px 11px;border-radius:999px;background:#EFE8DA;color:var(--ink-2)}
+.chip.red{background:#F7DFDB;color:#9B2F25}
+.chip.amb{background:#FAEBD2;color:#8A560F}
+.tlist{list-style:none;margin-top:20px;border-left:1px solid var(--line);margin-left:6px}
+.tlist li{position:relative;padding:0 0 16px 22px;font-size:14px;color:var(--ink-2)}
+.tlist li:last-child{padding-bottom:0}
+.tlist li::before{content:"";position:absolute;left:-6px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--paper);border:2px solid var(--c,var(--ink-3))}
+.tlist li b{color:var(--ink);font-weight:600}
+.tlist li small{display:block;color:var(--ink-3);font-size:12.5px}
+.feat-list{display:grid;grid-template-columns:1fr 1fr;gap:26px 32px;margin-top:36px}
+.feat-list h5{font-size:16px;font-weight:600}
+.feat-list p{color:var(--ink-2);font-size:15px;margin-top:4px}
+
+/* network */
+.net{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
+.panel{border-radius:24px;background:var(--night-2);border:1px solid var(--edge);padding:28px;box-shadow:0 40px 80px -40px #000}
+.panel .ph{display:flex;justify-content:space-between;font-size:14px;color:var(--mute);padding-bottom:18px;border-bottom:1px solid var(--edge)}
+.panel .ph b{color:var(--cream);font-size:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--edge);font-size:15px;color:#D9D2C6}
+.row:last-child{border-bottom:0;padding-bottom:0}
+.row .l{display:flex;align-items:center;gap:10px}
+.row .l i{width:10px;height:10px;border-radius:50%}
+.stepper{display:flex;align-items:center;border:1px solid var(--edge);border-radius:10px;overflow:hidden;font-size:14px}
+.stepper span{padding:6px 11px;color:var(--mute)}
+.stepper b{padding:6px 12px;border-left:1px solid var(--edge);border-right:1px solid var(--edge);background:var(--night-3);min-width:40px;text-align:center}
+.panel .chips{padding:16px 0;border-bottom:1px solid var(--edge)}
+.panel .chip{background:#2A1C19;color:#F0A69C}
+.panel .chip.alt{background:#24211D;color:var(--soft)}
+.tog{width:42px;height:24px;border-radius:999px;background:#3A352F;position:relative;flex:none}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#CFC7BA}
+.tog.on{background:var(--green)}.tog.on::after{left:21px;background:#fff}
+.bul{list-style:none;margin-top:28px;display:flex;flex-direction:column;gap:14px}
+.bul li{display:flex;gap:14px;color:var(--soft)}
+.bul li b{color:var(--cream)}
+.bul li::before{content:"";flex:none;width:18px;height:1px;background:var(--mute);margin-top:12px}
+
+/* inside shopify */
+.admin{border-radius:20px;overflow:hidden;background:#F1F1F1;border:1px solid var(--line);box-shadow:0 50px 100px -60px rgba(0,0,0,.55);color:#303030;font-size:13.5px}
+.admin .chrome{display:flex;align-items:center;gap:7px;padding:12px 16px;background:#1A1A1A}
+.admin .chrome i{width:10px;height:10px;border-radius:50%;background:#3A3A3A}
+.admin .chrome span{margin-left:14px;color:#9A9A9A;font-size:12px}
+.admin .body{padding:18px;display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+.atable{background:#fff;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,.06);overflow:hidden}
+.atable .h,.atable .r{display:grid;grid-template-columns:64px 1fr 130px 70px;gap:10px;align-items:center;padding:11px 14px}
+.atable .h{font-size:12px;color:#616161;background:#F7F7F7;border-bottom:1px solid #EBEBEB}
+.atable .r{border-bottom:1px solid #F1F1F1}
+.atable .r:last-child{border-bottom:0}
+.atable .r b{font-weight:600}
+.atable .sel{display:flex;align-items:center;gap:6px}
+.tag3{justify-self:start;width:max-content;display:inline-flex;gap:3px;padding:4px 6px;border-radius:7px;background:#171717}
+.tag3 i{width:8px;height:8px;border-radius:50%;background:#3A3A3A}
+.tag3 i.on{background:var(--c);box-shadow:0 0 6px var(--c)}
+.ablock{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.ablock .t{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
+.ablock .why{margin-top:12px;font-size:13px;color:#4A4A4A;display:flex;flex-direction:column;gap:7px}
+.ablock .why span{display:flex;gap:8px}
+.ablock .why span::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--red);margin-top:6px}
+.ablock .act{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.ablock .act span{border:1px solid #D4D4D4;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:500}
+.ablock .act span.d{background:#303030;color:#fff;border-color:#303030}
+.ablock + .ablock{margin-top:12px}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.kpi div{background:#F7F7F7;border-radius:9px;padding:10px}
+.kpi small{display:block;color:#616161;font-size:11.5px}
+.kpi b{font-size:18px}
+.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}
+.c3{border-radius:20px;background:var(--paper);border:1px solid var(--line);padding:26px}
+.c3 h5{font-size:17px;font-weight:600;margin:14px 0 6px}
+.c3 p{color:var(--ink-2);font-size:15px}
+.c3 .ic{width:40px;height:40px;border-radius:12px;background:var(--ink);display:grid;place-items:center}
+.c3 .ic svg{width:20px;height:20px;stroke:var(--paper)}
+
+/* recover */
+.rec{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.storefront{border-radius:22px;overflow:hidden;border:1px solid var(--line);background:#E9E3D8;position:relative;aspect-ratio:4/3.3;box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
+.sf-top{height:46px;background:#F6F2EB;border-bottom:1px solid #E0D8CB;display:flex;align-items:center;padding:0 18px;gap:10px}
+.sf-top i{width:60px;height:9px;border-radius:5px;background:#D8CFC0}
+.sf-top i:first-child{width:90px;background:#BDB2A0}
+.sf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px;filter:blur(1.5px);opacity:.75}
+.sf-grid div{aspect-ratio:3/4;border-radius:10px;background:linear-gradient(160deg,#DCD2C2,#C8BBA6)}
+.pop{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:72%;max-width:340px;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);transition:background .5s,color .5s;background:var(--pbg);color:var(--pfg)}
+.pop .art{height:92px;background:var(--part);transition:background .5s;position:relative}
+.pop .art::after{content:"";position:absolute;inset:0;background:var(--pdeco);opacity:.9}
+.pop .in{padding:18px 20px 20px;text-align:center}
+.pop .pc{font-family:var(--serif);font-size:48px;line-height:1}
+.pop .pt{font-size:13px;opacity:.75;margin-top:4px}
+.pop .fld{margin-top:14px;border-radius:9px;border:1px solid color-mix(in srgb,var(--pfg) 25%,transparent);padding:10px;font-size:12.5px;opacity:.7;text-align:left}
+.pop .go{margin-top:8px;border-radius:9px;padding:11px;font-size:13px;font-weight:600;background:var(--pfg);color:var(--pbg)}
+.storefront[data-s=classic]{--pbg:#FBF8F3;--pfg:#1B1916;--part:linear-gradient(135deg,#E9DFCF,#CDBDA3);--pdeco:none}
+.storefront[data-s=winter]{--pbg:#F2F6FA;--pfg:#15283D;--part:linear-gradient(135deg,#BFD3E6,#7E9FBF);--pdeco:radial-gradient(circle at 20% 30%,#fff 2px,transparent 3px),radial-gradient(circle at 60% 60%,#fff 2px,transparent 3px),radial-gradient(circle at 80% 25%,#fff 1.5px,transparent 2.5px),radial-gradient(circle at 40% 80%,#fff 1.5px,transparent 2.5px)}
+.storefront[data-s=spring]{--pbg:#FBF6F4;--pfg:#3D2430;--part:linear-gradient(135deg,#F3D3DA,#C9DDB8);--pdeco:radial-gradient(circle at 25% 40%,#fff8 6px,transparent 7px),radial-gradient(circle at 70% 55%,#fff8 5px,transparent 6px)}
+.storefront[data-s=summer]{--pbg:#FFF9EE;--pfg:#2A2112;--part:linear-gradient(135deg,#FFD58A,#F28B5B);--pdeco:radial-gradient(circle at 78% 30%,#FFF3C4 16px,transparent 17px)}
+.storefront[data-s=autumn]{--pbg:#FAF3EA;--pfg:#3A2213;--part:linear-gradient(135deg,#D98C4A,#8E3F22);--pdeco:radial-gradient(ellipse at 30% 45%,#F5C26B 6px,transparent 7px),radial-gradient(ellipse at 66% 60%,#E9A24B 5px,transparent 6px)}
+.seasons{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.seasons button{font:inherit;font-size:14px;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink-2);cursor:pointer;transition:all .25s}
+.seasons button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.seq{margin-top:80px;display:grid;grid-template-columns:1fr 1.15fr;gap:64px;align-items:center}
+.steps{list-style:none;position:relative}
+.steps::before{content:"";position:absolute;left:19px;top:20px;bottom:20px;width:1px;background:linear-gradient(var(--line),var(--ink-3),var(--line))}
+.steps li{display:flex;gap:20px;padding:14px 0;position:relative}
+.steps .num{flex:none;width:39px;height:39px;border-radius:50%;background:var(--paper);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--serif);font-size:20px;z-index:1}
+.steps li.last .num{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.steps h5{font-size:16.5px;font-weight:600}
+.steps p{font-size:15px;color:var(--ink-2);margin-top:2px}
+.steps .when{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mail{border-radius:22px;background:#FBF8F3;border:1px solid var(--line);overflow:hidden;box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
+.mail .mh{padding:14px 20px;border-bottom:1px solid #ECE5D8;font-size:13px;color:var(--ink-3);display:flex;justify-content:space-between;gap:10px}
+.mail .mh b{color:var(--ink);font-weight:600}
+.mail .mb{padding:30px 34px 34px;text-align:center}
+.mail .brandm{font-family:var(--serif);font-size:20px;letter-spacing:.2em;text-transform:uppercase}
+.mail h4{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.1;margin-top:18px}
+.mail .prod{margin:22px auto 0;width:62%;aspect-ratio:4/3;border-radius:12px;background:linear-gradient(150deg,#E4D8C5,#BBA88A);position:relative}
+.mail .prod::after{content:"";position:absolute;inset:30% 32%;border-radius:10px;background:rgba(255,255,255,.35)}
+.mail .price{margin-top:14px;font-size:15px}
+.mail .price s{color:var(--ink-3);margin-right:8px}
+.mail .code{margin:18px auto 0;display:inline-block;border:1px solid var(--ink-3);padding:10px 18px;letter-spacing:.2em;font-size:13px}
+.mail .cta{margin:18px auto 0;display:block;width:70%;padding:13px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600}
+.mail .fine{font-size:11.5px;color:var(--ink-3);margin-top:16px}
+
+.attr{margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.attr .c3{text-align:left}
+.src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
+
+/* all features */
+.all{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--edge)}
+.all > div{padding:30px 26px 30px 0;border-bottom:1px solid var(--edge)}
+.all > div:not(:nth-child(3n)){border-right:1px solid var(--edge)}
+.all > div:not(:nth-child(3n+1)){padding-left:26px}
+.all h5{font-size:16px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.all p{color:var(--soft);font-size:14.5px;margin-top:6px}
+.badge{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--edge);color:var(--mute);border-radius:999px;padding:3px 8px;white-space:nowrap}
+.badge.pro{border-color:#5B4A2A;color:var(--amber)}
+
+/* pricing */
+.trial{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;border-radius:22px;padding:24px 28px;margin-bottom:22px;background:linear-gradient(110deg,#E4F3EB,#F5EFE3 60%);border:1px solid #CFE6D9}
+.trial b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;display:block}
+.trial span{color:var(--ink-2);font-size:15px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.plan{border-radius:22px;background:var(--paper);border:1px solid var(--line);padding:30px;display:flex;flex-direction:column;position:relative}
+.plan .top{display:flex;align-items:center;justify-content:space-between}
+.plan h4{font-size:15px;font-weight:600}
+.plan .tag{color:var(--ink-3);font-size:14.5px;margin-top:2px}
+.plan .price{font-family:var(--serif);font-size:60px;line-height:1;margin:24px 0 2px}
+.plan .price small{font-family:var(--sans);font-size:15px;color:var(--ink-3)}
+.plan .yr{font-size:13.5px;color:var(--ink-3)}
+.plan ul{list-style:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:11px;font-size:15px;color:var(--ink-2)}
+.plan li{display:flex;gap:10px}
+.plan li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin-top:9px}
+.plan .btn{margin-top:auto;justify-content:center}
+.plan ul{margin-bottom:26px}
+.plan.feat{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 40px 80px -40px rgba(0,0,0,.6)}
+.plan.feat .tag,.plan.feat .price small,.plan.feat .yr{color:#A9A195}
+.plan.feat ul{color:#D9D2C6;border-top-color:#3A3630}
+.plan.feat li::before{background:var(--amber)}
+.plan.feat .btn{background:var(--cream);color:var(--ink)}
+.plan .pill2{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--amber);color:var(--ink);font-weight:500}
+.fineprint{text-align:center;color:var(--ink-3);font-size:14px;margin-top:22px}
+
+/* faq */
+.faq{max-width:860px;margin:44px auto 0}
+.faq details{border-bottom:1px solid var(--edge)}
+.faq summary{list-style:none;cursor:pointer;padding:24px 0;display:flex;justify-content:space-between;gap:20px;font-size:19px;color:var(--cream)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-size:24px;line-height:1;color:var(--mute);transition:transform .3s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{color:var(--soft);padding:0 40px 26px 0;margin-top:-6px}
+
+/* final */
+.final{text-align:center;padding:150px 0;overflow:hidden;background:radial-gradient(700px 400px at 50% 100%,rgba(39,184,116,.18),transparent 70%),var(--night)}
+.final h2{font-size:clamp(46px,7vw,96px);line-height:.98;max-width:14ch;margin:0 auto}
+.final p{color:var(--soft);max-width:520px;margin:24px auto 0;font-size:18px}
+.final .cta{margin-top:38px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.final .mtl{margin:0 auto 34px;width:max-content;padding:9px;gap:9px;border-radius:16px}
+.final .mtl i{width:18px;height:18px}
+
+footer{border-top:1px solid var(--edge);padding:34px 0 44px;font-size:14px;color:var(--mute);background:var(--night)}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer a{text-decoration:none}
+footer a:hover{color:var(--cream)}
+footer .links{display:flex;gap:22px;flex-wrap:wrap}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+@media (max-width:1000px){
+  .hero .wrap,.sig,.dev,.dos,.net,.rec,.seq,.admin .body{grid-template-columns:1fr}
+  .hero{padding-top:120px;min-height:auto}
+  .stage{height:520px}
+  .sig,.dev,.dos,.net,.rec,.seq{gap:48px}
+  .cards3,.attr,.plans{grid-template-columns:1fr}
+  .all{grid-template-columns:1fr 1fr}
+  .all > div{padding:26px 18px 26px 0!important;border-right:0!important}
+  .all > div:nth-child(2n){padding-left:18px!important;border-left:1px solid var(--edge)}
+  .navlinks > a:not(.btn){display:none}
+  .dev .graph{order:2}
+}
+@media (max-width:600px){
+  .wrap{padding:0 16px}
+  .stage{margin:-40px 0 -60px}
+  section{padding:84px 0}
+  .stage{height:440px;transform:scale(.86)}
+  .oc1{left:-6%}.oc2{right:-8%}.oc3{left:-4%}
+  .feat-list,.all{grid-template-columns:1fr}
+  .all > div:nth-child(2n){padding-left:0!important;border-left:0}
+  .atable .h,.atable .r{grid-template-columns:56px 1fr 70px}
+  .atable .h span:nth-child(3),.atable .r span:nth-child(3){display:none}
+  .idc{font-size:12px;padding:10px 11px}
+  .devcore{width:120px;height:120px}
+  .devcore b{font-size:21px}
+  .mail .mb{padding:26px 20px 28px}
+  .final{padding:110px 0}
+  .brand small{display:none}
+  .faq summary{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+
+.lang{position:relative}
+.lang summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--soft);padding:8px 12px;border:1px solid var(--edge);border-radius:999px;background:rgba(255,255,255,.03)}
+.lang summary::-webkit-details-marker{display:none}
+.lang summary svg{width:15px;height:15px}
+.lang[open] summary{border-color:var(--mute);color:var(--cream)}
+.lang .menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--night-2);border:1px solid var(--edge);border-radius:14px;padding:6px;min-width:170px;box-shadow:0 24px 50px -20px #000;display:flex;flex-direction:column;z-index:50}
+.lang .menu a{display:flex!important;justify-content:space-between;gap:16px;padding:9px 12px;border-radius:9px;font-size:14.5px;text-decoration:none;color:var(--cream)}
+.lang .menu a:hover{background:var(--night-3)}
+.lang .menu a small{color:var(--mute);text-transform:uppercase;font-size:12px}
+.lang .menu a[aria-current]{font-weight:600}
+html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
+@media (max-width:600px){.navlinks{gap:8px}.navlinks .btn-glow{padding:9px 14px;font-size:13px}}
+</style>
+</head>
+<body>
+
+<nav class="top" id="nav">
+  <div class="wrap">
+    <a href="#top" class="brand" aria-label="Strona główna Semafor"><img src="/assets/icon-512.png" alt="" width="30" height="30">Semafor <small>od Kastel Labs</small></a>
+    <div class="navlinks">
+      <a href="#signal">Jak to działa</a>
+      <a href="#recover">Odzyskiwanie</a>
+      <a href="#pricing">Cennik</a>
+      <a href="#faq">FAQ</a>
+      <details class="lang"><summary aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>PL</summary><nav class="menu"><a class="lang-a" href="/" hreflang="en" lang="en" data-l="en">English<small>en</small></a><a class="lang-a" href="/ro/" hreflang="ro" lang="ro" data-l="ro">Română<small>ro</small></a><a class="lang-a" href="/es/" hreflang="es" lang="es" data-l="es">Español<small>es</small></a><a class="lang-a" href="/fr/" hreflang="fr" lang="fr" data-l="fr">Français<small>fr</small></a><a class="lang-a" href="/pl/" hreflang="pl" lang="pl" data-l="pl" aria-current="page">Polski<small>pl</small></a><a class="lang-a" href="/ru/" hreflang="ru" lang="ru" data-l="ru">Русский<small>ru</small></a></nav></details>
+      <a class="btn btn-glow btn-sm" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Zainstaluj</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero grain" id="top">
+  <div class="wrap">
+    <div>
+      <a class="pill reveal" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener"><b>NOWOŚĆ</b>Już dostępny w Shopify App Store</a>
+      <h1 class="serif reveal">Każde zamówienie dostaje <em>sygnał</em>.</h1>
+      <p class="lead reveal">Semafor w kilka sekund sprawdza każde zamówienie w Shopify, dyskretnie zatrzymuje kupujących, którzy nie odbierają paczek za pobraniem — nawet pod nowym nazwiskiem — i przywraca klientów, którzy porzucili koszyk.</p>
+      <div class="cta reveal">
+        <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Zacznij od 14 dni planu Pro — za darmo</a>
+        <a class="btn btn-line" href="#signal">Zobacz, jak działa</a>
+      </div>
+      <div class="note reveal"><span>Bez karty</span><span>Bez konfiguracji</span><span>Działa w kilka sekund</span></div>
+    </div>
+    <div class="stage" aria-hidden="true">
+      <div class="halo" id="halo"></div>
+      <div class="pole"></div>
+      <div class="tl" id="heroTL">
+        <div class="lamp r"><span class="visor"></span></div>
+        <div class="lamp y"><span class="visor"></span></div>
+        <div class="lamp g on"><span class="visor"></span></div>
+      </div>
+      <div class="feed">
+        <div class="oc oc1" data-l="2"><span class="dot" style="background:var(--green);color:var(--green)"></span><div><span class="n">#2481</span><small>Przedpłata · zaufany kupujący</small></div></div>
+        <div class="oc oc2" data-l="1"><span class="dot" style="background:var(--amber);color:var(--amber)"></span><div><span class="n">#2482</span><small>Paczka za pobraniem już w drodze</small></div></div>
+        <div class="oc oc3" data-l="0"><span class="dot" style="background:var(--red);color:var(--red)"></span><div><span class="n">#2483</span><small>2 nieodebrane paczki · płatność ukryta</small></div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip" aria-hidden="true">
+  <div class="marq">
+    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia odzyskane przez Semafor</span><span>6 języków</span>
+    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia odzyskane przez Semafor</span><span>6 języków</span>
+  </div>
+</div>
+
+<!-- SIGNAL + CHECKOUT -->
+<section id="signal">
+  <div class="wrap sig">
+    <div>
+      <div class="eyebrow reveal">01 · Sygnał</div>
+      <h2 class="big serif reveal" style="margin-top:18px">Kasa zmienia się razem ze światłem.</h2>
+      <p class="lead reveal">Każde nowe zamówienie jest porównywane z Twoją czarną listą i siecią sklepów Semafor. Potem światło decyduje, co kupujący może zrobić przy kasie — a on nigdy nie dowie się dlaczego.</p>
+      <div class="tabs reveal" role="tablist">
+        <button class="tab g on" data-k="g" role="tab"><i></i>Zielone</button>
+        <button class="tab y" data-k="y" role="tab"><i></i>Żółte</button>
+        <button class="tab r" data-k="r" role="tab"><i></i>Czerwone</button>
+      </div>
+      <div class="explain reveal">
+        <div data-k="g" class="on"><h3>Zaufany kupujący.</h3><p>Nic się nie zmienia. Wszystkie metody płatności pozostają dostępne, a finalizacja zamówienia przebiega płynnie jak zawsze.</p><ul><li>Zamówienia opłacone z góry są zawsze zielone</li><li>Zero utrudnień dla Twoich dobrych klientów</li></ul></div>
+        <div data-k="y"><h3>Warto przyjrzeć się bliżej.</h3><p>Semafor oznacza zamówienie tagiem z powodem, a Ty wybierasz regułę dla żółtego — na przykład brak płatności za pobraniem.</p><ul><li>Zamówienie za pobraniem jest już w drodze</li><li>Kilka niewysłanych zamówień — połącz je w jedną paczkę</li><li>To samo urządzenie zamówiło pod innym nazwiskiem</li><li>Sprawdzane ponownie co 15 minut — samo zmienia się na zielone</li></ul></div>
+        <div data-k="r"><h3>Znany nieodbierający.</h3><p>Płatność po cichu znika. Kupujący po prostu nie może dokończyć zamówienia — i nigdy nie dowie się, że został zablokowany.</p><ul><li>Rozpoznawany po e-mailu, telefonie, nazwisku, adresie lub urządzeniu</li><li>Brak jakiejkolwiek płatności albo tylko brak płatności za pobraniem — Twoja reguła</li><li>Opcjonalne automatyczne anulowanie</li></ul></div>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="phone" aria-hidden="true">
+        <div class="screen" id="screen">
+          <div class="bar"><span>9:41</span><span>kasa</span></div>
+          <h4>Płatność</h4>
+          <div class="sub">Wszystkie transakcje są bezpieczne i szyfrowane.</div>
+          <div class="sumline"><div><span class="ph"></span><span>1 produkt</span></div><b>189,00 €</b></div>
+          <div class="paylbl">Wybierz metodę płatności</div>
+          <div class="pm sel" data-m="card"><span class="rad"></span>Karta<small>Visa · Mastercard</small></div>
+          <div class="pm" data-m="cod"><span class="rad"></span>Płatność za pobraniem<small>Zapłać kurierowi</small></div>
+          <div class="nopay" id="nopay">Dla tego zamówienia nie ma dostępnych metod płatności.</div>
+          <div class="paybtn" id="paybtn">Zapłać teraz</div>
+          <div class="tagline">Co widzi Twój klient</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEVICE -->
+<section class="grain" style="background:var(--night-2)">
+  <div class="wrap dev">
+    <div class="graph reveal" aria-hidden="true">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#E0483C" stop-opacity=".2"/><stop offset="1" stop-color="#E0483C" stop-opacity=".9"/></linearGradient></defs>
+        <path class="flow" d="M22 16 C 30 30, 40 40, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
+        <path class="flow" d="M78 16 C 70 30, 60 40, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
+        <path class="flow" d="M22 84 C 30 70, 40 60, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
+        <path class="flow" d="M78 84 C 70 70, 60 60, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
+      </svg>
+      <div class="idc id1"><b>Ana Popa</b><span>ana.p@example.com</span><br><span class="o">Zamówienie #1983 · nieodebrane</span></div>
+      <div class="idc id2"><b>A. Popescu</b><span>+40 7•• ••• 214</span><br><span class="o">Zamówienie #2107</span></div>
+      <div class="idc id3"><b>Mihai Popa</b><span>mihai.p@example.com</span><br><span class="o">Zamówienie #2290</span></div>
+      <div class="idc id4"><b>Ana P.</b><span>nowy adres</span><br><span class="o">Kasa · zablokowana</span></div>
+      <div class="devcore"><div><svg viewBox="0 0 24 24" fill="none" stroke="#F0A69C" stroke-width="1.5"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg><b>1 urządzenie</b><small>4 tożsamości</small></div></div>
+    </div>
+    <div>
+      <div class="eyebrow reveal">02 · Rozpoznawanie urządzeń</div>
+      <h2 class="big serif reveal" style="margin-top:18px">Nowe nazwisko. Ten sam telefon. <em class="it">Namierzony.</em></h2>
+      <p class="lead reveal">Nieodbierający wracają z e-mailem męża, telefonem siostry albo nowym adresem. Semafor rozpoznaje urządzenie, z którego zamawiają, i łączy każdą tożsamość w jedną osobę.</p>
+      <ul class="checks reveal">
+        <li style="--c:var(--red)"><span><b>Blokada także przy kasie</b>Nowy e-mail lub telefon wpisany w przeglądarce z czarnej listy zostaje zatrzymany, zanim zamówienie w ogóle powstanie.</span></li>
+        <li style="--c:var(--amber)"><span><b>Powiązane i policzone</b>Zamówienia z jednej przeglądarki pod różnymi nazwiskami z 90 dni pojawiają się razem, wszędzie z ich liczbą.</span></li>
+        <li><span><b>Wbudowane, nic do wklejania</b>Rozpoznawanie urządzeń instaluje się razem z aplikacją. Bez kodu, bez własnego piksela, bez edycji motywu.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DOSSIER -->
+<section class="light-sec">
+  <div class="wrap dos">
+    <div>
+      <div class="eyebrow reveal">03 · Czarna lista na nowo</div>
+      <h2 class="big serif reveal" style="margin-top:18px">Kartoteka, nie lista.</h2>
+      <p class="lead reveal">Otwórz dowolnego klienta i zobacz całą historię: każdy e-mail, telefon, nazwisko, adres i urządzenie, dlaczego i kiedy został dodany, jego zamówienia w Shopify, próby finalizacji zamówienia i każde sprawdzenie przez Semafor — na jednej osi czasu.</p>
+      <div class="feat-list reveal">
+        <div><h5>Dodawaj z dowolnego zamówienia</h5><p>Jednym kliknięciem ze strony zamówienia albo hurtowo z listy zamówień.</p></div>
+        <div><h5>Bez duplikatów</h5><p>Semafor ostrzeże Cię, gdy dana osoba jest już na Twojej liście.</p></div>
+        <div><h5>Jasne powody</h5><p>Nieodebrana paczka za pobraniem, częste zwroty bez uzasadnionego powodu, chargeback, oszustwo przy zwrocie, groźby, inne.</p></div>
+        <div><h5>Przenieś swoją starą listę</h5><p>Zaimportuj wszystko z pliku CSV za jednym razem — i w każdej chwili edytuj pojedynczy szczegół.</p></div>
+      </div>
+    </div>
+    <div class="dcard reveal" aria-hidden="true">
+      <div class="dhead">
+        <div><h4>Ana Popa</h4><p>Na czarnej liście od 12 września · 4 tożsamości</p></div>
+        <div class="mtl"><i class="on" style="--c:var(--red)"></i><i></i><i></i></div>
+      </div>
+      <div class="dbody">
+        <div class="chips"><span class="chip red">Nieodebrana paczka za pobraniem</span><span class="chip">ana.p@example.com</span><span class="chip">mihai.p@example.com</span><span class="chip">+40 7•• ••• 214</span><span class="chip">2 adresy</span><span class="chip amb">1 urządzenie</span></div>
+        <ul class="tlist">
+          <li style="--c:var(--red)"><b>Kasa zablokowana</b> — nowy e-mail, to samo urządzenie<small>Dziś, 10:42</small></li>
+          <li style="--c:var(--amber)"><b>Zamówienie #2290</b> pod innym nazwiskiem — powiązane przez urządzenie<small>3 października</small></li>
+          <li style="--c:var(--red)"><b>Paczka nieodebrana</b> — zamówienie #1983<small>12 września · dodany do czarnej listy</small></li>
+          <li><b>Zgłoszony przez 2 inne sklepy</b> w sieci Semafor<small>Sieć</small></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NETWORK -->
+<section id="network">
+  <div class="wrap net">
+    <div>
+      <div class="eyebrow reveal">04 · Sieć sklepów</div>
+      <h2 class="big serif reveal" style="margin-top:18px">Odmowa w jednym sklepie to ostrzeżenie we wszystkich.</h2>
+      <p class="lead reveal">Sklepy korzystające z Semafor dzielą się informacją o tym, kto nie odebrał paczki lub zakwestionował płatność — w postaci anonimowych odcisków, nigdy surowych danych osobowych. Ostrzeżenie widzisz, zanim wyślesz paczkę.</p>
+      <ul class="bul reveal">
+        <li><span><b>Twoje progi.</b> Żółte od 1 innego sklepu, czerwone od 3 — albo dowolne liczby, które wybierzesz.</span></li>
+        <li><span><b>Twoje powody.</b> Zdecyduj, które zgłoszenia liczą się w Twoim sklepie.</span></li>
+        <li><span><b>Uczciwe z założenia.</b> Liczą się tylko zgłoszenia innych sklepów, nieodebrana paczka jest udostępniana dopiero za drugim razem, a wszystko, co usuniesz, zostaje wycofane.</span></li>
+      </ul>
+    </div>
+    <div class="panel reveal" aria-hidden="true">
+      <div class="ph"><b>Sieć sklepów</b><span>Ustawienia</span></div>
+      <div class="row"><span class="l"><i style="background:var(--amber)"></i>Żółte, gdy zgłosiło sklepów</span><span class="stepper"><span>−</span><b>1</b><span>+</span></span></div>
+      <div class="row"><span class="l"><i style="background:var(--red)"></i>Czerwone, gdy zgłosiło sklepów</span><span class="stepper"><span>−</span><b>3</b><span>+</span></span></div>
+      <div class="chips"><span class="chip">Nieodebrana paczka za pobraniem</span><span class="chip">Zwroty bez uzasadnionego powodu</span><span class="chip">Chargeback</span><span class="chip">Oszustwo przy zwrocie</span><span class="chip">Groźby</span><span class="chip alt">Inne</span></div>
+      <div class="row"><span>Ukryj płatność dla kupujących zgłoszonych przez sieć</span><span class="tog"></span></div>
+      <div class="row"><span>Udostępniaj moje zgłoszenia sieci</span><span class="tog on"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIDE SHOPIFY -->
+<section class="light-sec">
+  <div class="wrap">
+    <div class="eyebrow reveal">05 · Działa wewnątrz Shopify</div>
+    <h2 class="big serif reveal" style="margin-top:18px;max-width:15ch">Decyduj w mgnieniu oka, prosto w zamówieniach.</h2>
+    <p class="lead reveal">Żadnego nowego panelu do pilnowania. Światło, powód i akcja są dokładnie tam, gdzie już pracujesz.</p>
+    <div class="admin reveal" style="margin-top:48px" aria-hidden="true">
+      <div class="chrome"><i></i><i></i><i></i><span>admin.shopify.com · Orders</span></div>
+      <div class="body">
+        <div class="atable">
+          <div class="h"><span>Zamówienie</span><span>Klient</span><span>Płatność</span><span>Semafor</span></div>
+          <div class="r"><b>#2486</b><span>Elena Marin</span><span>Opłacone</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
+          <div class="r"><b>#2485</b><span>Radu Ionescu</span><span>Płatność za pobraniem</span><span class="tag3"><i></i><i class="on" style="--c:var(--amber)"></i><i></i></span></div>
+          <div class="r"><b>#2484</b><span>Ioana Stan</span><span>Opłacone</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
+          <div class="r"><b>#2483</b><span>A. Popescu</span><span>Płatność za pobraniem</span><span class="tag3"><i class="on" style="--c:var(--red)"></i><i></i><i></i></span></div>
+          <div class="r"><b>#2482</b><span>Vlad Toma</span><span>Płatność za pobraniem</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
+          <div class="r"><b>#2481</b><span>Maria Dobre</span><span>Opłacone</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
+        </div>
+        <div>
+          <div class="ablock">
+            <div class="t">Semafor · #2483<span class="mtl h" style="padding:5px;gap:4px;border-radius:9px"><i class="on" style="--c:var(--red);width:10px;height:10px"></i><i style="width:10px;height:10px"></i><i style="width:10px;height:10px"></i></span></div>
+            <div class="why"><span>Telefon z Twojej czarnej listy — nieodebrana paczka za pobraniem</span><span>To samo urządzenie co zamówienie #1983</span><span>Zgłoszony przez 2 inne sklepy</span></div>
+            <div class="act"><span class="d">Dodaj do czarnej listy</span><span>Otwórz kartotekę</span></div>
+          </div>
+          <div class="ablock">
+            <div class="t">Zablokowane próby · na żywo</div>
+            <div class="kpi"><div><small>Zatrzymane przy kasie</small><b>7</b></div><div><small>Odzyskane zamówienia</small><b>12</b></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cards3">
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></div><h5>Zablokowane próby na żywo</h5><p>Zobacz, kto próbował kupić, będąc na Twojej czarnej liście — odświeżane co 30 sekund.</p></div>
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h5>Analityka, która opowiada historię</h5><p>Próby finalizacji zamówienia według osoby, kto przeszedł, kto ciągle zmieniał dane, podejrzane urządzenia.</p></div>
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Stworzone na telefon</h5><p>Na telefonie każda strona zamienia się w przejrzyste karty. Sprawdź zamówienie z dowolnego miejsca.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- RECOVER -->
+<section class="light-sec" id="recover" style="padding-top:40px">
+  <div class="wrap">
+    <div class="rec">
+      <div>
+        <div class="eyebrow reveal">06 · Odzyskiwanie</div>
+        <h2 class="big serif reveal" style="margin-top:18px">Ochrona, która też <em class="it">sprzedaje</em>.</h2>
+        <p class="lead reveal">Pop-up powitalny zamienia nowych odwiedzających w subskrybentów. Pyta raz przy pierwszej wizycie i jeszcze raz w drodze do kasy — a kod rabatowy już czeka w koszyku.</p>
+        <div class="seasons reveal" id="seasons">
+          <button class="on" data-s="classic">Klasyczny</button><button data-s="winter">Zima</button><button data-s="spring">Wiosna</button><button data-s="summer">Lato</button><button data-s="autumn">Jesień</button>
+        </div>
+      </div>
+      <div class="storefront reveal" id="sf" data-s="classic" aria-hidden="true">
+        <div class="sf-top"><i></i><i></i><i></i></div>
+        <div class="sf-grid"><div></div><div></div><div></div></div>
+        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">na pierwsze zamówienie</div><div class="fld">your@email.com</div><div class="go">Odbierz kod</div></div></div>
+      </div>
+    </div>
+
+    <div class="seq">
+      <div>
+        <h3 class="serif reveal" style="font-size:clamp(32px,4vw,48px);line-height:1.05">Klient opuścił kasę? Semafor napisze za Ciebie.</h3>
+        <ol class="steps reveal" style="margin-top:28px">
+          <li><span class="num">1</span><div><div class="when">Mniej więcej godzinę później</div><h5>Przyjazne przypomnienie</h5><p>Eleganckie, z produktami z koszyka klienta.</p></div></li>
+          <li><span class="num">2</span><div><div class="when">Następnego ranka, w strefie czasowej klienta</div><h5>Delikatna zachęta z rabatem</h5><p>Domyślnie 15% — albo przypomnienie o rabacie, który już jest w koszyku.</p></div></li>
+          <li class="last"><span class="num">3</span><div><div class="when">Dzień 3</div><h5>Ostatnia szansa</h5><p>Większy rabat, ważny tylko tego dnia. Każdy termin i procent ustalasz Ty.</p></div></li>
+        </ol>
+        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Wysyłka zatrzymuje się w chwili złożenia zamówienia, pomija wyprzedane produkty i dociera nawet do subskrybentów pop-upu, którzy wyszli, zanim wpisali e-mail.</p>
+      </div>
+      <div class="mail reveal" aria-hidden="true">
+        <div class="mh"><span><b>Twój sklep</b> &lt;hello@yourstore.com&gt;</span><span>10:00</span></div>
+        <div class="mb">
+          <div class="brandm">Twój sklep</div>
+          <h4>Wciąż na Ciebie czeka.</h4>
+          <div class="prod"></div>
+          <div class="price"><s>189,00 €</s><b>160,65 €</b></div>
+          <div class="code">COMEBACK15</div>
+          <span class="cta">Wróć do koszyka</span>
+          <div class="fine">Wypisz się jednym kliknięciem</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="attr">
+      <div class="c3 reveal"><span class="src">● Wysłane przez Semafor</span><h5>Bez zakładania konta w serwisie mailingowym</h5><p>E-maile są wysyłane w ramach Twojego planu — albo z Twojej własnej domeny, z prowadzoną konfiguracją u Twojego dostawcy DNS.</p></div>
+      <div class="c3 reveal"><span class="src">● 3 wzory</span><h5>Premium w standardzie</h5><p>Elegant, Minimal i Modern — ze zdjęciem i ceną produktu, w języku klienta.</p></div>
+      <div class="c3 reveal"><span class="src">● Oznaczone w zamówieniu</span><h5>Zamówienia odzyskane przez Semafor</h5><p>Każde zamówienie pokazuje, czy przyniósł je pop-up, koszyk czy przypomnienie — z odzyskanym przychodem w liczbach.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- EVERYTHING -->
+<section class="grain" style="background:var(--night-2)">
+  <div class="wrap">
+    <div class="eyebrow reveal">Wszystko w Semafor</div>
+    <h2 class="big serif reveal" style="margin:18px 0 52px;max-width:14ch">Jedna aplikacja. Cała robota.</h2>
+    <div class="all">
+      <div class="reveal"><h5>Sygnalizacja przy każdym zamówieniu</h5><p>Zielone, żółte lub czerwone w kilka sekund — jako tag i sygnał ryzyka w Shopify.</p></div>
+      <div class="reveal"><h5>Twoja czarna lista + import CSV</h5><p>Po e-mailu, telefonie, nazwisku lub adresie, z inteligentnym dopasowaniem adresów.</p></div>
+      <div class="reveal"><h5>Sieć sklepów</h5><p>Zobacz, kto nie odebrał paczek w innych sklepach, zanim wyślesz.</p></div>
+      <div class="reveal"><h5>Blokada przy kasie<span class="badge">Basic</span></h5><p>Ukryj płatność za pobraniem lub wszystkie metody płatności — osobno dla żółtego i czerwonego.</p></div>
+      <div class="reveal"><h5>To samo urządzenie, nowe nazwisko<span class="badge">Basic</span></h5><p>Każda tożsamość użyta na jednym telefonie lub komputerze — powiązana i zablokowana.</p></div>
+      <div class="reveal"><h5>Automatyczne anulowanie<span class="badge">Basic</span></h5><p>Czerwone zamówienie, które mimo wszystko się prześlizgnie, zostaje anulowane automatycznie.</p></div>
+      <div class="reveal"><h5>Inteligentne żółte</h5><p>Paczka za pobraniem już w drodze, paczki do połączenia — sprawdzane ponownie co 15 minut.</p></div>
+      <div class="reveal"><h5>Pop-up powitalny<span class="badge">Basic</span></h5><p>5 wzorów, 5 języków, kod naliczany w koszyku, e-mail powitalny w zestawie.</p></div>
+      <div class="reveal"><h5>Zablokowane próby na żywo<span class="badge">Basic</span></h5><p>Kto próbował kupić, będąc na czarnej liście — co 30 sekund.</p></div>
+      <div class="reveal"><h5>Analityka etapów kasy<span class="badge pro">Pro</span></h5><p>Gdzie zatrzymał się każdy klient i co dokładnie miał w koszyku.</p></div>
+      <div class="reveal"><h5>E-maile przypominające<span class="badge pro">Pro</span></h5><p>Do 3, automatycznie lub jednym kliknięciem, z jednorazowymi kodami rabatowymi.</p></div>
+      <div class="reveal"><h5>Odzyskana sprzedaż w liczbach<span class="badge pro">Pro</span></h5><p>Wysłane e-maile, powracający klienci, wygenerowany przychód.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="light-sec" id="pricing">
+  <div class="wrap">
+    <div class="eyebrow reveal">Cennik</div>
+    <h2 class="big serif reveal" style="margin:18px 0 44px">Zacznij od wszystkiego.</h2>
+    <div class="trial reveal">
+      <div><b>14 dni planu Pro za darmo.</b><span>Wszystkie funkcje włączone od pierwszej minuty. Nic nie płacisz, dopóki nie wybierzesz planu.</span></div>
+      <a class="btn btn-ink" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Zainstaluj Semafor</a>
+    </div>
+    <div class="plans">
+      <div class="plan reveal">
+        <div class="top"><h4>Darmowy</h4></div><div class="tag">Na start</div>
+        <div class="price">0 $</div><div class="yr">Bez limitu czasu</div>
+        <ul><li>Sygnalizacja dla 50 zamówień miesięcznie</li><li>Twoja własna czarna lista + import CSV</li><li>Sieć sklepów</li><li>Tag ryzyka przy każdym zamówieniu</li></ul>
+      </div>
+      <div class="plan reveal">
+        <div class="top"><h4>Basic</h4></div><div class="tag">Pełna ochrona płatności za pobraniem</div>
+        <div class="price">9,99 $ <small>/ mies.</small></div><div class="yr">lub 7,99 $ / mies. przy płatności rocznej</div>
+        <ul><li>Bez limitu zamówień</li><li>Blokada przy kasie, reguły dla żółtego i czerwonego</li><li>Automatyczne anulowanie czerwonych zamówień</li><li>To samo urządzenie, nowe nazwisko</li><li>Pop-up powitalny z rabatem</li></ul>
+      </div>
+      <div class="plan feat reveal">
+        <div class="top"><h4>Pro</h4><span class="pill2">Najbardziej kompletny</span></div><div class="tag">Ochrona + odzyskana sprzedaż</div>
+        <div class="price">24,99 $ <small>/ mies.</small></div><div class="yr">lub 19,99 $ / mies. przy płatności rocznej</div>
+        <ul><li>Wszystko z planu Basic</li><li>Analityka etapów kasy</li><li>Automatyczne e-maile przypominające, do 3</li><li>Przypomnienia nawet bez e-maila w kasie</li><li>Odzyskana sprzedaż w liczbach, z Twojej własnej domeny</li></ul>
+      </div>
+    </div>
+    <p class="fineprint">Rozliczane przez Shopify. Zmień lub anuluj w dowolnym momencie.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="eyebrow reveal" style="text-align:center">Pytania</div>
+    <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Dobrze wiedzieć.</h2>
+    <div class="faq">
+      <details class="reveal"><summary>Czy muszę coś konfigurować?</summary><p>Nie. Zainstaluj Semafor, a od razu zacznie sprawdzać zamówienia. Blokada przy kasie, rozpoznawanie urządzeń i pop-up włączają się automatycznie — bez kodu, bez edycji motywu.</p></details>
+      <details class="reveal"><summary>Czy zablokowany klient się zorientuje?</summary><p>Nie. Po prostu nie zobaczy żadnej metody płatności (lub płatności za pobraniem), zależnie od wybranej przez Ciebie reguły. Nie pojawia się żaden komunikat o blokadzie.</p></details>
+      <details class="reveal"><summary>A co z prywatnością?</summary><p>Sieć sklepów wymienia wyłącznie anonimowe odciski, nigdy nazwiska ani adresy. Każdy e-mail ma link do wypisania się jednym kliknięciem, a żądania dostępu do danych i ich usunięcia z Shopify są obsługiwane automatycznie.</p></details>
+      <details class="reveal"><summary>Czy potrzebuję serwisu do e-maili?</summary><p>Nie. E-maile przypominające i powitalne wysyła Semafor w ramach Twojego planu. Jeśli wolisz, podłącz własną domenę dzięki przewodnikowi krok po kroku.</p></details>
+      <details class="reveal"><summary>W jakich językach mówi Semafor?</summary><p>Aplikacja jest dostępna po angielsku, rumuńsku, hiszpańsku, francusku, polsku i rosyjsku. E-maile i pop-up dopasowują się do języka Twojego klienta.</p></details>
+      <details class="reveal"><summary>Co się dzieje po okresie próbnym?</summary><p>Twój sklep przechodzi na plan Darmowy i nadal sprawdza 50 zamówień miesięcznie. Twoje ustawienia zostają zapisane — wybierz plan w dowolnym momencie, aby znów wszystko włączyć.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final grain">
+  <div class="wrap">
+    <div class="mtl reveal" aria-hidden="true" id="finalTL"><i style="--c:var(--red)"></i><i style="--c:var(--amber)"></i><i class="on" style="--c:var(--green)"></i></div>
+    <h2 class="serif reveal">Wysyłaj tylko paczki, które wracają opłacone.</h2>
+    <p class="reveal">Zainstaluj Semafor i korzystaj przez 14 dni ze wszystkich funkcji Pro — za darmo.</p>
+    <div class="cta reveal">
+      <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Dodaj Semafor do Shopify</a>
+      <a class="btn btn-line" href="mailto:mihailiuc.co@gmail.com">Porozmawiaj z nami</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Semafor od Kastel Labs</span>
+    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Polityka prywatności</a><a href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Shopify App Store</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){try{localStorage.setItem('kl-lang',a.getAttribute('data-l'))}catch(e){}})});
+  var nav=document.getElementById('nav');
+  function onS(){nav.classList.toggle('scrolled',scrollY>10)} onS();
+  addEventListener('scroll',onS,{passive:true});
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.1});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+  var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // hero
+  var lamps=document.querySelectorAll('#heroTL .lamp'),halo=document.getElementById('halo'),cards=document.querySelectorAll('.oc');
+  var cols=['#E0483C','#F2A23A','#27B874'],i=0;
+  function hero(){
+    var c=cards[i%cards.length],k=+c.dataset.l;
+    lamps.forEach(function(l,j){l.classList.toggle('on',j===k)}); halo.style.background=cols[k];
+    cards.forEach(function(x){x.classList.toggle('show',x===c)}); i++;
+  }
+  hero(); if(!still) setInterval(hero,2600); else cards.forEach(function(x){x.classList.add('show')});
+
+  // checkout demo
+  var tabs=document.querySelectorAll('.tab'),panes=document.querySelectorAll('.explain > div');
+  var cod=document.querySelector('.pm[data-m=cod]'),card=document.querySelector('.pm[data-m=card]'),nop=document.getElementById('nopay'),pay=document.getElementById('paybtn');
+  var order=['g','y','r'],cur=0,timer;
+  function setK(k){
+    tabs.forEach(function(t){t.classList.toggle('on',t.dataset.k===k)});
+    panes.forEach(function(p){p.classList.toggle('on',p.dataset.k===k)});
+    cod.classList.toggle('gone',k!=='g'); card.classList.toggle('gone',k==='r');
+    nop.classList.toggle('show',k==='r'); pay.classList.toggle('dis',k==='r');
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){clearInterval(timer);setK(t.dataset.k)})});
+  if(!still){var sec=document.getElementById('signal');var sio=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!timer){timer=setInterval(function(){cur=(cur+1)%3;setK(order[cur])},3800)}},{threshold:.4});sio.observe(sec)}
+
+  // seasons
+  var sf=document.getElementById('sf');
+  document.querySelectorAll('#seasons button').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('#seasons button').forEach(function(x){x.classList.toggle('on',x===b)}); sf.dataset.s=b.dataset.s;
+  })});
+
+  // final light
+  var fl=document.querySelectorAll('#finalTL i'),fi=2;
+  if(!still) setInterval(function(){fl.forEach(function(x){x.classList.remove('on')}); fi=(fi+2)%3; fl[fi].classList.add('on')},1600);
+})();
+</script>
+</body>
+</html>
