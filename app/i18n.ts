@@ -975,6 +975,20 @@ const D = {
   "settings.payNone": { en: "Hide nothing — only flag the order", ro: "Nu ascunde nimic — doar marchează comanda" },
   "settings.redPayHelp": { en: "Red = the e-mail, phone, address, name or device is on your blacklist (or the customer is reported by enough shops in the network, if you use the network at checkout).", ro: "Roșu = e-mailul, telefonul, adresa, numele sau dispozitivul sunt pe lista ta neagră (sau clientul e raportat de destule magazine din rețea, dacă folosești rețeaua la finalizarea comenzii)." },
   "settings.yellowPayHelp": { en: "At checkout, yellow = reported by fewer shops in the network. It applies only if, on the Store network page, you chose to use yellow customers too. After the order is placed, yellow orders are always tagged.", ro: "La finalizarea comenzii, galben = client raportat de mai puține magazine din rețea. Se aplică doar dacă în pagina Rețeaua de magazine ai ales să folosești și clienții galbeni. După plasare, comenzile galbene primesc oricum etichetă." },
+  "dom.wizTitle": { en: "What to add for {domain}, step by step", ro: "Ce adaugi pentru {domain}, pas cu pas" },
+  "dom.wizHost": { en: "Your domain's DNS is managed at: {name}", ro: "DNS-ul domeniului tău e administrat la: {name}" },
+  "dom.wizHostUnknown": { en: "We couldn't tell where your domain's DNS is managed — follow the general steps below.", ro: "Nu am putut afla unde e administrat DNS-ul domeniului — urmează pașii generali de mai jos." },
+  "dom.wizWhere": { en: "Where to click", ro: "Unde dai click" },
+  "dom.wizRec": { en: "Record {i} of {n}", ro: "Înregistrarea {i} din {n}" },
+  "dom.wizType": { en: "Type", ro: "Tip" },
+  "dom.wizName": { en: "Name / Host", ro: "Nume / Host" },
+  "dom.wizValue": { en: "Value / Content", ro: "Valoare / Conținut" },
+  "dom.wizPrio": { en: "Priority", ro: "Prioritate" },
+  "dom.wizTtl": { en: "TTL: keep the default", ro: "TTL: lasă valoarea implicită" },
+  "dom.wizFull": { en: "If the panel asks for the full name: {full}", ro: "Dacă panoul cere numele complet: {full}" },
+  "dom.wizOk": { en: "found ✓", ro: "găsită ✓" },
+  "dom.wizDone": { en: "Added all of them? Press “Verify now”. It can take from a few minutes to a few hours until the provider publishes them.", ro: "Le-ai adăugat pe toate? Apasă „Verifică acum”. Poate dura de la câteva minute la câteva ore până când furnizorul le publică." },
+  "dom.wizIntro": { en: "Enter your shop's domain — we'll show you exactly which records to add and where.", ro: "Scrie domeniul magazinului — îți arătăm exact ce înregistrări adaugi și unde." },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

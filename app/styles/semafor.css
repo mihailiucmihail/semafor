@@ -521,3 +521,13 @@
   .sf-kpi-hint { font-size: 11px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .Polaris-InlineGrid:has(> .sf-kpi-click), .Polaris-InlineGrid:has(> .Polaris-ShadowBevel .sf-kpi) { gap: 10px !important; }
 }
+
+/* ── own sending domain: step-by-step wizard ── */
+.sf-dom-where { padding: 12px 14px; border-radius: var(--p-border-radius-300); background: var(--p-color-bg-surface-secondary); display: flex; flex-direction: column; gap: 4px; }
+.sf-dom-rec { border: 1px solid var(--p-color-border); border-radius: var(--p-border-radius-300); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.sf-dom-rec.ok { border-color: var(--p-color-border-success); background: var(--p-color-bg-surface-success); }
+.sf-dom-rec-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sf-dom-fields { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 12px; margin: 0; align-items: center; }
+.sf-dom-fields dt { font-size: 12px; color: var(--p-color-text-secondary); }
+.sf-dom-fields dd { margin: 0; min-width: 0; }
+@media (max-width: 640px) { .sf-dom-fields { grid-template-columns: 1fr; gap: 2px; } .sf-dom-fields dd { margin-bottom: 6px; } }

@@ -17,7 +17,7 @@ import { useT, t, trMsg, type TKey } from "../i18n";
 import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { AttrKpi } from "../components/attribution";
 import { SendingDomainCard } from "../components/sending-domain";
-import { connectDomain, refreshDomain, verifyDomain, disconnectDomain, primaryHost, DomainProblem } from "../semafor/domains.server";
+import { connectDomain, refreshDomain, verifyDomain, disconnectDomain, primaryHost, dnsHostOf, DomainProblem } from "../semafor/domains.server";
 import { shopLang } from "../i18n.server";
 
 const DAY = 86_400_000;
@@ -51,6 +51,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       return d ?? null;
     })(),
     domainSuggest: shop.settings.sendingDomain ? "" : await primaryHost(admin as any),
+    // where the connected (not yet verified) domain's DNS lives → the guide shows only that provider's steps
+    dnsHost: shop.settings.sendingDomain && shop.settings.sendingDomain.status !== "verified" ? await dnsHostOf(shop.settings.sendingDomain.name).catch(() => null) : null,
     helpUrl: `${(process.env.SHOPIFY_APP_URL || "").replace(/\/$/, "")}/help/sending-domain?lang=${shopLang(shop, request)}`,
   };
 };
@@ -180,7 +182,7 @@ function copyFor(locale: string, purpose: string) {
 }
 
 export default function Emails() {
-  const { recovery, templates, stats, resend, sender, shopName, sample, attr, domain, domainSuggest, helpUrl } = useLoaderData<typeof loader>();
+  const { recovery, templates, stats, resend, sender, shopName, sample, attr, domain, domainSuggest, dnsHost, helpUrl } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const [r, setR] = useState({ ...recovery });
@@ -295,7 +297,7 @@ export default function Emails() {
               </BlockStack>
             </Card>
             <Box paddingBlockStart="400">
-              <SendingDomainCard domain={domain as any} suggest={domainSuggest} fromEmail={r.fromEmail || ""} helpUrl={helpUrl}
+              <SendingDomainCard domain={domain as any} dnsHost={dnsHost as any} suggest={domainSuggest} fromEmail={r.fromEmail || ""} helpUrl={helpUrl}
                 onSuggestFrom={(email) => setR((x: any) => (x.fromEmail ? x : { ...x, fromEmail: email }))} />
             </Box>
         </Layout.Section>

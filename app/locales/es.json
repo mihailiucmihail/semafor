@@ -904,7 +904,21 @@
   "settings.payCod": "Ocultar solo el contra reembolso — puede pagar con tarjeta",
   "settings.payNone": "No ocultar nada — solo marcar el pedido",
   "settings.redPayHelp": "Rojo = el correo, el teléfono, la dirección, el nombre o el dispositivo están en tu lista negra (o el cliente ha sido reportado por suficientes tiendas de la red, si usas la red al finalizar el pedido).",
-  "settings.yellowPayHelp": "Al finalizar el pedido, amarillo = cliente reportado por menos tiendas de la red. Solo se aplica si en la página Red de tiendas elegiste usar también los clientes amarillos. Tras el pedido, los pedidos amarillos siempre se etiquetan."
+  "settings.yellowPayHelp": "Al finalizar el pedido, amarillo = cliente reportado por menos tiendas de la red. Solo se aplica si en la página Red de tiendas elegiste usar también los clientes amarillos. Tras el pedido, los pedidos amarillos siempre se etiquetan.",
+  "dom.wizTitle": "Qué añadir para {domain}, paso a paso",
+  "dom.wizHost": "El DNS de tu dominio se gestiona en: {name}",
+  "dom.wizHostUnknown": "No pudimos saber dónde se gestiona el DNS de tu dominio: sigue los pasos generales de abajo.",
+  "dom.wizWhere": "Dónde hacer clic",
+  "dom.wizRec": "Registro {i} de {n}",
+  "dom.wizType": "Tipo",
+  "dom.wizName": "Nombre / Host",
+  "dom.wizValue": "Valor / Contenido",
+  "dom.wizPrio": "Prioridad",
+  "dom.wizTtl": "TTL: deja el valor predeterminado",
+  "dom.wizFull": "Si el panel pide el nombre completo: {full}",
+  "dom.wizOk": "encontrado ✓",
+  "dom.wizDone": "¿Las has añadido todas? Pulsa «Verificar ahora». Puede tardar desde unos minutos hasta unas horas en publicarse.",
+  "dom.wizIntro": "Escribe el dominio de tu tienda: te mostramos exactamente qué registros añadir y dónde."
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",

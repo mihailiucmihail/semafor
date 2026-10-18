@@ -904,7 +904,21 @@
   "settings.payCod": "Masquer seulement le paiement à la livraison — la carte reste possible",
   "settings.payNone": "Ne rien masquer — seulement signaler la commande",
   "settings.redPayHelp": "Rouge = l'e-mail, le téléphone, l'adresse, le nom ou l'appareil est sur votre liste noire (ou le client est signalé par assez de boutiques du réseau, si vous utilisez le réseau au paiement).",
-  "settings.yellowPayHelp": "Au paiement, jaune = client signalé par moins de boutiques du réseau. Ne s'applique que si, sur la page Réseau de boutiques, vous avez choisi d'utiliser aussi les clients jaunes. Après la commande, les commandes jaunes sont toujours étiquetées."
+  "settings.yellowPayHelp": "Au paiement, jaune = client signalé par moins de boutiques du réseau. Ne s'applique que si, sur la page Réseau de boutiques, vous avez choisi d'utiliser aussi les clients jaunes. Après la commande, les commandes jaunes sont toujours étiquetées.",
+  "dom.wizTitle": "Ce qu'il faut ajouter pour {domain}, étape par étape",
+  "dom.wizHost": "Le DNS de votre domaine est géré chez : {name}",
+  "dom.wizHostUnknown": "Impossible de savoir où est géré le DNS de votre domaine — suivez les étapes générales ci-dessous.",
+  "dom.wizWhere": "Où cliquer",
+  "dom.wizRec": "Enregistrement {i} sur {n}",
+  "dom.wizType": "Type",
+  "dom.wizName": "Nom / Hôte",
+  "dom.wizValue": "Valeur / Contenu",
+  "dom.wizPrio": "Priorité",
+  "dom.wizTtl": "TTL : laissez la valeur par défaut",
+  "dom.wizFull": "Si le panneau demande le nom complet : {full}",
+  "dom.wizOk": "trouvé ✓",
+  "dom.wizDone": "Tout est ajouté ? Cliquez sur « Vérifier maintenant ». La publication peut prendre de quelques minutes à quelques heures.",
+  "dom.wizIntro": "Saisissez le domaine de votre boutique — nous vous montrons exactement quels enregistrements ajouter et où."
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

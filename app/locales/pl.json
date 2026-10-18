@@ -904,7 +904,21 @@
   "settings.payCod": "Ukryj tylko płatność za pobraniem — karta nadal działa",
   "settings.payNone": "Nic nie ukrywaj — tylko oznacz zamówienie",
   "settings.redPayHelp": "Czerwony = e-mail, telefon, adres, imię i nazwisko lub urządzenie są na Twojej czarnej liście (albo klienta zgłosiło dość sklepów z sieci, jeśli używasz sieci przy zamówieniu).",
-  "settings.yellowPayHelp": "Przy zamówieniu żółty = klient zgłoszony przez mniej sklepów z sieci. Działa tylko, jeśli na stronie Sieć sklepów wybrano też klientów żółtych. Po złożeniu zamówienia żółte zamówienia zawsze dostają etykietę."
+  "settings.yellowPayHelp": "Przy zamówieniu żółty = klient zgłoszony przez mniej sklepów z sieci. Działa tylko, jeśli na stronie Sieć sklepów wybrano też klientów żółtych. Po złożeniu zamówienia żółte zamówienia zawsze dostają etykietę.",
+  "dom.wizTitle": "Co dodać dla {domain}, krok po kroku",
+  "dom.wizHost": "DNS Twojej domeny jest zarządzany w: {name}",
+  "dom.wizHostUnknown": "Nie udało się ustalić, gdzie jest zarządzany DNS domeny — wykonaj ogólne kroki poniżej.",
+  "dom.wizWhere": "Gdzie kliknąć",
+  "dom.wizRec": "Rekord {i} z {n}",
+  "dom.wizType": "Typ",
+  "dom.wizName": "Nazwa / Host",
+  "dom.wizValue": "Wartość / Treść",
+  "dom.wizPrio": "Priorytet",
+  "dom.wizTtl": "TTL: zostaw wartość domyślną",
+  "dom.wizFull": "Jeśli panel wymaga pełnej nazwy: {full}",
+  "dom.wizOk": "znaleziony ✓",
+  "dom.wizDone": "Dodane wszystkie? Kliknij „Sprawdź teraz”. Publikacja może potrwać od kilku minut do kilku godzin.",
+  "dom.wizIntro": "Wpisz domenę sklepu — pokażemy dokładnie, jakie rekordy dodać i gdzie."
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

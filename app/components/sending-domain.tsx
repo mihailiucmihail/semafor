@@ -34,8 +34,10 @@ function CopyCell({ value, sub }: { value: string; sub?: string }) {
   );
 }
 
-export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, helpUrl }: {
-  domain: SendingDomain | null | undefined; suggest: string; fromEmail: string; onSuggestFrom: (email: string) => void; helpUrl: string;
+const HOSTS = ["shopify", "cloudflare", "godaddy", "namecheap", "ro", "squarespace", "other"] as const;
+
+export function SendingDomainCard({ domain, dnsHost, suggest, fromEmail, onSuggestFrom, helpUrl }: {
+  domain: SendingDomain | null | undefined; dnsHost?: { host: string; ns: string[] } | null; suggest: string; fromEmail: string; onSuggestFrom: (email: string) => void; helpUrl: string;
 }) {
   const tr = useT();
   const lang = useLang();
@@ -65,12 +67,15 @@ export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, h
         </SectionHead>
 
         {!d ? (
+          <BlockStack gap="200">
+          <Text as="p" variant="bodySm" tone="subdued">{tr("dom.wizIntro")}</Text>
           <InlineStack gap="200" blockAlign="end" wrap>
             <div style={{ flex: "1 1 240px", minWidth: 0 }}>
               <TextField label={tr("dom.label")} value={input} onChange={setInput} autoComplete="off" placeholder={suggest || "magazinul-tau.ro"} helpText={tr("dom.labelHelp")} />
             </div>
             <Button variant="primary" loading={busy("domainConnect")} disabled={!input.trim()} onClick={() => f.submit({ intent: "domainConnect", domain: input }, { method: "post" })}>{tr("dom.connect")}</Button>
           </InlineStack>
+          </BlockStack>
         ) : (
           <BlockStack gap="300">
             <InlineStack gap="200" blockAlign="center" wrap>
@@ -80,23 +85,43 @@ export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, h
             {verified
               ? <Banner tone="success">{tr("dom.verifiedBanner", { from: fromEmail && fromEmail.endsWith("@" + d.name) ? fromEmail : `info@${d.name}` })}</Banner>
               : <Banner tone={sk === "failed" ? "warning" : "info"}>{tr(sk === "failed" ? "dom.failedHint" : "dom.addHint")}</Banner>}
-            {!verified && d.records.length > 0 && (
-              <div className="sf-dns" role="table" aria-label={tr("dom.records")}>
-                <div className="sf-dns-row sf-dns-head" role="row">
-                  <span role="columnheader">{tr("dom.colType")}</span><span role="columnheader">{tr("dom.colName")}</span><span role="columnheader">{tr("dom.colValue")}</span><span role="columnheader">{tr("dom.colPriority")}</span><span role="columnheader">TTL</span>
-                </div>
-                {d.records.map((r, i) => (
-                  <div className="sf-dns-row" role="row" key={i}>
-                    <span role="cell"><Badge tone={r.status === "verified" ? "success" : undefined}>{r.type}</Badge></span>
-                    <span role="cell"><CopyCell value={r.name} sub={r.name && !r.name.endsWith(d.name) ? `${r.name}.${d.name}` : undefined} /></span>
-                    <span role="cell"><CopyCell value={r.value} /></span>
-                    <span role="cell" className="sf-num">{r.priority ?? "—"}</span>
-                    <span role="cell">{tr("dom.auto")}</span>
+            {!verified && d.records.length > 0 && (() => {
+              const hi = Math.max(0, HOSTS.indexOf((dnsHost?.host ?? "other") as any));
+              const prov = g.providers[hi] ?? g.providers[g.providers.length - 1];
+              const known = !!dnsHost && dnsHost.host !== "other";
+              return (
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingSm">{tr("dom.wizTitle", { domain: d.name })}</Text>
+                  {/* 1. where: the provider found from the domain's nameservers */}
+                  <div className="sf-dom-where">
+                    <Text as="p" variant="bodySm" fontWeight="semibold">{known ? tr("dom.wizHost", { name: prov.name }) : tr("dom.wizHostUnknown")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">{tr("dom.wizWhere")}:</Text>
+                    <ol className="sf-guide-steps">{prov.steps.map((x, i) => <li key={i}><Text as="span" variant="bodySm">{x}</Text></li>)}</ol>
                   </div>
-                ))}
-              </div>
-            )}
-            {!verified && <Text as="p" variant="bodySm" tone="subdued">{tr("dom.nameNote")}</Text>}
+                  {/* 2. what: one card per record, with exactly what to type in each field */}
+                  {d.records.map((r, i) => {
+                    const rel = r.name && r.name.endsWith("." + d.name) ? r.name.slice(0, -(d.name.length + 1)) : r.name === d.name ? "@" : r.name;
+                    const full = rel === "@" ? d.name : `${rel}.${d.name}`;
+                    return (
+                      <div className={`sf-dom-rec${r.status === "verified" ? " ok" : ""}`} key={i}>
+                        <div className="sf-dom-rec-head">
+                          <Text as="span" variant="bodySm" fontWeight="semibold">{tr("dom.wizRec", { i: i + 1, n: d.records.length })}</Text>
+                          {r.status === "verified" && <Badge tone="success">{tr("dom.wizOk")}</Badge>}
+                        </div>
+                        <dl className="sf-dom-fields">
+                          <dt>{tr("dom.wizType")}</dt><dd><Badge>{r.type}</Badge></dd>
+                          <dt>{tr("dom.wizName")}</dt><dd><CopyCell value={rel} sub={tr("dom.wizFull", { full })} /></dd>
+                          <dt>{tr("dom.wizValue")}</dt><dd><CopyCell value={r.value} /></dd>
+                          {r.priority != null && <><dt>{tr("dom.wizPrio")}</dt><dd><CopyCell value={String(r.priority)} /></dd></>}
+                        </dl>
+                        <Text as="p" variant="bodySm" tone="subdued">{tr("dom.wizTtl")}</Text>
+                      </div>
+                    );
+                  })}
+                  <Banner tone="info">{tr("dom.wizDone")}</Banner>
+                </BlockStack>
+              );
+            })()}
             {err && <Banner tone="critical">{tr(`dom.err.${err}` as TKey)}{f.data?.detail && err !== "limit" ? ` (${f.data.detail})` : ""}</Banner>}
             <InlineStack gap="200" wrap>
               {!verified && <Button variant="primary" loading={busy("domainVerify")} onClick={() => f.submit({ intent: "domainVerify" }, { method: "post" })}>{tr("dom.verify")}</Button>}

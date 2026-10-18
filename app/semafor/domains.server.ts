@@ -132,3 +132,27 @@ export async function primaryHost(admin: { graphql: (q: string) => Promise<Respo
     return h && !checkDomainAllowed(h) ? h : "";
   } catch { return ""; }
 }
+
+/** Where the domain's DNS is managed, from its nameservers — the guide then shows that provider's steps.
+ *  Keys match the order of DOMAIN_GUIDE[lang].providers. */
+export type DnsHost = "shopify" | "cloudflare" | "godaddy" | "namecheap" | "ro" | "squarespace" | "other";
+export async function dnsHostOf(name: string): Promise<{ host: DnsHost; ns: string[] }> {
+  const { promises: dns } = await import("node:dns");
+  const parts = name.toLowerCase().split(".");
+  let ns: string[] = [];
+  // the domain itself, then its parent (a subdomain has no NS of its own)
+  for (let i = 0; i < Math.min(2, parts.length - 1) && !ns.length; i++) {
+    const d = parts.slice(i).join(".");
+    ns = await Promise.race([dns.resolveNs(d).catch(() => [] as string[]), new Promise<string[]>((r) => setTimeout(() => r([]), 2500))]);
+  }
+  const all = ns.map((x) => x.toLowerCase()).join(" ");
+  const host: DnsHost =
+    /shopify/.test(all) ? "shopify"
+    : /cloudflare\.com/.test(all) ? "cloudflare"
+    : /domaincontrol\.com/.test(all) ? "godaddy"
+    : /registrar-servers\.com|namecheaphosting/.test(all) ? "namecheap"
+    : /googledomains\.com|squarespace/.test(all) ? "squarespace"
+    : /romarg|hostico|claus|cyberfolks|zooku|rotld|hostway|\.ro(\s|$)/.test(all) ? "ro"
+    : "other";
+  return { host, ns };
+}
