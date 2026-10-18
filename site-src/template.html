@@ -294,9 +294,25 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .mail .code{margin:18px auto 0;display:inline-block;border:1px solid var(--ink-3);padding:10px 18px;letter-spacing:.2em;font-size:13px}
 .mail .cta{margin:18px auto 0;display:block;width:70%;padding:13px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600}
 .mail .fine{font-size:11.5px;color:var(--ink-3);margin-top:16px}
+.mcap{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px 4px}
+.mail .mh{align-items:center}.mfrom{display:flex;gap:10px;align-items:center}.mfrom .av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--serif);font-size:17px}
+.mfrom b{display:block;color:var(--ink);font-size:14px}.mfrom small{color:var(--ink-3);font-size:12px}
+.msubj{padding:14px 20px;border-bottom:1px solid #ECE5D8;font-weight:600;color:var(--ink);font-size:15px;text-align:left}
+.mail .hi{margin-top:14px;color:var(--ink-2);font-size:14.5px}.mail h4{margin-top:6px}
+.mail .item{display:flex;gap:16px;align-items:center;text-align:left;margin:20px auto 0;max-width:340px;border:1px solid #ECE5D8;border-radius:14px;padding:12px}
+.mail .item .prod{margin:0;width:88px;flex:none}.mail .item .it b{display:block;font-size:15px;color:var(--ink)}.mail .item .it small{display:block;color:var(--ink-3);font-size:12.5px}.mail .item .it span{display:block;margin-top:6px;font-size:14.5px;color:var(--ink)}.mail .item .it s{color:var(--ink-3);margin-right:6px}
+.mail .disc{margin:16px auto 0;max-width:340px;border-top:1px solid #E6D9C8;border-bottom:1px solid #E6D9C8;padding:10px 0;display:flex;gap:12px;align-items:center;justify-content:center}.mail .disc b{font-family:var(--serif);font-weight:400;font-size:34px;color:#8a4a2a}.mail .disc span{font-size:13px;color:var(--ink-2);text-align:left}
 
 .attr{margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .attr .c3{text-align:left}
+.sells{margin-top:80px;border-radius:28px;background:var(--night);color:var(--cream);padding:56px 56px 48px;position:relative;overflow:hidden}
+.sells::before{content:"";position:absolute;inset:auto -10% -60% 40%;height:120%;background:radial-gradient(closest-side,rgba(39,184,116,.22),transparent);pointer-events:none}
+.sells .eyebrow{color:var(--mute)}.sells h3{font-size:clamp(34px,4.4vw,56px);line-height:1.02;margin-top:16px;max-width:760px}.sells .sh p{color:var(--soft);font-size:17.5px;max-width:640px;margin-top:18px}
+.sells .sn{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;position:relative}
+.sells .sn div{border:1px solid var(--edge);border-radius:20px;padding:24px 24px 22px;background:rgba(255,255,255,.02)}
+.sells .sn b{display:block;font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,72px);line-height:1;color:#fff}.sells .sn span{display:block;color:var(--soft);font-size:15px;margin-top:10px}
+.sells .sb{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;color:var(--soft);font-size:14.5px;position:relative}.sells .sb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+@media (max-width:760px){.sells{padding:36px 22px}.sells .sn{grid-template-columns:1fr}}
 .src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
 
 /* all features */
@@ -418,7 +434,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
         <a class="btn btn-glow" href="https://apps.shopify.com/semafor" target="_blank" rel="noopener">Start with 14 days of Pro — free</a>
         <a class="btn btn-line" href="#signal">See it in action</a>
       </div>
-      <div class="note reveal"><span>No card needed</span><span>No setup</span><span>Works in seconds</span></div>
+      <div class="note reveal"><span>Free to install</span><span>Billed through Shopify</span><span>Works in seconds</span></div>
     </div>
     <div class="stage" aria-hidden="true">
       <div class="halo" id="halo"></div>
@@ -635,16 +651,20 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
         </ol>
         <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">It stops the moment they order, skips sold-out products, and even reaches pop-up subscribers who left before typing their e-mail.</p>
       </div>
-      <div class="mail reveal" aria-hidden="true">
-        <div class="mh"><span><b>Your Store</b> &lt;hello@yourstore.com&gt;</span><span>10:00</span></div>
-        <div class="mb">
-          <div class="brandm">Your Store</div>
-          <h4>It's still waiting for you.</h4>
-          <div class="prod"></div>
-          <div class="price"><s>€189.00</s><b>€160.65</b></div>
-          <div class="code">COMEBACK15</div>
-          <span class="cta">Return to my cart</span>
-          <div class="fine">Unsubscribe in one click</div>
+      <div class="mailwrap reveal" aria-hidden="true">
+        <div class="mcap">What your customer receives · e-mail 2 of 3</div>
+        <div class="mail">
+          <div class="mh"><div class="mfrom"><span class="av">A</span><div><b>Aurora</b><small>to Maria</small></div></div><span>Today, 10:00</span></div>
+          <div class="msubj">Maria, your sneakers are still in your cart</div>
+          <div class="mb">
+            <div class="brandm">Aurora</div>
+            <p class="hi">Hi Maria,</p>
+            <h4>You left something beautiful behind.</h4>
+            <div class="item"><div class="prod"></div><div class="it"><b>Linen sneakers</b><small>Sand · size 38</small><span><s>€89.00</s> €75.65</span></div></div>
+            <div class="disc"><b>−15%</b><span>your personal code, valid until tomorrow</span></div>
+            <span class="cta">Complete my order</span>
+            <div class="fine">You started an order at Aurora. · Unsubscribe</div>
+          </div>
         </div>
       </div>
     </div>
@@ -653,6 +673,20 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
       <div class="c3 reveal"><span class="src">● Sent by Semafor</span><h5>No mail service to sign up for</h5><p>E-mails go out included in your plan — or from your own domain, with a guided setup for your DNS provider.</p></div>
       <div class="c3 reveal"><span class="src">● 3 designs</span><h5>Premium by default</h5><p>Elegant, Minimal and Modern — filled with the product photo and price, in the customer's language.</p></div>
       <div class="c3 reveal"><span class="src">● Tagged on the order</span><h5>Orders brought by Semafor</h5><p>Each order shows whether the pop-up, the cart or a reminder brought it — with recovered revenue in numbers.</p></div>
+    </div>
+
+    <div class="sells reveal">
+      <div class="sh">
+        <div class="eyebrow">Real numbers · one store using Semafor · last 30 days</div>
+        <h3 class="serif">You'll be surprised how well it <em class="it">sells</em>.</h3>
+        <p>Semafor doesn't only save the money lost on refused parcels and returns without a reason. It brings in orders — and marks every one of them, so you see exactly what it earned.</p>
+      </div>
+      <div class="sn">
+        <div><b>76</b><span>orders brought by Semafor</span></div>
+        <div><b>18%</b><span>of all the store's orders</span></div>
+        <div><b>€4,859</b><span>in sales Semafor brought in</span></div>
+      </div>
+      <div class="sb"><span><i style="background:var(--green)"></i>Welcome pop-up · 43</span><span><i style="background:var(--amber)"></i>Pop-up at checkout · 29</span><span><i style="background:var(--red)"></i>Reminder e-mails · 4</span></div>
     </div>
   </div>
 </section>
@@ -715,7 +749,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
     <div class="eyebrow reveal" style="text-align:center">Questions</div>
     <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Good to know.</h2>
     <div class="faq">
-      <details class="reveal"><summary>Do I need to set anything up?</summary><p>No. Install Semafor and it starts checking orders right away. Checkout blocking, device recognition and the pop-up are switched on automatically — no code, no theme edits.</p></details>
+      <details class="reveal"><summary>Do I need to set anything up?</summary><p>No. Install Semafor and it starts checking orders right away. Checkout blocking and device recognition switch on automatically — no code, no theme edits. The pop-up is one switch in your theme editor.</p></details>
       <details class="reveal"><summary>Will a blocked customer know?</summary><p>No. They simply see no payment method (or no cash on delivery), depending on the rule you chose. There is no message saying they were blocked.</p></details>
       <details class="reveal"><summary>What about privacy?</summary><p>The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data requests and deletions are handled automatically.</p></details>
       <details class="reveal"><summary>Do I need an e-mail service?</summary><p>No. Reminder and welcome e-mails are sent by Semafor and included in your plan. If you prefer, connect your own domain with a step-by-step guide.</p></details>
