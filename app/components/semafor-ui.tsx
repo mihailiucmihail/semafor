@@ -1,5 +1,5 @@
 // Shared presentation pieces for the Semafor admin pages (Polaris + app/styles/semafor.css).
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { BlockStack, Card, Icon, InlineStack, Text } from "@shopify/polaris";
 
 export type Level = "green" | "yellow" | "red";
@@ -106,3 +106,31 @@ export function SectionHead({ title, children, description }: { title: string; d
 
 export const LEVEL_RANK = { green: 0, yellow: 1, red: 2 } as const;
 export const worst = (a: Level, b: Level): Level => (LEVEL_RANK[b] > LEVEL_RANK[a] ? b : a);
+
+/**
+ * Phones: every `.sf-table` is drawn as a list of cards (see semafor.css). Each cell gets the text of its column
+ * heading as `data-label`, so the card can show "Plată: Cash on Delivery". Hidden headings (actions) get no label.
+ * Runs once in the app layout and follows every table the pages draw later.
+ */
+export function useTableLabels() {
+  useEffect(() => {
+    let raf = 0;
+    const label = () => {
+      raf = 0;
+      document.querySelectorAll<HTMLTableElement>(".sf-table table").forEach((t) => {
+        const heads = Array.from(t.querySelectorAll("thead tr:last-child th")).map((th) =>
+          th.querySelector(".Polaris-Text--visuallyHidden") ? "" : (th.textContent || "").trim());
+        t.querySelectorAll("tbody tr").forEach((tr) => {
+          Array.from(tr.children).forEach((td, i) => {
+            const l = heads[i] || "";
+            if (td.getAttribute("data-label") !== l) td.setAttribute("data-label", l);
+          });
+        });
+      });
+    };
+    label();
+    const mo = new MutationObserver(() => { if (!raf) raf = requestAnimationFrame(label); });
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => { mo.disconnect(); if (raf) cancelAnimationFrame(raf); };
+  }, []);
+}

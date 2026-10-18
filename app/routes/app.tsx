@@ -19,6 +19,7 @@ const blockSynced = new Map<string, number>();
 import { Banner, Box, Text } from "@shopify/polaris";
 import { can } from "../../core/plans";
 import { LangProvider, t } from "../i18n";
+import { useTableLabels } from "../components/semafor-ui";
 import { shopLang, rememberLangHints } from "../i18n.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }, { rel: "stylesheet", href: semaforStyles }];
@@ -54,6 +55,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { apiKey, pro, basic, lang, quota } = useLoaderData<typeof loader>();
+  useTableLabels();
   return (
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <LangProvider lang={lang}>
