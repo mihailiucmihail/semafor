@@ -2,7 +2,7 @@
 # Shared by build.py (Semafor page) and home.py (studio home). Injected after translation.
 import html as H
 
-GA_ID = 'G-X6LMX9VR0Y'
+GA_ID = 'G-0GVM380XSK'
 PRIVACY = 'https://semafor-copy-production.up.railway.app/privacy'
 
 # text, accept, decline, privacy link, region label
