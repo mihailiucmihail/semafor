@@ -951,6 +951,19 @@ const D = {
   "net.reportedBy": { en: "Reported by {n} store(s)", ro: "Raportat de {n} magazin(e)" },
   "cust.viaDevice": { en: "same device · placed as {name}", ro: "același dispozitiv · pe numele {name}" },
   "cust.kViaDevice": { en: "{n} under other names from the same device", ro: "{n} pe alte nume, de pe același dispozitiv" },
+  "reasonShort.refuz_colet": { en: "Refused COD parcel", ro: "Refuz ramburs" },
+  "reasonShort.return_no_reason": { en: "Frequent returns", ro: "Retururi dese" },
+  "reasonShort.chargeback": { en: "Chargeback", ro: "Chargeback" },
+  "reasonShort.return_fraud": { en: "Return fraud", ro: "Fraudă la retur" },
+  "reasonShort.abuse": { en: "Threats / insults", ro: "Amenințări" },
+  "reasonShort.other": { en: "Other", ro: "Altul" },
+  "bl.kWeek": { en: "added this week", ro: "adăugați săptămâna asta" },
+  "bl.kToday": { en: "tried to order today", ro: "au încercat azi" },
+  "bl.kNet": { en: "shared with the network", ro: "raportați în rețea" },
+  "bl.fChecksS": { en: "Flagged", ro: "Marcate" },
+  "bl.fTriesS": { en: "Tries", ro: "Încercări" },
+  "bl.fLastS": { en: "Last seen", ro: "Ultima dată" },
+  "bl.recent": { en: "Recent activity first", ro: "Activitate recentă întâi" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

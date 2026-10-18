@@ -880,7 +880,20 @@
   "net.hitsEmpty": "Aucune commande n’a correspondu au réseau ces 30 derniers jours.",
   "net.reportedBy": "Signalé par {n} boutique(s)",
   "cust.viaDevice": "même appareil · au nom de {name}",
-  "cust.kViaDevice": "{n} sous d’autres noms depuis le même appareil"
+  "cust.kViaDevice": "{n} sous d’autres noms depuis le même appareil",
+  "reasonShort.refuz_colet": "Colis refusé",
+  "reasonShort.return_no_reason": "Retours fréquents",
+  "reasonShort.chargeback": "Rétrofacturation",
+  "reasonShort.return_fraud": "Fraude au retour",
+  "reasonShort.abuse": "Menaces",
+  "reasonShort.other": "Autre",
+  "bl.kWeek": "ajoutés cette semaine",
+  "bl.kToday": "ont essayé aujourd'hui",
+  "bl.kNet": "partagés dans le réseau",
+  "bl.fChecksS": "Signalées",
+  "bl.fTriesS": "Essais",
+  "bl.fLastS": "Vu le",
+  "bl.recent": "Activité récente d'abord"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

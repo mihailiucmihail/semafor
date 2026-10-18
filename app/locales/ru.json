@@ -880,7 +880,20 @@
   "net.hitsEmpty": "За 30 дней ни один заказ не совпал с сетью.",
   "net.reportedBy": "Сообщили магазинов: {n}",
   "cust.viaDevice": "то же устройство · на имя {name}",
-  "cust.kViaDevice": "на другие имена с того же устройства: {n}"
+  "cust.kViaDevice": "на другие имена с того же устройства: {n}",
+  "reasonShort.refuz_colet": "Отказ от наложки",
+  "reasonShort.return_no_reason": "Частые возвраты",
+  "reasonShort.chargeback": "Чарджбэк",
+  "reasonShort.return_fraud": "Обман с возвратом",
+  "reasonShort.abuse": "Угрозы",
+  "reasonShort.other": "Другое",
+  "bl.kWeek": "добавлено за неделю",
+  "bl.kToday": "пытались сегодня",
+  "bl.kNet": "передано в сеть",
+  "bl.fChecksS": "Отмечено",
+  "bl.fTriesS": "Попытки",
+  "bl.fLastS": "Последний раз",
+  "bl.recent": "Сначала недавняя активность"
  },
  "server": [
   "Нет действительного идентификатора (e-mail, телефон, имя + адрес).",

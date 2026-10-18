@@ -880,7 +880,20 @@
   "net.hitsEmpty": "Ningún pedido coincidió con la red en los últimos 30 días.",
   "net.reportedBy": "Reportado por {n} tienda(s)",
   "cust.viaDevice": "mismo dispositivo · a nombre de {name}",
-  "cust.kViaDevice": "{n} con otros nombres desde el mismo dispositivo"
+  "cust.kViaDevice": "{n} con otros nombres desde el mismo dispositivo",
+  "reasonShort.refuz_colet": "Rechazó contra reembolso",
+  "reasonShort.return_no_reason": "Devoluciones frecuentes",
+  "reasonShort.chargeback": "Contracargo",
+  "reasonShort.return_fraud": "Fraude en devolución",
+  "reasonShort.abuse": "Amenazas",
+  "reasonShort.other": "Otro",
+  "bl.kWeek": "añadidos esta semana",
+  "bl.kToday": "intentaron hoy",
+  "bl.kNet": "compartidos en la red",
+  "bl.fChecksS": "Marcados",
+  "bl.fTriesS": "Intentos",
+  "bl.fLastS": "Última vez",
+  "bl.recent": "Actividad reciente primero"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",

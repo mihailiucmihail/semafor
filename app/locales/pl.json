@@ -880,7 +880,20 @@
   "net.hitsEmpty": "Żadne zamówienie nie pasowało do sieci w ostatnich 30 dniach.",
   "net.reportedBy": "Zgłoszone przez sklepy: {n}",
   "cust.viaDevice": "to samo urządzenie · na nazwisko {name}",
-  "cust.kViaDevice": "Na inne nazwiska z tego samego urządzenia: {n}"
+  "cust.kViaDevice": "Na inne nazwiska z tego samego urządzenia: {n}",
+  "reasonShort.refuz_colet": "Odmowa pobrania",
+  "reasonShort.return_no_reason": "Częste zwroty",
+  "reasonShort.chargeback": "Chargeback",
+  "reasonShort.return_fraud": "Oszustwo przy zwrocie",
+  "reasonShort.abuse": "Groźby",
+  "reasonShort.other": "Inne",
+  "bl.kWeek": "dodanych w tym tygodniu",
+  "bl.kToday": "próbowali dziś",
+  "bl.kNet": "zgłoszonych do sieci",
+  "bl.fChecksS": "Oznaczone",
+  "bl.fTriesS": "Próby",
+  "bl.fLastS": "Ostatnio",
+  "bl.recent": "Najpierw ostatnia aktywność"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

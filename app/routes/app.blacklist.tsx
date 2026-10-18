@@ -118,6 +118,14 @@ export default function Index() {
   // a customer is open (child route /app/blacklist/:id) → list on the left, dossier on the right
   const outlet = useOutlet();
   const openId = useParams().id;
+  // phones: cards only (a table cannot fit), compact layout
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const on = () => setMobile(mq.matches);
+    on(); mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
   const pickView = (v: "cards" | "table") => { setView(v); try { window.localStorage.setItem("sf-bl-view", v); } catch { /* storage blocked */ } };
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
@@ -209,7 +217,7 @@ export default function Index() {
           <BlockStack gap="400">
             {!network && <Banner tone="warning" action={{ content: tr("nav.settings"), url: "/app/settings" }}>{tr("index.networkOffBanner")}</Banner>}
 
-            {/* hero: count, search, reason chips */}
+            {/* hero: count, three stat tiles, search, reason chips (one swipeable row on phones) */}
             <div className="sf-bl-hero">
               <div className="sf-bl-hero-top">
                 <div className="sf-bl-hero-title">
@@ -217,7 +225,6 @@ export default function Index() {
                   <div>
                     <p className="sf-bl-eyebrow">Semafor · {tr("nav.blacklist")}</p>
                     <h1 className="sf-bl-count">{tr("bl.count", { n: total })}</h1>
-                    <p className="sf-bl-sub">{tr("bl.sub", { a: added7, t: triedToday, s: shared })}</p>
                   </div>
                 </div>
                 <div className="sf-bl-actions">
@@ -225,62 +232,76 @@ export default function Index() {
                   <button type="button" className="sf-bl-btn" onClick={() => setOpen(true)}>+ {tr("index.addCustomer")}</button>
                 </div>
               </div>
+              <div className="sf-bl-stats">
+                <div><b>+{added7}</b><span>{tr("bl.kWeek")}</span></div>
+                <div className={triedToday ? "hot" : ""}><b>{triedToday}</b><span>{tr("bl.kToday")}</span></div>
+                <div><b>{shared}</b><span>{tr("bl.kNet")}</span></div>
+              </div>
               <form className="sf-bl-search" onSubmit={(ev) => { ev.preventDefault(); runSearch(); }} role="search">
                 <Icon source={SearchIcon} tone="subdued" />
                 <label className="sf-visually-hidden" htmlFor="sf-bl-q">{tr("common.search")}</label>
-                <input id="sf-bl-q" value={search} onChange={(ev) => setSearch(ev.target.value)} placeholder={tr("index.searchPlaceholder")} autoComplete="off" />
+                <input id="sf-bl-q" type="search" enterKeyHint="search" value={search} onChange={(ev) => setSearch(ev.target.value)} placeholder={tr("index.searchPlaceholder")} autoComplete="off" />
                 {(search || q) && <button type="button" className="sf-bl-clear" onClick={() => { setSearch(""); setParams({}); }}>{tr("dash.clearFilters")}</button>}
               </form>
-              <div className="sf-bl-chips">
-                <button type="button" className={`sf-bl-chip${!reasonFilter && !netFilter ? " on" : ""}`} onClick={() => { setReasonFilter(""); setNetFilter(""); }}>{tr("bl.all")} · {total}</button>
+              <div className="sf-bl-chips" role="group" aria-label={tr("index.colReason")}>
+                <button type="button" aria-pressed={!reasonFilter && !netFilter} className={`sf-bl-chip${!reasonFilter && !netFilter ? " on" : ""}`} onClick={() => { setReasonFilter(""); setNetFilter(""); }}>{tr("bl.all")} <em>{total}</em></button>
                 {REASONS.filter((r) => (reasonCounts as any)[r]).map((r) => (
-                  <button type="button" key={r} className={`sf-bl-chip${reasonFilter === r ? " on" : ""}`} onClick={() => setReasonFilter(reasonFilter === r ? "" : r)}>{reasonLabel(r)} · {(reasonCounts as any)[r]}</button>
+                  <button type="button" key={r} aria-pressed={reasonFilter === r} title={reasonLabel(r)} className={`sf-bl-chip${reasonFilter === r ? " on" : ""}`} onClick={() => setReasonFilter(reasonFilter === r ? "" : r)}>
+                    <i className={`sf-bl-chipdot ${REASON_BAND[r] ?? "gray"}`} aria-hidden="true" />{tr(`reasonShort.${r}` as TKey)} <em>{(reasonCounts as any)[r]}</em>
+                  </button>
                 ))}
-                <button type="button" className={`sf-bl-chip${netFilter === "shared" ? " on" : ""}`} onClick={() => setNetFilter(netFilter === "shared" ? "" : "shared")}>{tr("dash.netShared")} · {shared}</button>
+                {shared > 0 && <button type="button" aria-pressed={netFilter === "shared"} className={`sf-bl-chip${netFilter === "shared" ? " on" : ""}`} onClick={() => setNetFilter(netFilter === "shared" ? "" : "shared")}>{tr("dash.netShared")} <em>{shared}</em></button>}
               </div>
             </div>
 
-            <InlineStack align="space-between" blockAlign="center" gap="200">
-              <Text as="p" tone="subdued">{filtered || q ? tr("dash.showing", { n: rows.length, total }) : tr("bl.sorted")}</Text>
-              <ButtonGroup variant="segmented">
-                <Button pressed={view === "cards"} onClick={() => pickView("cards")}>{tr("bl.viewCards")}</Button>
-                <Button pressed={view === "table"} onClick={() => pickView("table")}>{tr("bl.viewTable")}</Button>
-              </ButtonGroup>
-            </InlineStack>
+            <div className="sf-bl-toolbar">
+              <p>{filtered || q ? tr("dash.showing", { n: rows.length, total }) : tr("bl.recent")}</p>
+              {!mobile && (
+                <ButtonGroup variant="segmented">
+                  <Button pressed={view === "cards"} onClick={() => pickView("cards")}>{tr("bl.viewCards")}</Button>
+                  <Button pressed={view === "table"} onClick={() => pickView("table")}>{tr("bl.viewTable")}</Button>
+                </ButtonGroup>
+              )}
+            </div>
 
-            {view === "cards" && total > 0 && rows.length > 0 ? (
+            {(view === "cards" || mobile) && total > 0 && rows.length > 0 ? (
               <div className="sf-bl-grid">
-                {cards.map((e: any) => (
-                  <Link key={e.id} to={`/app/blacklist/${e.id}`} className="sf-bl-card">
+                {cards.map((e: any) => {
+                  const hot = e.tries > 0 && e.last >= new Date().setHours(0, 0, 0, 0);
+                  const extra = e.emails.length + e.phones.length - Math.min(e.emails.length, 2) - Math.min(e.phones.length, 1);
+                  return (
+                  <Link key={e.id} to={`/app/blacklist/${e.id}`} className={`sf-bl-card${hot ? " hot" : ""}`}>
                     <span className={`sf-bl-band ${REASON_BAND[e.reason] ?? "gray"}`} aria-hidden="true" />
                     <div className="sf-bl-card-body">
                       <div className="sf-bl-card-head">
                         <span className="sf-bl-ini" aria-hidden="true">{initials(e.title)}</span>
                         <div className="sf-bl-who">
                           <span className="sf-bl-name">{e.title}</span>
-                          <span className="sf-bl-since">{tr("bl.since", { date: new Date(e.createdAt).toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" }), source: e.orderName ? `${sourceLabel(e.source)} ${e.orderName}` : sourceLabel(e.source) })}</span>
+                          <span className={`sf-bl-reason ${REASON_BAND[e.reason] ?? "gray"}`} title={reasonLabel(e.reason)}>{tr(`reasonShort.${e.reason}` as TKey)}</span>
                         </div>
-                        <Badge tone={REASON_TONE[e.reason]}>{reasonLabel(e.reason)}</Badge>
+                        <span className="sf-bl-chev" aria-hidden="true">›</span>
                       </div>
                       <div className="sf-bl-ids">
                         {e.emails.slice(0, 2).map((x: string) => <IdLine key={x} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
-                        {e.phones.slice(0, 2).map((x: string) => <IdLine key={x} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                        {e.phones.slice(0, 1).map((x: string) => <IdLine key={x} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
                         {e.addresses.slice(0, 1).map((x: string) => <IdLine key={x} icon={LocationIcon} label={tr("kind.address")}>{x}</IdLine>)}
                       </div>
                       <div className="sf-bl-tags">
-                        {e.tries > 0 && e.last >= new Date().setHours(0, 0, 0, 0) && <span className="hot">{tr("bl.triedToday")}</span>}
+                        {hot && <span className="hot">● {tr("bl.triedToday")}</span>}
                         {e.devices.length > 0 && <span>{tr("dash.devices", { n: e.devices.length })}</span>}
-                        {e.emails.length + e.phones.length > 2 && <span>{tr("bl.moreData", { n: e.emails.length + e.phones.length })}</span>}
+                        {extra > 0 && <span>+{extra} {tr("kind.email").toLowerCase()} / {tr("kind.phone").toLowerCase()}</span>}
                         {e.shared && <span>{tr("index.reported")}</span>}
                       </div>
+                      <span className="sf-bl-since">{tr("bl.since", { date: new Date(e.createdAt).toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short" }), source: e.orderName ? `${sourceLabel(e.source)} ${e.orderName}` : sourceLabel(e.source) })}</span>
                     </div>
                     <div className="sf-bl-foot">
-                      <div><span>{tr("bl.fChecks")}</span><b>{e.checks}</b></div>
-                      <div><span>{tr("bl.fTries")}</span><b className={e.tries ? "red" : ""}>{e.tries}</b></div>
-                      <div><span>{tr("bl.fLast")}</span><b className="sm">{ago(e.last)}</b></div>
+                      <div><span>{tr("bl.fChecksS")}</span><b>{e.checks}</b></div>
+                      <div><span>{tr("bl.fTriesS")}</span><b className={e.tries ? "red" : ""}>{e.tries}</b></div>
+                      <div><span>{tr("bl.fLastS")}</span><b className="sm">{ago(e.last)}</b></div>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             ) : (
             <Card padding="0">
