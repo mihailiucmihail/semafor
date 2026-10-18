@@ -72,7 +72,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
   // blacklisted buyer (or browser) → link this browser and whatever was typed to the entry, refresh the blocklist
   if (event !== "completed") void linkDeviceAttempt(shop, deviceId, { email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80), address1: cut(b.address1), city: cut(b.city, 80), country: cut(b.country, 4)?.toUpperCase() ?? null });
-  // retention: checkout events are kept 120 days (privacy policy)
-  if (Math.random() < 0.01) db.checkoutAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 120 * 86_400_000) } } }).catch(() => {});
+  // retention (120 days) runs once a day from the scheduler — app/semafor/retention.server.ts
   return new Response("ok", { headers: CORS });
 };

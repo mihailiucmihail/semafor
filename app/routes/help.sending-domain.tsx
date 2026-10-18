@@ -59,7 +59,7 @@ export default function SendingDomainHelp() {
       <h2>{g.faqTitle}</h2>
       {g.faq.map((f) => (<div key={f.q}><p><b>{f.q}</b><br />{f.a}</p></div>))}
       <hr />
-      <p><small>Semafor · <a href="/privacy">Privacy policy</a> · mihailiucmihail@gmail.com</small></p>
+      <p><small>Semafor · <a href="/privacy">Privacy policy</a> · mihailiuc.co@gmail.com</small></p>
     </main>
   );
 }

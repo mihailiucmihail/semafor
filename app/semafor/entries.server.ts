@@ -249,17 +249,31 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   return { v: 2, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], w: [...buckets.w], y: { e: [...yb.e], p: [...yb.p] }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 
+/** Shops whose old shop-level copy of the blocklist (namespace "semafor") was already removed by this process. */
+const legacyGone = new Set<string>();
+
 export async function pushCheckoutMetafield(admin: { graphql: (q: string, o?: any) => Promise<Response> }, shopId: string) {
   const payload = await buildCheckoutPayload(shopId);
-  const idRes = await admin.graphql(`#graphql
-    query { shop { id } }`);
-  const shopGid = (await idRes.json()).data.shop.id;
-  const res = await admin.graphql(`#graphql
-    mutation($m:[MetafieldsSetInput!]!){ metafieldsSet(metafields:$m){ userErrors{ field message } } }`,
-    { variables: { m: [{ ownerId: shopGid, namespace: "semafor", key: "blocklist", type: "json", value: JSON.stringify(payload) }] } });
-  const j = await res.json();
-  if (j.data?.metafieldsSet?.userErrors?.length) console.error("metafieldsSet", j.data.metafieldsSet.userErrors);
-  // same list on the payment customization (read by the hide-payment Function)
+  // The list lives ONLY in the app-owned metafield of the payment customization ($app:blocklist), which merchants,
+  // other apps and the storefront cannot read. Older versions also wrote a copy on the shop (namespace "semafor",
+  // readable by staff and other apps, with other shops' network hashes in it) — nothing reads it; remove it once.
+  if (!legacyGone.has(shopId)) {
+    try {
+      const idRes: any = await (await admin.graphql(`#graphql
+        query { shop { id metafield(namespace: "semafor", key: "blocklist") { id } } }`)).json();
+      const shop = idRes?.data?.shop;
+      if (shop && !shop.metafield) legacyGone.add(shopId);
+      else if (shop?.id) {
+        const d: any = await (await admin.graphql(`#graphql
+          mutation($m:[MetafieldIdentifierInput!]!){ metafieldsDelete(metafields:$m){ userErrors{ field message } } }`,
+          { variables: { m: [{ ownerId: shop.id, namespace: "semafor", key: "blocklist" }] } })).json();
+        const ue = d?.data?.metafieldsDelete?.userErrors;
+        if (d?.errors || ue?.length) console.error("[semafor] legacy blocklist delete", JSON.stringify(d?.errors || ue));
+        else legacyGone.add(shopId);
+      }
+    } catch (e: any) { console.error("[semafor] legacy blocklist delete", e?.message || e); }
+  }
+  // the list read by the hide-payment Function
   try { await syncPaymentBlock(admin, payload); } catch (e) { console.error("[semafor] syncPaymentBlock", e); }
   return payload;
 }

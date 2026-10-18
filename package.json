@@ -17,7 +17,7 @@
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",
     "vite": "vite",
-    "test": "node --experimental-strip-types --test test/core.test.ts"
+    "test": "node --experimental-strip-types --test test/core.test.ts test/redact.test.ts"
   },
   "type": "module",
   "engines": {

@@ -827,6 +827,8 @@ export function startRecoveryScheduler() {
       const { sessionStorage } = await import("../shopify.server");
       const net = await import("./entries.server");
       await net.fillNetworkFnHash().catch((e: any) => console.error("[semafor] network fnHash", e?.message || e));
+      // retention (checkout steps 120 days, order checks / activity log 12 months, expired network reports) — once a day
+      await import("./retention.server").then((m) => m.retentionDaily()).catch((e: any) => console.error("[semafor] retention", e?.message || e));
       for (const sh of shops) {
         // only shops installed in THIS app (two deployments share the database)
         try { const ss = await (sessionStorage as any).findSessionsByShop(sh.domain); if (!ss?.some((x: any) => !x.isOnline)) continue; } catch { continue; }
