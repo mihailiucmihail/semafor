@@ -831,7 +831,7 @@ export function startRecoveryScheduler() {
         try {
           const st = settingsOf(sh.settings);
           const last = (g.__semaforNetPush ??= new Map<string, number>()).get(sh.id) || 0;
-          if (st.shareNetwork && st.networkBlock?.enabled && Date.now() - last > 30 * 60_000) {
+          if (st.shareNetwork && st.network.block !== "off" && Date.now() - last > 30 * 60_000) {
             g.__semaforNetPush.set(sh.id, Date.now());
             const { admin } = await unauthenticated.admin(sh.domain);
             await net.pushCheckoutMetafield(admin as any, sh.id);

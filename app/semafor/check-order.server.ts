@@ -6,7 +6,7 @@ import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type L
 import { hmacId, shopRef } from '../../core/hash';
 import type { IdKind } from '../../core/normalize';
 
-import { type ShopSettings } from '../../core/settings';
+import { networkOf, type ShopSettings } from '../../core/settings';
 import { can, effectiveSettings } from '../../core/plans';
 import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
@@ -48,21 +48,24 @@ export async function checkOrder(opts: {
   }
 
   // Network: only when the shop shares; only strong kinds.
-  let netMap = new Map<string, { kind: IdKind; shops: number; reasons: string[] }>();
+  let netMap = new Map<string, { kind: IdKind; shops: number; reasons: string[]; byReason?: Record<string, number> }>();
   if (settings.shareNetwork) {
     const ownRef = shopRef(secret, opts.shopDomain);
+    const net = networkOf(settings.network);
     const strong = hashes.filter((h) => ['email', 'phone', 'name_address'].includes(h.kind));
     const reports = await db.networkReport.findMany({ where: { hash: { in: strong.map((h) => h.hash) }, expiresAt: { gt: now } }, select: { hash: true, kind: true, reason: true, shopRef: true } });
     for (const h of strong) {
-      // the network = OTHER shops: this shop's own reports are already in its own list
-      const mine = (reports as any[]).filter((r) => r.hash === h.hash && r.shopRef !== ownRef);
+      // the network = OTHER shops (this shop's own reports are already in its own list), only the reasons the shop counts
+      const mine = (reports as any[]).filter((r) => r.hash === h.hash && r.shopRef !== ownRef && (net.reasons as string[]).includes(r.reason));
       if (!mine.length) continue;
-      netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: [...new Set(mine.map((r) => r.reason as string))] });
+      const byReason: Record<string, number> = {};
+      for (const r of new Set(mine.map((r) => r.reason as string))) byReason[r] = new Set(mine.filter((m) => m.reason === r).map((m) => m.shopRef)).size;
+      netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: Object.keys(byReason), byReason });
     }
   }
 
   const result = scoreOrder({
-    ids, isIphone, thresholds: settings.thresholds,
+    ids, isIphone, thresholds: settings.thresholds, networkThresholds: networkOf(settings.network),
     own: (k, n) => ownMap.get(`${k}:${n}`) ?? [],
     network: (k, n) => netMap.get(`${k}:${n}`) ?? null,
   });
@@ -130,8 +133,8 @@ export async function checkOrder(opts: {
 
   await db.orderCheck.upsert({
     where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } },
-    create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action },
-    update: { personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, matched: result.matches as any, actionTaken: action, checkedAt: now },
+    create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, networkReasons: (result.networkShops ? result.networkByReason : undefined) as any, matched: result.matches as any, actionTaken: action },
+    update: { personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, networkReasons: (result.networkShops ? result.networkByReason : undefined) as any, matched: result.matches as any, actionTaken: action, checkedAt: now },
   });
 
   // Was it brought by Semafor (pop-up / reminder e-mail)? Only for new orders (webhook), not for re-checks / backfill.
@@ -140,7 +143,7 @@ export async function checkOrder(opts: {
   return { ...result, combined, action, related };
 }
 
-const REASON_EN: Record<string, string> = { refuz_colet: 'refused COD parcel', chargeback: 'chargeback', return_fraud: 'return fraud', abuse: 'abuse', other: 'other' };
+const REASON_EN: Record<string, string> = { return_no_reason: 'frequent returns without a valid reason', refuz_colet: 'refused COD parcel', chargeback: 'chargeback', return_fraud: 'return fraud', abuse: 'abuse', other: 'other' };
 
 function labelKind(k: IdKind, ro: boolean): string {
   return ro

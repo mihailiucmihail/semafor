@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner, FormLayout, TextField } from "@shopify/polaris";
+import { Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner, FormLayout, TextField } from "@shopify/polaris";
 import { EmailIcon, PhoneIcon, LocationIcon, MobileIcon, PersonIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { IdLine, SectionHead, Lamp, worst, type Level } from "../components/semafor-ui";
@@ -179,7 +179,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   }
 };
 
-const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning" };
+const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { return_no_reason: "warning", refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning" };
 const FIN_TONE: Record<string, "success" | "attention" | "critical" | "info" | undefined> = { PAID: "success", PENDING: "attention", AUTHORIZED: "attention", REFUNDED: "critical", PARTIALLY_REFUNDED: "warning" as any, VOIDED: "critical" };
 const REASON_HOT: Record<string, boolean> = { refuz_colet: true, chargeback: true, abuse: true };
 const initialsOf = (t: string) => {
@@ -253,8 +253,9 @@ export default function Customer() {
   }, [fetcher.state, fetcher.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Page backAction={{ content: tr("nav.blacklist"), url: "/app/blacklist" }}>
+    <div className="sf-cu-page">
       <TitleBar title={title} />
+      <div className="sf-cu-back"><Link to="/app/blacklist">← {tr("nav.blacklist")}</Link></div>
       {/* dossier header */}
       <div className="sf-cu-hero">
         <span className="sf-bl-ini sf-cu-ini" aria-hidden="true">{initialsOf(title)}</span>
@@ -441,7 +442,7 @@ export default function Customer() {
         secondaryActions={[{ content: tr("common.cancel"), onAction: () => setConfirm(false) }]}>
         <Modal.Section><Text as="p">{tr("cust.removeText", { name: title })}</Text></Modal.Section>
       </Modal>
-    </Page>
+    </div>
   );
 }
 

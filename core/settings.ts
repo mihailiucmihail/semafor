@@ -32,8 +32,27 @@ export interface ShopSettings {
   shipCost?: number | null;
   /** 1 once the one-off device catch-up (app/semafor/device-block.server.ts) ran for this shop. */
   deviceBackfill?: number | null;
-  /** Hide payment at checkout also for buyers reported by at least `minShops` OTHER shops of the network (off by default). */
-  networkBlock?: { enabled: boolean; minShops: number } | null;
+  /** How reports from OTHER shops of the network are read (page Network). */
+  network: NetworkSettings;
+}
+
+/** Network: yellow / red from how many other shops reported the buyer, which reasons count, and checkout blocking. */
+export interface NetworkSettings {
+  yellow: number;            // other shops that reported the buyer → yellow (default 1)
+  red: number;               // → red (default 3)
+  reasons: Array<'refuz_colet' | 'chargeback' | 'return_fraud' | 'return_no_reason' | 'abuse' | 'other'>;
+  /** Hide every payment method at checkout: never (default), from red, or already from yellow. Basic plan. */
+  block: 'off' | 'red' | 'yellow';
+}
+export const DEFAULT_NETWORK: NetworkSettings = { yellow: 1, red: 3, reasons: ['refuz_colet', 'chargeback', 'return_fraud', 'abuse'], block: 'off' };
+
+/** Clean, ordered network settings (1 ≤ yellow < red ≤ 10). */
+export function networkOf(n: Partial<NetworkSettings> | null | undefined): NetworkSettings {
+  const yellow = Math.min(9, Math.max(1, Math.round(Number(n?.yellow) || DEFAULT_NETWORK.yellow)));
+  const red = Math.min(10, Math.max(yellow + 1, Math.round(Number(n?.red) || DEFAULT_NETWORK.red)));
+  const reasons = Array.isArray(n?.reasons) ? n!.reasons.filter((r) => ['refuz_colet', 'chargeback', 'return_fraud', 'return_no_reason', 'abuse', 'other'].includes(r)) : DEFAULT_NETWORK.reasons;
+  const block = n?.block === 'red' || n?.block === 'yellow' ? n.block : 'off';
+  return { yellow, red, reasons, block };
 }
 
 export interface DnsRecord { record?: string; type: string; name: string; value: string; priority?: number | null; ttl?: string | null; status?: string | null }
@@ -146,11 +165,12 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   popup: DEFAULT_POPUP,
   popupSeenAt: null,
   tagAttributed: true,
+  network: DEFAULT_NETWORK,
 };
 
 export function settingsOf(json: unknown): ShopSettings {
   const j = (json as Partial<ShopSettings>) ?? {};
-  return { ...DEFAULT_SETTINGS, ...j, recovery: { ...DEFAULT_RECOVERY, ...(j.recovery ?? {}) }, popup: { ...DEFAULT_POPUP, ...(j.popup ?? {}) } };
+  return { ...DEFAULT_SETTINGS, ...j, recovery: { ...DEFAULT_RECOVERY, ...(j.recovery ?? {}) }, popup: { ...DEFAULT_POPUP, ...(j.popup ?? {}) }, network: networkOf(j.network) };
 }
 
 /**
@@ -163,5 +183,6 @@ export function shouldShareToNetwork(s: ShopSettings, reason: string, priorSameS
   if (!s.shareNetwork) return false;
   if ((s.networkImmediate as string[]).includes(reason)) return true;
   if (reason === 'refuz_colet') return priorSameShopRefuzCount >= 1;
-  return false; // return_fraud / other: never automatically
+  if (reason === 'return_fraud') return true; // a deliberate report by the merchant, like a chargeback
+  return false; // return_no_reason / other: never automatically (returns are a consumer right — kept in the shop's own list only)
 }

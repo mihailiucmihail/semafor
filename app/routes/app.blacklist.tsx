@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Link, useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData, useOutlet, useParams, useSearchParams } from "@remix-run/react";
 import {
   Page, Layout, Card, BlockStack, InlineStack, Text, TextField, Select, Button, Badge, Avatar,
   IndexTable, EmptyState, Banner, Box, Modal, FormLayout, Icon, ButtonGroup,
@@ -102,8 +102,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 function str(fd: FormData, k: string) { const v = fd.get(k); return typeof v === "string" && v.trim() ? v.trim() : undefined; }
 
 const EMPTY_FORM = { email: "", phone: "", firstName: "", lastName: "", address1: "", city: "", reason: "refuz_colet", note: "" };
-const REASON_BAND: Record<string, string> = { refuz_colet: "red", chargeback: "amber", abuse: "red", return_fraud: "gray", other: "gray" };
-const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning", other: undefined };
+const REASON_BAND: Record<string, string> = { return_no_reason: "amber", refuz_colet: "red", chargeback: "amber", abuse: "red", return_fraud: "gray", other: "gray" };
+const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { return_no_reason: "warning", refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning", other: undefined };
 
 function initials(s: string) {
   const parts = s.replace(/[^\p{L}\p{N}\s@.]/gu, " ").split(/[\s@.]+/).filter(Boolean);
@@ -115,6 +115,9 @@ export default function Index() {
   // cards (default) or the table; remembered per browser
   const [view, setView] = useState<"cards" | "table">("cards");
   useEffect(() => { try { if (window.localStorage.getItem("sf-bl-view") === "table") setView("table"); } catch { /* storage blocked */ } }, []);
+  // a customer is open (child route /app/blacklist/:id) → list on the left, dossier on the right
+  const outlet = useOutlet();
+  const openId = useParams().id;
   const pickView = (v: "cards" | "table") => { setView(v); try { window.localStorage.setItem("sf-bl-view", v); } catch { /* storage blocked */ } };
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
@@ -170,6 +173,37 @@ export default function Index() {
       <TitleBar title={tr("nav.blacklist")}>
         <button variant="primary" onClick={() => setOpen(true)}>{tr("index.addCustomer")}</button>
       </TitleBar>
+      {outlet ? (
+        <div className="sf-split">
+          <aside className="sf-split-list" aria-label={tr("nav.blacklist")}>
+            <div className="sf-split-head">
+              <InlineStack align="space-between" blockAlign="baseline">
+                <Text as="h2" variant="headingLg">{tr("nav.blacklist")}</Text>
+                <Text as="span" tone="subdued">{total}</Text>
+              </InlineStack>
+              <form onSubmit={(ev) => { ev.preventDefault(); runSearch(); }} role="search">
+                <TextField label={tr("common.search")} labelHidden placeholder={tr("index.searchPlaceholder")} value={search} onChange={setSearch} autoComplete="off"
+                  prefix={<Icon source={SearchIcon} tone="subdued" />} clearButton onClearButtonClick={() => { setSearch(""); setParams({}); }} />
+              </form>
+            </div>
+            <ul>
+              {cards.map((e: any) => (
+                <li key={e.id}>
+                  <Link to={`/app/blacklist/${e.id}${q ? `?q=${encodeURIComponent(q)}` : ""}`} className={`sf-split-item${e.id === openId ? " on" : ""}`} aria-current={e.id === openId ? "page" : undefined}>
+                    <span className={`sf-split-dot ${REASON_BAND[e.reason] ?? "gray"}`} aria-hidden="true" />
+                    <span className="sf-split-who">
+                      <span className="sf-split-name">{e.title}</span>
+                      <span className="sf-split-sub">{reasonLabel(e.reason)}</span>
+                    </span>
+                    <span className="sf-split-when">{e.last ? ago(e.last) : ""}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+          <section className="sf-split-main">{outlet}</section>
+        </div>
+      ) : (
       <Layout>
         <Layout.Section>
           <BlockStack gap="400">
@@ -316,6 +350,7 @@ export default function Index() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+      )}
 
       <Modal open={!!toDelete} onClose={() => setToDelete(null)} title={tr("dash.deleteTitle")}
         primaryAction={{ content: tr("common.delete"), destructive: true, loading: !!deletingId, onAction: () => toDelete && fetcher.submit({ intent: "delete", id: toDelete.id }, { method: "post" }) }}

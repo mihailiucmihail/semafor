@@ -13,10 +13,11 @@
   "add": "Adaugă în lista neagră",
   "cancel": "Renunță",
   "reasons": {
-    "refuz_colet": "Refuz colet",
-    "chargeback": "Chargeback",
-    "return_fraud": "Retur fraudulos",
-    "abuse": "Abuz / amenințări",
+    "refuz_colet": "Refuz colet cu plata ramburs",
+    "chargeback": "A contestat plata cu cardul (chargeback)",
+    "return_fraud": "Fraudă la retur (a trimis alt produs sau unul deteriorat)",
+    "return_no_reason": "Retururi frecvente fără motiv întemeiat",
+    "abuse": "Amenințări sau insulte",
     "other": "Altul"
   },
   "checking": "Verific dacă clientul e deja în lista neagră…",

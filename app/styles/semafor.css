@@ -334,3 +334,30 @@
 .sf-cu-text { margin: 2px 0 0; font-size: 13px; color: var(--p-color-text-secondary); overflow-wrap: anywhere; display: block; }
 .sf-cu-id { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
 .sf-cu-id > :first-child { min-width: 0; }
+
+/* ── blacklist split view: list + open dossier ── */
+.sf-split { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: var(--p-space-400); align-items: start; }
+.sf-split-list { background: var(--p-color-bg-surface); border-radius: 18px; box-shadow: var(--p-shadow-100); overflow: hidden; position: sticky; top: var(--p-space-400); max-height: calc(100vh - 32px); display: flex; flex-direction: column; }
+.sf-split-head { padding: var(--p-space-400); display: flex; flex-direction: column; gap: var(--p-space-300); border-bottom: 1px solid var(--p-color-border-secondary); }
+.sf-split-list ul { list-style: none; margin: 0; padding: 0; overflow-y: auto; }
+.sf-split-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--p-color-text); text-decoration: none; border-top: 1px solid var(--p-color-border-secondary); }
+.sf-split-list li:first-child .sf-split-item { border-top: 0; }
+.sf-split-item:hover { background: var(--p-color-bg-surface-hover); }
+.sf-split-item.on { background: #17161a; color: #f4f2ee; }
+.sf-split-item.on .sf-split-sub, .sf-split-item.on .sf-split-when { color: #c9c4bc; }
+.sf-split-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: #8a857d; }
+.sf-split-dot.red { background: var(--sf-red); box-shadow: 0 0 8px 1px rgba(224, 48, 30, 0.45); }
+.sf-split-dot.amber { background: var(--sf-yellow); }
+.sf-split-who { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sf-split-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-split-sub { font-size: 12px; color: var(--p-color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-split-when { font-size: 12px; color: var(--p-color-text-secondary); white-space: nowrap; }
+.sf-split-main { min-width: 0; }
+.sf-cu-page { display: flex; flex-direction: column; }
+.sf-cu-back { display: none; margin-bottom: var(--p-space-300); }
+.sf-cu-back a { color: var(--p-color-text-link); text-decoration: none; }
+@media (max-width: 900px) {
+  .sf-split { grid-template-columns: 1fr; }
+  .sf-split-list { display: none; }
+  .sf-cu-back { display: block; }
+}

@@ -13,10 +13,11 @@
   "add": "Agregar a la lista negra",
   "cancel": "Cancelar",
   "reasons": {
-    "refuz_colet": "Rechazó paquete contra entrega",
-    "chargeback": "Contracargo",
-    "return_fraud": "Fraude en devoluciones",
-    "abuse": "Abuso / amenazas",
+    "refuz_colet": "Rechazó un paquete contra entrega",
+    "chargeback": "Disputó un pago con tarjeta (contracargo)",
+    "return_fraud": "Fraude en la devolución (devolvió otro artículo o uno dañado)",
+    "return_no_reason": "Devoluciones frecuentes sin motivo justificado",
+    "abuse": "Amenazas o insultos",
     "other": "Otro"
   },
   "checking": "Comprobando si este cliente ya está en la lista negra…",

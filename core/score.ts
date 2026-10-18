@@ -68,7 +68,7 @@ export function extractIdentifiers(o: OrderLike, defaultCountry = 'RO'): Extract
 
 export interface Match { kind: IdKind; normalized: string; entryId: string; reason: string; weight: number }
 
-export interface NetworkHit { kind: IdKind; shops: number; reasons: string[] }
+export interface NetworkHit { kind: IdKind; shops: number; reasons: string[]; byReason?: Record<string, number> }
 
 export interface ScoreInput {
   ids: ExtractedId[];
@@ -78,6 +78,8 @@ export interface ScoreInput {
   network?: (kind: IdKind, normalized: string) => NetworkHit | null;
   isIphone?: boolean;
   thresholds?: ShopThresholds;
+  /** other shops needed for a yellow / red network light (shop setting, default 1 / 3) */
+  networkThresholds?: { yellow: number; red: number };
 }
 
 export interface ScoreResult {
@@ -87,10 +89,12 @@ export interface ScoreResult {
   networkShops: number;    // distinct shops in the network that reported any identifier
   networkLevel: Level;     // green 0, yellow 1–2, red ≥3
   networkReasons: string[];
+  /** reason → how many other shops reported the buyer for it (strongest identifier) */
+  networkByReason: Record<string, number>;
 }
 
-export function networkLevel(shops: number): Level {
-  return shops >= 3 ? 'red' : shops >= 1 ? 'yellow' : 'green';
+export function networkLevel(shops: number, th: { yellow: number; red: number } = { yellow: 1, red: 3 }): Level {
+  return shops >= th.red ? 'red' : shops >= th.yellow ? 'yellow' : 'green';
 }
 
 export function scoreOrder(inp: ScoreInput): ScoreResult {
@@ -126,6 +130,7 @@ export function scoreOrder(inp: ScoreInput): ScoreResult {
 
   let networkShops = 0;
   const reasons = new Set<string>();
+  const byReason: Record<string, number> = {};
   if (inp.network) {
     for (const id of inp.ids) {
       if (!['email', 'phone', 'name_address'].includes(id.kind)) continue;
@@ -133,11 +138,12 @@ export function scoreOrder(inp: ScoreInput): ScoreResult {
       if (!hit) continue;
       networkShops = Math.max(networkShops, hit.shops);
       hit.reasons.forEach((r) => reasons.add(r));
+      for (const [r, n] of Object.entries(hit.byReason ?? {})) byReason[r] = Math.max(byReason[r] ?? 0, n);
     }
   }
 
   const level: Level = score >= th.block ? 'red' : score >= th.warn ? 'yellow' : 'green';
-  return { score, level, matches, networkShops, networkLevel: networkLevel(networkShops), networkReasons: [...reasons] };
+  return { score, level, matches, networkShops, networkLevel: networkLevel(networkShops, inp.networkThresholds), networkReasons: [...reasons], networkByReason: byReason };
 }
 
 /** Combined traffic light shown to the merchant: own list always wins. */

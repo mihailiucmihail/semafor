@@ -31,6 +31,7 @@ enum Reason {
   refuz_colet
   chargeback
   return_fraud
+  return_no_reason
   abuse
   other
 }
@@ -98,6 +99,7 @@ model OrderCheck {
   level        Level                          // own list
   networkShops Int      @default(0)
   networkLevel Level    @default(green)
+  networkReasons Json?                        // reason → other shops that reported the buyer for it (network page)
   matched      Json                           // Match[]
   actionTaken  String?                        // tag | risk | prepaid | cancel | none
   checkedAt    DateTime @default(now())

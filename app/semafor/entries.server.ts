@@ -6,7 +6,7 @@ import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { hmacId, shopRef } from "../../core/hash";
 import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, NORM_VERSION, type IdKind } from "../../core/normalize";
-import { shouldShareToNetwork, settingsOf, type ShopSettings } from "../../core/settings";
+import { shouldShareToNetwork, settingsOf, networkOf, type ShopSettings } from "../../core/settings";
 
 import { type Reason } from "../../core/reasons";
 export type { Reason };
@@ -222,13 +222,14 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // Names that are only part of a fuller entry are NOT used here — too many people share a name.
   // Full names go to `n`, single words to `w` (the Function then only hashes the buyer's name words when `w` has entries).
   for (const r of await nameOnlyRows(shopId)) { if (r.includes(" ")) buckets.n.add(sh("name", r)); else buckets.w.add(sh("nw", r)); }
-  // Network blocking (optional, off by default): e-mails / phones reported by at least N OTHER shops
+  // Network blocking (optional, off by default): e-mails / phones reported by enough OTHER shops for a counted reason
   const st = settingsOf(shopRow?.settings);
-  if (st.shareNetwork && st.networkBlock?.enabled && shopRow) {
-    const min = Math.min(5, Math.max(1, Number(st.networkBlock.minShops) || 2));
+  const nw = networkOf(st.network);
+  if (st.shareNetwork && nw.block !== "off" && shopRow) {
+    const min = nw.block === "red" ? nw.red : nw.yellow;
     const own = shopRef(SECRET, shopRow.domain);
     const reps = await db.networkReport.findMany({
-      where: { fnHash: { not: null }, kind: { in: ["email", "phone"] }, expiresAt: { gt: new Date() }, shopRef: { not: own } },
+      where: { fnHash: { not: null }, kind: { in: ["email", "phone"] }, reason: { in: nw.reasons as any }, expiresAt: { gt: new Date() }, shopRef: { not: own } },
       select: { fnHash: true, kind: true, shopRef: true }, orderBy: { createdAt: "desc" }, take: 20000,
     });
     const shops = new Map<string, { kind: string; refs: Set<string> }>();

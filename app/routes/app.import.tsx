@@ -105,7 +105,7 @@ export default function Import() {
                 <List.Item><code>email</code>, <code>phone</code> / <code>telefon</code></List.Item>
                 <List.Item><code>first_name</code> + <code>last_name</code> {tr("import.or")} <code>name</code></List.Item>
                 <List.Item><code>address</code> / <code>adresa</code>, <code>city</code> / <code>oras</code></List.Item>
-                <List.Item><code>reason</code> / <code>motiv</code> (refuz_colet, chargeback, return_fraud, abuse, other), <code>note</code></List.Item>
+                <List.Item><code>reason</code> / <code>motiv</code> (refuz_colet, chargeback, return_fraud, return_no_reason, abuse, other), <code>note</code></List.Item>
               </List>
             </BlockStack>
           </Card>

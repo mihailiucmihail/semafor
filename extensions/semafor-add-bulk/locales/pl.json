@@ -13,10 +13,11 @@
   "add": "Dodaj do czarnej listy",
   "cancel": "Anuluj",
   "reasons": {
-    "refuz_colet": "Nieodebrana paczka za pobraniem",
-    "chargeback": "Chargeback",
-    "return_fraud": "Oszustwo przy zwrocie",
-    "abuse": "Obelgi / groźby",
+    "refuz_colet": "Nie odebrał paczki za pobraniem",
+    "chargeback": "Zakwestionował płatność kartą (chargeback)",
+    "return_fraud": "Oszustwo przy zwrocie (odesłał inny lub zniszczony towar)",
+    "return_no_reason": "Częste zwroty bez uzasadnionego powodu",
+    "abuse": "Groźby lub obelgi",
     "other": "Inne"
   },
   "checking": "Sprawdzanie, czy ten klient jest już na czarnej liście…",

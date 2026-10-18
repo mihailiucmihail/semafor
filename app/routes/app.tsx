@@ -60,6 +60,7 @@ export default function App() {
         <NavMenu>
           <Link to="/app" rel="home">{t(lang, "nav.overview")}</Link>
           <Link to="/app/blacklist">{t(lang, "nav.blacklist")}</Link>
+          <Link to="/app/network">{t(lang, "nav.network")}</Link>
           <Link to="/app/checks">{t(lang, "nav.checks")}</Link>
           <Link to="/app/blocked">{t(lang, basic ? "nav.blocked" : "nav.blockedBasic")}</Link>
           <Link to="/app/stats">{t(lang, pro ? "nav.stats" : "nav.statsPro")}</Link>

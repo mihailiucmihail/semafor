@@ -13,10 +13,11 @@
   "add": "Ajouter à la liste noire",
   "cancel": "Annuler",
   "reasons": {
-    "refuz_colet": "Colis refusé à la livraison",
-    "chargeback": "Rétrofacturation",
-    "return_fraud": "Fraude au retour",
-    "abuse": "Insultes / menaces",
+    "refuz_colet": "A refusé un colis en paiement à la livraison",
+    "chargeback": "A contesté un paiement par carte (rétrofacturation)",
+    "return_fraud": "Fraude au retour (a renvoyé un autre article ou un article abîmé)",
+    "return_no_reason": "Retours fréquents sans motif valable",
+    "abuse": "Menaces ou insultes",
     "other": "Autre"
   },
   "checking": "Vérification : ce client est-il déjà dans la liste noire…",
