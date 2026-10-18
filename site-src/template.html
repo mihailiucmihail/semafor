@@ -55,6 +55,11 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:600;font-size:17px;letter-spacing:-.01em}
 .brand img{width:30px;height:30px;border-radius:8px}
 .brand small{font-weight:400;color:var(--mute);font-size:13px;margin-left:2px}
+.brandwrap{display:flex;align-items:center;gap:12px}
+.kl-mark{font-family:var(--serif);font-size:20px;letter-spacing:.01em;text-decoration:none;color:var(--soft)}
+.kl-mark:hover{color:var(--cream)}
+.kl-sep{color:var(--edge);font-size:20px}
+@media (max-width:600px){.kl-mark{font-size:16px}.brandwrap{gap:8px}}
 .navlinks{display:flex;gap:28px;align-items:center;font-size:15px}
 .navlinks > a:not(.btn){text-decoration:none;color:var(--soft)}
 .navlinks > a:not(.btn):hover{color:var(--cream)}
@@ -392,7 +397,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
 
 <nav class="top" id="nav">
   <div class="wrap">
-    <a href="#top" class="brand" aria-label="Semafor home"><img src="/assets/icon-512.png" alt="" width="30" height="30">Semafor <small>by Kastel Labs</small></a>
+    <div class="brandwrap"><a href="/" class="kl-mark" data-home>Kastel Labs</a><span class="kl-sep" aria-hidden="true">/</span><a href="#top" class="brand" aria-label="Semafor home"><img src="/assets/icon-512.png" alt="" width="30" height="30">Semafor</a></div>
     <div class="navlinks">
       <a href="#signal">How it works</a>
       <a href="#recover">Recovery</a>
@@ -734,7 +739,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Semafor by Kastel Labs</span>
+    <span>© 2026 Semafor by <a href="/" data-home>Kastel Labs</a></span>
     <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacy policy</a><a href="https://apps.shopify.com/semafor" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>

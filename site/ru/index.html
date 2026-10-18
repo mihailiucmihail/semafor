@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Semafor — защита от отказов по наложенному платежу и возврат корзин для Shopify</title>
-<meta name="description" content="Semafor за секунды присваивает каждому заказу в Shopify зелёный, жёлтый или красный сигнал, незаметно останавливает покупателей, которые отказываются от посылок с наложенным платежом, — даже под новым именем — и возвращает брошенные оформления заказа.">
-<meta property="og:title" content="Semafor — у каждого заказа свой сигнал">
-<meta property="og:description" content="Защита наложенного платежа, общая сеть магазинов и автоматический возврат брошенных заказов для Shopify. 14 дней Pro бесплатно.">
+<title>Kastel Labs — приложения Shopify для магазинов с наложенным платежом</title>
+<meta name="description" content="Kastel Labs делает премиальные приложения Shopify для магазинов, которые продают с наложенным платежом. Наше первое приложение, Semafor, останавливает отказы от посылок и возвращает брошенные корзины.">
+<meta property="og:title" content="Kastel Labs — приложения Shopify для магазинов с наложенным платежом">
+<meta property="og:description" content="Kastel Labs делает премиальные приложения Shopify для магазинов, которые продают с наложенным платежом. Наше первое приложение, Semafor, останавливает отказы от посылок и возвращает брошенные корзины.">
 <meta property="og:image" content="https://www.kastellabs.com/assets/icon-512.png">
+
 <link rel="canonical" href="https://www.kastellabs.com/ru/">
 <link rel="alternate" hreflang="en" href="https://www.kastellabs.com/">
 <link rel="alternate" hreflang="ro" href="https://www.kastellabs.com/ro/">
@@ -25,787 +26,152 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{
-  --night:#0F0E0C; --night-2:#171512; --night-3:#211E1A; --edge:#2E2A25; --mute:#8F877B; --soft:#BDB5A8; --cream:#F4EFE6;
-  --ivory:#F1EDE5; --paper:#F8F5EF; --line:#DED7CA; --ink:#1B1916; --ink-2:#4A453E; --ink-3:#7C756A;
-  --red:#E0483C; --amber:#F2A23A; --green:#27B874;
-  --serif:"Instrument Serif","Cormorant Garamond",Georgia,serif; --sans:"Inter Tight",system-ui,-apple-system,sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+:root{--night:#0F0E0C;--night-2:#171512;--night-3:#211E1A;--edge:#2E2A25;--mute:#8F877B;--soft:#BDB5A8;--cream:#F4EFE6;--ivory:#F1EDE5;--ink:#1B1916;--ink-2:#4A453E;--ink-3:#7C756A;--line:#DED7CA;--red:#E0483C;--amber:#F2A23A;--green:#27B874;--serif:"Instrument Serif","Cormorant Garamond",Georgia,serif;--sans:"Inter Tight",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
 body{background:var(--night);color:var(--cream);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:inherit}
-img{max-width:100%;display:block}
+a{color:inherit}img{max-width:100%;display:block}
 .wrap{max-width:1180px;margin:0 auto;padding:0 28px;position:relative}
-.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.012em}
 .eyebrow{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:500}
-.light-sec{background:var(--ivory);color:var(--ink)}
-.light-sec .eyebrow{color:var(--ink-3)}
-section{padding:120px 0;position:relative}
-h2.big{font-size:clamp(40px,5.6vw,72px);line-height:1}
-.lead{font-size:18.5px;color:var(--soft);max-width:540px;margin-top:22px}
-.light-sec .lead{color:var(--ink-2)}
-em.it{font-style:italic}
-.grain::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-
-/* buttons */
-.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-size:15.5px;font-weight:500;text-decoration:none;transition:transform .25s,box-shadow .25s,background .25s,border-color .25s;white-space:nowrap;cursor:pointer;border:0}
+.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.012em}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-size:15.5px;font-weight:500;text-decoration:none;transition:transform .25s,box-shadow .25s,border-color .25s}
 .btn-glow{background:var(--cream);color:var(--night);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 10px 40px -10px rgba(39,184,116,.55)}
 .btn-glow:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(255,255,255,.2),0 16px 50px -10px rgba(39,184,116,.75)}
-.btn-line{border:1px solid var(--edge);color:var(--cream);background:rgba(255,255,255,.02)}
-.btn-line:hover{border-color:var(--mute)}
-.btn-ink{background:var(--ink);color:var(--paper)}
-.btn-ink:hover{transform:translateY(-2px);box-shadow:0 12px 30px -12px rgba(0,0,0,.5)}
+.btn-line{border:1px solid var(--edge);color:var(--cream);background:rgba(255,255,255,.02)}.btn-line:hover{border-color:var(--mute)}
+.btn-ink{background:var(--ink);color:#F8F5EF}.btn-ink:hover{transform:translateY(-2px)}
 .btn-sm{padding:10px 17px;font-size:14px}
-
-/* nav */
 nav.top{position:fixed;top:0;left:0;right:0;z-index:40;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
-nav.top.scrolled{background:rgba(15,14,12,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom-color:var(--edge)}
+nav.top.scrolled{background:rgba(15,14,12,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom-color:var(--edge)}
 nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
-.brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:600;font-size:17px;letter-spacing:-.01em}
-.brand img{width:30px;height:30px;border-radius:8px}
-.brand small{font-weight:400;color:var(--mute);font-size:13px;margin-left:2px}
+.logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,#2a2622,#14120f);border:1px solid var(--edge);display:grid;place-items:center}
+.logo .mark i{display:block;width:4px;height:14px;border-radius:2px;background:var(--cream);box-shadow:6px 0 0 var(--soft),-6px 0 0 var(--soft)}
+.logo span{font-family:var(--serif);font-size:24px;letter-spacing:.01em}
 .navlinks{display:flex;gap:28px;align-items:center;font-size:15px}
-.navlinks > a:not(.btn){text-decoration:none;color:var(--soft)}
-.navlinks > a:not(.btn):hover{color:var(--cream)}
-
-/* hero */
-.hero{min-height:100vh;padding:150px 0 90px;display:flex;align-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 78% 40%,#1E1B17 0%,var(--night) 60%)}
-.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;width:100%}
-.hero h1{font-size:clamp(54px,8vw,112px);line-height:.95}
-.hero h1 em{font-style:italic;color:#D8CFC1}
-.hero .lead{font-size:19.5px;max-width:560px}
-.hero .cta{display:flex;gap:12px;margin-top:38px;flex-wrap:wrap}
-.hero .note{margin-top:18px;font-size:14px;color:var(--mute);display:flex;gap:18px;flex-wrap:wrap}
-.hero .note span::before{content:"✓";color:var(--green);margin-right:7px}
-.pill{display:inline-flex;align-items:center;gap:9px;font-size:13px;padding:7px 14px 7px 8px;border-radius:999px;border:1px solid var(--edge);background:rgba(255,255,255,.03);color:var(--soft);margin-bottom:28px;text-decoration:none}
-.pill b{background:var(--green);color:#06210F;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;letter-spacing:.04em}
-
-.stage{position:relative;height:620px;display:grid;place-items:center}
-.halo{position:absolute;width:520px;height:520px;border-radius:50%;filter:blur(90px);opacity:.35;transition:background .8s;background:var(--green)}
-.pole{position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:22px;height:260px;background:linear-gradient(90deg,#1A1815,#3B3631 50%,#1A1815)}
-.tl{position:relative;width:150px;padding:22px 0;border-radius:52px;background:linear-gradient(160deg,#2E2A25,#151310 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 6px rgba(0,0,0,.6),0 40px 80px -30px rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;gap:18px;z-index:2}
-.lamp{width:100px;height:100px;border-radius:50%;position:relative;background:#0A0908;box-shadow:inset 0 4px 10px rgba(0,0,0,.9)}
-.lamp::before{content:"";position:absolute;inset:9px;border-radius:50%;background:radial-gradient(circle at 36% 30%,var(--hi) 0%,var(--c) 42%,var(--lo) 100%);opacity:.16;transition:opacity .45s,box-shadow .45s}
-.lamp::after{content:"";position:absolute;top:18px;left:26px;width:30px;height:16px;border-radius:50%;background:rgba(255,255,255,.55);filter:blur(3px);opacity:.15;transform:rotate(-20deg);transition:opacity .45s}
-.lamp .visor{position:absolute;left:-8px;right:-8px;top:-9px;height:26px;border-radius:60px 60px 6px 6px;background:linear-gradient(180deg,#36322D,#171512);z-index:1}
-.lamp.r{--c:#E0483C;--hi:#FFB3A8;--lo:#7E1A12}.lamp.y{--c:#F2A23A;--hi:#FFE6B0;--lo:#8D500B}.lamp.g{--c:#27B874;--hi:#B6F7D6;--lo:#0B5C36}
-.lamp.on::before{opacity:1;box-shadow:0 0 30px 6px var(--c),0 0 90px 10px color-mix(in srgb,var(--c) 45%,transparent)}
-.lamp.on::after{opacity:.9}
-.mini .lamp{width:auto}
-
-.feed{position:absolute;inset:0;pointer-events:none}
-.oc{position:absolute;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:16px;background:rgba(30,27,23,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--edge);font-size:13.5px;box-shadow:0 20px 40px -20px rgba(0,0,0,.8);opacity:0;transform:translateY(14px) scale(.97);transition:opacity .6s,transform .6s;white-space:nowrap;z-index:3}
-.oc.show{opacity:1;transform:none}
-.oc .n{font-weight:600}
-.oc small{display:block;color:var(--mute);font-size:12.5px}
-.oc .dot{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
-.oc1{top:9%;left:-2%}.oc2{top:44%;right:-4%}.oc3{bottom:12%;left:2%}
-
-/* marquee */
-.strip{border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);overflow:hidden;background:var(--night-2)}
-.marq{display:flex;gap:56px;padding:20px 0;width:max-content;animation:marq 48s linear infinite;font-size:15px;color:var(--soft)}
-.marq span{display:flex;align-items:center;gap:14px}
-.marq span::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--c,var(--green));box-shadow:0 0 10px var(--c,var(--green))}
-.marq span:nth-child(3n+2){--c:var(--amber)}.marq span:nth-child(3n){--c:var(--red)}
-@keyframes marq{to{transform:translateX(-50%)}}
-
-/* signal / checkout demo */
-.sig{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-.tabs{display:flex;gap:8px;margin-top:36px;flex-wrap:wrap}
-.tab{display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:999px;border:1px solid var(--edge);background:transparent;color:var(--soft);font:inherit;font-size:15px;cursor:pointer;transition:all .3s}
-.tab i{width:11px;height:11px;border-radius:50%;background:var(--c);opacity:.45;transition:all .3s}
-.tab.on{color:var(--cream);border-color:color-mix(in srgb,var(--c) 60%,transparent);background:color-mix(in srgb,var(--c) 10%,transparent)}
-.tab.on i{opacity:1;box-shadow:0 0 12px var(--c)}
-.tab.g{--c:var(--green)}.tab.y{--c:var(--amber)}.tab.r{--c:var(--red)}
-.explain{margin-top:30px;min-height:190px}
-.explain > div{display:none}
-.explain > div.on{display:block;animation:fade .5s}
-.explain h3{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.1}
-.explain p{color:var(--soft);margin-top:10px}
-.explain ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:8px;font-size:15px;color:#D9D2C6}
-.explain li::before{content:"—";color:var(--mute);margin-right:10px}
-@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
-.phone{width:min(380px,100%);margin:0 auto;border-radius:44px;padding:14px;background:linear-gradient(160deg,#2A2622,#121110);box-shadow:0 0 0 1px #34302A,0 50px 100px -40px rgba(0,0,0,.9)}
-.screen{border-radius:32px;background:#FBFAF7;color:#1B1916;padding:26px 22px 30px;min-height:540px;position:relative;overflow:hidden}
-.screen .bar{display:flex;justify-content:space-between;font-size:12px;color:#8A8378;margin-bottom:20px}
-.screen h4{font-size:19px;font-weight:600}
-.screen .sub{font-size:13px;color:#8A8378;margin-top:2px}
-.sumline{display:flex;justify-content:space-between;align-items:center;border:1px solid #ECE6DA;border-radius:14px;padding:12px 14px;margin-top:18px;font-size:14px}
-.sumline .ph{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#D9CDB8,#B9A88C);margin-right:12px}
-.sumline > div{display:flex;align-items:center}
-.paylbl{font-size:13px;font-weight:600;margin:22px 0 10px;color:#4A453E}
-.pm{display:flex;align-items:center;gap:12px;border:1px solid #E3DCCF;border-radius:12px;padding:14px;font-size:14.5px;margin-bottom:8px;transition:all .45s;max-height:60px;overflow:hidden}
-.pm .rad{width:17px;height:17px;border-radius:50%;border:1.5px solid #B6AD9F;flex:none}
-.pm.sel{border-color:#1B1916;box-shadow:inset 0 0 0 1px #1B1916}
-.pm.sel .rad{border:5px solid #1B1916}
-.pm small{margin-left:auto;color:#8A8378;font-size:12.5px}
-.pm.gone{opacity:0;max-height:0;padding:0 14px;margin:0;border-width:0}
-.nopay{display:none;border-radius:12px;padding:16px;background:#F3EEE5;color:#6B6458;font-size:14px;line-height:1.45}
-.nopay.show{display:block;animation:fade .5s}
-.paybtn{margin-top:20px;border-radius:12px;padding:15px;text-align:center;background:#1B1916;color:#fff;font-weight:600;font-size:15px;transition:opacity .4s}
-.paybtn.dis{opacity:.25}
-.tagline{position:absolute;left:22px;right:22px;bottom:18px;font-size:11.5px;color:#A39B8E;text-align:center}
-
-/* device */
-.dev{display:grid;grid-template-columns:.95fr 1.05fr;gap:64px;align-items:center}
-.graph{position:relative;aspect-ratio:1/1;max-width:540px;width:100%;margin:0 auto}
-.graph svg{position:absolute;inset:0;width:100%;height:100%}
-.graph .flow{stroke-dasharray:6 8;animation:dash 1.4s linear infinite}
-@keyframes dash{to{stroke-dashoffset:-28}}
-.idc{position:absolute;padding:12px 14px;border-radius:14px;background:var(--night-3);border:1px solid var(--edge);font-size:13px;line-height:1.45;width:46%;max-width:230px;box-shadow:0 20px 40px -24px #000}
-.idc b{display:block;font-size:14px;font-weight:600;color:var(--cream)}
-.idc span{color:var(--mute)}
-.idc .o{display:inline-block;margin-top:6px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:#2A2520;color:var(--soft)}
-.id1{top:2%;left:0}.id2{top:2%;right:0}.id3{bottom:2%;left:0}.id4{bottom:2%;right:0}
-.devcore{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:150px;height:150px;border-radius:50%;display:grid;place-items:center;text-align:center;background:radial-gradient(circle,#2B1A17,#16110F);border:1px solid #5A2A23;box-shadow:0 0 0 10px rgba(224,72,60,.05),0 0 80px -10px rgba(224,72,60,.5)}
-.devcore svg{position:static;width:34px;height:34px;margin:0 auto 6px}
-.devcore b{display:block;font-family:var(--serif);font-weight:400;font-size:26px;line-height:1}
-.devcore small{font-size:11.5px;color:#E7A39B;letter-spacing:.08em;text-transform:uppercase}
-.checks{list-style:none;margin-top:30px;display:flex;flex-direction:column;gap:16px}
-.checks li{display:flex;gap:14px;color:var(--soft)}
-.checks li b{color:var(--cream);font-weight:600;display:block}
-.checks li::before{content:"";flex:none;width:22px;height:22px;border-radius:50%;margin-top:2px;background:radial-gradient(circle,var(--c,var(--green)) 30%,transparent 34%),rgba(255,255,255,.04);border:1px solid var(--edge)}
-
-/* dossier */
-.dos{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center}
-.dcard{border-radius:24px;overflow:hidden;background:var(--paper);border:1px solid var(--line);box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
-.dhead{background:var(--ink);color:var(--paper);padding:24px 26px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-.dhead h4{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1}
-.dhead p{color:#A9A195;font-size:13.5px;margin-top:6px}
-.mtl{display:flex;flex-direction:column;gap:5px;padding:7px;border-radius:12px;background:#0B0A09;flex:none}
-.mtl i{width:13px;height:13px;border-radius:50%;background:#2A2622}
-.mtl i.on{background:var(--c);box-shadow:0 0 10px var(--c)}
-.mtl.h{flex-direction:row}
-.dbody{padding:22px 26px 26px}
-.chips{display:flex;flex-wrap:wrap;gap:7px}
-.chip{font-size:12.5px;padding:6px 11px;border-radius:999px;background:#EFE8DA;color:var(--ink-2)}
-.chip.red{background:#F7DFDB;color:#9B2F25}
-.chip.amb{background:#FAEBD2;color:#8A560F}
-.tlist{list-style:none;margin-top:20px;border-left:1px solid var(--line);margin-left:6px}
-.tlist li{position:relative;padding:0 0 16px 22px;font-size:14px;color:var(--ink-2)}
-.tlist li:last-child{padding-bottom:0}
-.tlist li::before{content:"";position:absolute;left:-6px;top:5px;width:11px;height:11px;border-radius:50%;background:var(--paper);border:2px solid var(--c,var(--ink-3))}
-.tlist li b{color:var(--ink);font-weight:600}
-.tlist li small{display:block;color:var(--ink-3);font-size:12.5px}
-.feat-list{display:grid;grid-template-columns:1fr 1fr;gap:26px 32px;margin-top:36px}
-.feat-list h5{font-size:16px;font-weight:600}
-.feat-list p{color:var(--ink-2);font-size:15px;margin-top:4px}
-
-/* network */
-.net{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center}
-.panel{border-radius:24px;background:var(--night-2);border:1px solid var(--edge);padding:28px;box-shadow:0 40px 80px -40px #000}
-.panel .ph{display:flex;justify-content:space-between;font-size:14px;color:var(--mute);padding-bottom:18px;border-bottom:1px solid var(--edge)}
-.panel .ph b{color:var(--cream);font-size:16px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0;border-bottom:1px solid var(--edge);font-size:15px;color:#D9D2C6}
-.row:last-child{border-bottom:0;padding-bottom:0}
-.row .l{display:flex;align-items:center;gap:10px}
-.row .l i{width:10px;height:10px;border-radius:50%}
-.stepper{display:flex;align-items:center;border:1px solid var(--edge);border-radius:10px;overflow:hidden;font-size:14px}
-.stepper span{padding:6px 11px;color:var(--mute)}
-.stepper b{padding:6px 12px;border-left:1px solid var(--edge);border-right:1px solid var(--edge);background:var(--night-3);min-width:40px;text-align:center}
-.panel .chips{padding:16px 0;border-bottom:1px solid var(--edge)}
-.panel .chip{background:#2A1C19;color:#F0A69C}
-.panel .chip.alt{background:#24211D;color:var(--soft)}
-.tog{width:42px;height:24px;border-radius:999px;background:#3A352F;position:relative;flex:none}
-.tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#CFC7BA}
-.tog.on{background:var(--green)}.tog.on::after{left:21px;background:#fff}
-.bul{list-style:none;margin-top:28px;display:flex;flex-direction:column;gap:14px}
-.bul li{display:flex;gap:14px;color:var(--soft)}
-.bul li b{color:var(--cream)}
-.bul li::before{content:"";flex:none;width:18px;height:1px;background:var(--mute);margin-top:12px}
-
-/* inside shopify */
-.admin{border-radius:20px;overflow:hidden;background:#F1F1F1;border:1px solid var(--line);box-shadow:0 50px 100px -60px rgba(0,0,0,.55);color:#303030;font-size:13.5px}
-.admin .chrome{display:flex;align-items:center;gap:7px;padding:12px 16px;background:#1A1A1A}
-.admin .chrome i{width:10px;height:10px;border-radius:50%;background:#3A3A3A}
-.admin .chrome span{margin-left:14px;color:#9A9A9A;font-size:12px}
-.admin .body{padding:18px;display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
-.atable{background:#fff;border-radius:12px;box-shadow:0 1px 0 rgba(0,0,0,.06);overflow:hidden}
-.atable .h,.atable .r{display:grid;grid-template-columns:64px 1fr 130px 70px;gap:10px;align-items:center;padding:11px 14px}
-.atable .h{font-size:12px;color:#616161;background:#F7F7F7;border-bottom:1px solid #EBEBEB}
-.atable .r{border-bottom:1px solid #F1F1F1}
-.atable .r:last-child{border-bottom:0}
-.atable .r b{font-weight:600}
-.atable .sel{display:flex;align-items:center;gap:6px}
-.tag3{justify-self:start;width:max-content;display:inline-flex;gap:3px;padding:4px 6px;border-radius:7px;background:#171717}
-.tag3 i{width:8px;height:8px;border-radius:50%;background:#3A3A3A}
-.tag3 i.on{background:var(--c);box-shadow:0 0 6px var(--c)}
-.ablock{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.06)}
-.ablock .t{display:flex;align-items:center;justify-content:space-between;font-weight:600;font-size:14px}
-.ablock .why{margin-top:12px;font-size:13px;color:#4A4A4A;display:flex;flex-direction:column;gap:7px}
-.ablock .why span{display:flex;gap:8px}
-.ablock .why span::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--red);margin-top:6px}
-.ablock .act{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
-.ablock .act span{border:1px solid #D4D4D4;border-radius:8px;padding:6px 10px;font-size:12.5px;font-weight:500}
-.ablock .act span.d{background:#303030;color:#fff;border-color:#303030}
-.ablock + .ablock{margin-top:12px}
-.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.kpi div{background:#F7F7F7;border-radius:9px;padding:10px}
-.kpi small{display:block;color:#616161;font-size:11.5px}
-.kpi b{font-size:18px}
-.cards3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}
-.c3{border-radius:20px;background:var(--paper);border:1px solid var(--line);padding:26px}
-.c3 h5{font-size:17px;font-weight:600;margin:14px 0 6px}
-.c3 p{color:var(--ink-2);font-size:15px}
-.c3 .ic{width:40px;height:40px;border-radius:12px;background:var(--ink);display:grid;place-items:center}
-.c3 .ic svg{width:20px;height:20px;stroke:var(--paper)}
-
-/* recover */
-.rec{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
-.storefront{border-radius:22px;overflow:hidden;border:1px solid var(--line);background:#E9E3D8;position:relative;aspect-ratio:4/3.3;box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
-.sf-top{height:46px;background:#F6F2EB;border-bottom:1px solid #E0D8CB;display:flex;align-items:center;padding:0 18px;gap:10px}
-.sf-top i{width:60px;height:9px;border-radius:5px;background:#D8CFC0}
-.sf-top i:first-child{width:90px;background:#BDB2A0}
-.sf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px;filter:blur(1.5px);opacity:.75}
-.sf-grid div{aspect-ratio:3/4;border-radius:10px;background:linear-gradient(160deg,#DCD2C2,#C8BBA6)}
-.pop{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);width:72%;max-width:340px;border-radius:18px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);transition:background .5s,color .5s;background:var(--pbg);color:var(--pfg)}
-.pop .art{height:92px;background:var(--part);transition:background .5s;position:relative}
-.pop .art::after{content:"";position:absolute;inset:0;background:var(--pdeco);opacity:.9}
-.pop .in{padding:18px 20px 20px;text-align:center}
-.pop .pc{font-family:var(--serif);font-size:48px;line-height:1}
-.pop .pt{font-size:13px;opacity:.75;margin-top:4px}
-.pop .fld{margin-top:14px;border-radius:9px;border:1px solid color-mix(in srgb,var(--pfg) 25%,transparent);padding:10px;font-size:12.5px;opacity:.7;text-align:left}
-.pop .go{margin-top:8px;border-radius:9px;padding:11px;font-size:13px;font-weight:600;background:var(--pfg);color:var(--pbg)}
-.storefront[data-s=classic]{--pbg:#FBF8F3;--pfg:#1B1916;--part:linear-gradient(135deg,#E9DFCF,#CDBDA3);--pdeco:none}
-.storefront[data-s=winter]{--pbg:#F2F6FA;--pfg:#15283D;--part:linear-gradient(135deg,#BFD3E6,#7E9FBF);--pdeco:radial-gradient(circle at 20% 30%,#fff 2px,transparent 3px),radial-gradient(circle at 60% 60%,#fff 2px,transparent 3px),radial-gradient(circle at 80% 25%,#fff 1.5px,transparent 2.5px),radial-gradient(circle at 40% 80%,#fff 1.5px,transparent 2.5px)}
-.storefront[data-s=spring]{--pbg:#FBF6F4;--pfg:#3D2430;--part:linear-gradient(135deg,#F3D3DA,#C9DDB8);--pdeco:radial-gradient(circle at 25% 40%,#fff8 6px,transparent 7px),radial-gradient(circle at 70% 55%,#fff8 5px,transparent 6px)}
-.storefront[data-s=summer]{--pbg:#FFF9EE;--pfg:#2A2112;--part:linear-gradient(135deg,#FFD58A,#F28B5B);--pdeco:radial-gradient(circle at 78% 30%,#FFF3C4 16px,transparent 17px)}
-.storefront[data-s=autumn]{--pbg:#FAF3EA;--pfg:#3A2213;--part:linear-gradient(135deg,#D98C4A,#8E3F22);--pdeco:radial-gradient(ellipse at 30% 45%,#F5C26B 6px,transparent 7px),radial-gradient(ellipse at 66% 60%,#E9A24B 5px,transparent 6px)}
-.seasons{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
-.seasons button{font:inherit;font-size:14px;padding:9px 15px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink-2);cursor:pointer;transition:all .25s}
-.seasons button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-
-.seq{margin-top:80px;display:grid;grid-template-columns:1fr 1.15fr;gap:64px;align-items:center}
-.steps{list-style:none;position:relative}
-.steps::before{content:"";position:absolute;left:19px;top:20px;bottom:20px;width:1px;background:linear-gradient(var(--line),var(--ink-3),var(--line))}
-.steps li{display:flex;gap:20px;padding:14px 0;position:relative}
-.steps .num{flex:none;width:39px;height:39px;border-radius:50%;background:var(--paper);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--serif);font-size:20px;z-index:1}
-.steps li.last .num{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.steps h5{font-size:16.5px;font-weight:600}
-.steps p{font-size:15px;color:var(--ink-2);margin-top:2px}
-.steps .when{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-.mail{border-radius:22px;background:#FBF8F3;border:1px solid var(--line);overflow:hidden;box-shadow:0 40px 80px -50px rgba(0,0,0,.45)}
-.mail .mh{padding:14px 20px;border-bottom:1px solid #ECE5D8;font-size:13px;color:var(--ink-3);display:flex;justify-content:space-between;gap:10px}
-.mail .mh b{color:var(--ink);font-weight:600}
-.mail .mb{padding:30px 34px 34px;text-align:center}
-.mail .brandm{font-family:var(--serif);font-size:20px;letter-spacing:.2em;text-transform:uppercase}
-.mail h4{font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.1;margin-top:18px}
-.mail .prod{margin:22px auto 0;width:62%;aspect-ratio:4/3;border-radius:12px;background:linear-gradient(150deg,#E4D8C5,#BBA88A);position:relative}
-.mail .prod::after{content:"";position:absolute;inset:30% 32%;border-radius:10px;background:rgba(255,255,255,.35)}
-.mail .price{margin-top:14px;font-size:15px}
-.mail .price s{color:var(--ink-3);margin-right:8px}
-.mail .code{margin:18px auto 0;display:inline-block;border:1px solid var(--ink-3);padding:10px 18px;letter-spacing:.2em;font-size:13px}
-.mail .cta{margin:18px auto 0;display:block;width:70%;padding:13px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600}
-.mail .fine{font-size:11.5px;color:var(--ink-3);margin-top:16px}
-
-.attr{margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.attr .c3{text-align:left}
-.src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
-
-/* all features */
-.all{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--edge)}
-.all > div{padding:30px 26px 30px 0;border-bottom:1px solid var(--edge)}
-.all > div:not(:nth-child(3n)){border-right:1px solid var(--edge)}
-.all > div:not(:nth-child(3n+1)){padding-left:26px}
-.all h5{font-size:16px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.all p{color:var(--soft);font-size:14.5px;margin-top:6px}
-.badge{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--edge);color:var(--mute);border-radius:999px;padding:3px 8px;white-space:nowrap}
-.badge.pro{border-color:#5B4A2A;color:var(--amber)}
-
-/* pricing */
-.trial{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;border-radius:22px;padding:24px 28px;margin-bottom:22px;background:linear-gradient(110deg,#E4F3EB,#F5EFE3 60%);border:1px solid #CFE6D9}
-.trial b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;display:block}
-.trial span{color:var(--ink-2);font-size:15px}
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.plan{border-radius:22px;background:var(--paper);border:1px solid var(--line);padding:30px;display:flex;flex-direction:column;position:relative}
-.plan .top{display:flex;align-items:center;justify-content:space-between}
-.plan h4{font-size:15px;font-weight:600}
-.plan .tag{color:var(--ink-3);font-size:14.5px;margin-top:2px}
-.plan .price{font-family:var(--serif);font-size:60px;line-height:1;margin:24px 0 2px}
-.plan .price small{font-family:var(--sans);font-size:15px;color:var(--ink-3)}
-.plan .yr{font-size:13.5px;color:var(--ink-3)}
-.plan ul{list-style:none;margin-top:22px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:11px;font-size:15px;color:var(--ink-2)}
-.plan li{display:flex;gap:10px}
-.plan li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--ink-3);margin-top:9px}
-.plan .btn{margin-top:auto;justify-content:center}
-.plan ul{margin-bottom:26px}
-.plan.feat{background:var(--ink);color:var(--paper);border-color:var(--ink);box-shadow:0 40px 80px -40px rgba(0,0,0,.6)}
-.plan.feat .tag,.plan.feat .price small,.plan.feat .yr{color:#A9A195}
-.plan.feat ul{color:#D9D2C6;border-top-color:#3A3630}
-.plan.feat li::before{background:var(--amber)}
-.plan.feat .btn{background:var(--cream);color:var(--ink)}
-.plan .pill2{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--amber);color:var(--ink);font-weight:500}
-.fineprint{text-align:center;color:var(--ink-3);font-size:14px;margin-top:22px}
-
-/* faq */
-.faq{max-width:860px;margin:44px auto 0}
-.faq details{border-bottom:1px solid var(--edge)}
-.faq summary{list-style:none;cursor:pointer;padding:24px 0;display:flex;justify-content:space-between;gap:20px;font-size:19px;color:var(--cream)}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font-size:24px;line-height:1;color:var(--mute);transition:transform .3s}
-.faq details[open] summary::after{transform:rotate(45deg)}
-.faq details p{color:var(--soft);padding:0 40px 26px 0;margin-top:-6px}
-
-/* final */
-.final{text-align:center;padding:150px 0;overflow:hidden;background:radial-gradient(700px 400px at 50% 100%,rgba(39,184,116,.18),transparent 70%),var(--night)}
-.final h2{font-size:clamp(46px,7vw,96px);line-height:.98;max-width:14ch;margin:0 auto}
-.final p{color:var(--soft);max-width:520px;margin:24px auto 0;font-size:18px}
-.final .cta{margin-top:38px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
-.final .mtl{margin:0 auto 34px;width:max-content;padding:9px;gap:9px;border-radius:16px}
-.final .mtl i{width:18px;height:18px}
-
-footer{border-top:1px solid var(--edge);padding:34px 0 44px;font-size:14px;color:var(--mute);background:var(--night)}
-footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
-footer a{text-decoration:none}
-footer a:hover{color:var(--cream)}
-footer .links{display:flex;gap:22px;flex-wrap:wrap}
-
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
-.reveal.in{opacity:1;transform:none}
-
-@media (max-width:1000px){
-  .hero .wrap,.sig,.dev,.dos,.net,.rec,.seq,.admin .body{grid-template-columns:1fr}
-  .hero{padding-top:120px;min-height:auto}
-  .stage{height:520px}
-  .sig,.dev,.dos,.net,.rec,.seq{gap:48px}
-  .cards3,.attr,.plans{grid-template-columns:1fr}
-  .all{grid-template-columns:1fr 1fr}
-  .all > div{padding:26px 18px 26px 0!important;border-right:0!important}
-  .all > div:nth-child(2n){padding-left:18px!important;border-left:1px solid var(--edge)}
-  .navlinks > a:not(.btn){display:none}
-  .dev .graph{order:2}
-}
-@media (max-width:600px){
-  .wrap{padding:0 16px}
-  .stage{margin:-40px 0 -60px}
-  section{padding:84px 0}
-  .stage{height:440px;transform:scale(.86)}
-  .oc1{left:-6%}.oc2{right:-8%}.oc3{left:-4%}
-  .feat-list,.all{grid-template-columns:1fr}
-  .all > div:nth-child(2n){padding-left:0!important;border-left:0}
-  .atable .h,.atable .r{grid-template-columns:56px 1fr 70px}
-  .atable .h span:nth-child(3),.atable .r span:nth-child(3){display:none}
-  .idc{font-size:12px;padding:10px 11px}
-  .devcore{width:120px;height:120px}
-  .devcore b{font-size:21px}
-  .mail .mb{padding:26px 20px 28px}
-  .final{padding:110px 0}
-  .brand small{display:none}
-  .faq summary{font-size:17px}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
-
+.navlinks>a:not(.btn){text-decoration:none;color:var(--soft)}.navlinks>a:not(.btn):hover{color:var(--cream)}
 .lang{position:relative}
 .lang summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--soft);padding:8px 12px;border:1px solid var(--edge);border-radius:999px;background:rgba(255,255,255,.03)}
-.lang summary::-webkit-details-marker{display:none}
-.lang summary svg{width:15px;height:15px}
-.lang[open] summary{border-color:var(--mute);color:var(--cream)}
+.lang summary::-webkit-details-marker{display:none}.lang summary svg{width:15px;height:15px}
 .lang .menu{position:absolute;right:0;top:calc(100% + 8px);background:var(--night-2);border:1px solid var(--edge);border-radius:14px;padding:6px;min-width:170px;box-shadow:0 24px 50px -20px #000;display:flex;flex-direction:column;z-index:50}
-.lang .menu a{display:flex!important;justify-content:space-between;gap:16px;padding:9px 12px;border-radius:9px;font-size:14.5px;text-decoration:none;color:var(--cream)}
-.lang .menu a:hover{background:var(--night-3)}
-.lang .menu a small{color:var(--mute);text-transform:uppercase;font-size:12px}
-.lang .menu a[aria-current]{font-weight:600}
-html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
-@media (max-width:600px){.navlinks{gap:8px}.navlinks .btn-glow{padding:9px 14px;font-size:13px}}
+.lang .menu a{display:flex;justify-content:space-between;gap:16px;padding:9px 12px;border-radius:9px;font-size:14.5px;text-decoration:none;color:var(--cream)}
+.lang .menu a:hover{background:var(--night-3)}.lang .menu a small{color:var(--mute);text-transform:uppercase;font-size:12px}.lang .menu a[aria-current]{font-weight:600}
+.hero{padding:190px 0 120px;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto;height:120%;background:radial-gradient(600px 380px at 78% 30%,rgba(39,184,116,.16),transparent 70%),radial-gradient(520px 360px at 15% 80%,rgba(224,72,60,.10),transparent 70%);pointer-events:none}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(54px,8.2vw,118px);line-height:.95;letter-spacing:-.02em;margin-top:26px;max-width:980px}
+.hero h1 em{font-style:italic;color:#fff}
+.hero .lead{font-size:19.5px;color:var(--soft);max-width:640px;margin-top:28px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:38px}
+.lights{display:inline-flex;gap:7px;padding:8px 12px;border-radius:999px;background:#0a0908;border:1px solid var(--edge)}
+.lights i{width:10px;height:10px;border-radius:50%;display:block;background:#3a2c27}
+.lights i:nth-child(1){animation:l1 6s infinite}.lights i:nth-child(2){animation:l2 6s infinite}.lights i:nth-child(3){animation:l3 6s infinite}
+@keyframes l1{0%,30%{background:#3a2c27}33%,63%{background:#3a2c27}66%,97%{background:var(--red);box-shadow:0 0 12px var(--red)}}
+@keyframes l2{0%,30%{background:#3a2c27}33%,63%{background:var(--amber);box-shadow:0 0 12px var(--amber)}66%,100%{background:#3a2c27}}
+@keyframes l3{0%,30%{background:var(--green);box-shadow:0 0 12px var(--green)}33%,100%{background:#3a2c27}}
+section{padding:110px 0;position:relative}
+.light-sec{background:var(--ivory);color:var(--ink)}.light-sec .eyebrow{color:var(--ink-3)}
+h2.big{font-family:var(--serif);font-weight:400;font-size:clamp(40px,5.6vw,72px);line-height:1;letter-spacing:-.015em;margin-top:16px}
+.app{display:grid;grid-template-columns:1.05fr .95fr;gap:0;border:1px solid var(--edge);border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#1a1714,#100e0c);box-shadow:0 60px 120px -60px #000;margin-top:40px}
+.app .info{padding:54px 52px}
+.app .head{display:flex;align-items:center;gap:16px}
+.app .head img{width:64px;height:64px;border-radius:16px}
+.app .head h3{font-family:var(--serif);font-weight:400;font-size:46px;line-height:1}
+.app .head p{color:var(--mute);font-size:14.5px;margin-top:4px}
+.app .txt{color:var(--soft);font-size:17.5px;margin-top:26px}
+.app ul{list-style:none;margin-top:26px;display:grid;gap:12px}
+.app li{display:flex;gap:12px;align-items:flex-start;font-size:16px}
+.app li b{flex:none;width:9px;height:9px;border-radius:50%;margin-top:8px}
+.app .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}
+.app .trial{color:var(--mute);font-size:13.5px;margin-top:14px}
+.app .vis{position:relative;background:radial-gradient(420px 320px at 50% 45%,rgba(39,184,116,.14),transparent 70%),#0c0b0a;border-left:1px solid var(--edge);display:flex;align-items:center;justify-content:center;padding:50px 30px;min-height:460px}
+.tl{width:118px;padding:16px 0;border-radius:40px;background:linear-gradient(180deg,#26221e,#141210);border:1px solid #34302b;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:inset 0 2px 0 rgba(255,255,255,.05),0 40px 80px -30px #000}
+.tl i{width:74px;height:74px;border-radius:50%;background:#2a201d;box-shadow:inset 0 6px 14px rgba(0,0,0,.6)}
+.tl i:nth-child(1){animation:t1 7.5s infinite}.tl i:nth-child(2){animation:t2 7.5s infinite}.tl i:nth-child(3){animation:t3 7.5s infinite}
+@keyframes t3{0%,30%{background:radial-gradient(circle at 40% 35%,#7ff0b8,#27B874 55%,#0e6b40);box-shadow:0 0 50px rgba(39,184,116,.75)}34%,100%{background:#1b2a22}}
+@keyframes t2{0%,32%{background:#2d2617}34%,64%{background:radial-gradient(circle at 40% 35%,#ffd89a,#F2A23A 55%,#8a5410);box-shadow:0 0 50px rgba(242,162,58,.7)}67%,100%{background:#2d2617}}
+@keyframes t1{0%,65%{background:#2e1b19}67%,97%{background:radial-gradient(circle at 40% 35%,#ff9a90,#E0483C 55%,#7a1d15);box-shadow:0 0 50px rgba(224,72,60,.7)}100%{background:#2e1b19}}
+.chips{position:absolute;inset:0;pointer-events:none}
+.chip{position:absolute;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;background:rgba(23,21,18,.92);border:1px solid var(--edge);font-size:13.5px;box-shadow:0 20px 40px -20px #000;opacity:0;animation:chip 7.5s infinite}
+.chip b{width:9px;height:9px;border-radius:50%;flex:none}.chip strong{display:block;font-weight:600;font-size:14px}.chip span{color:var(--mute)}
+.chip.c1{left:7%;top:18%;animation-delay:0s}.chip.c2{right:3%;top:58%;animation-delay:2.5s}.chip.c3{left:9%;bottom:14%;animation-delay:5s}
+@keyframes chip{0%{opacity:0;transform:translateY(8px)}4%,30%{opacity:1;transform:none}34%,100%{opacity:0}}
+.why{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:54px}
+.why div{background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px 26px}
+.why h3{font-family:var(--serif);font-weight:400;font-size:27px;line-height:1.1}
+.why p{color:var(--ink-2);font-size:15.5px;margin-top:12px}
+.why .n{font-size:12.5px;letter-spacing:.18em;color:var(--ink-3);margin-bottom:18px}
+.contact{text-align:center}
+.contact p{color:var(--soft);font-size:18px;max-width:560px;margin:20px auto 0}
+.contact .btn{margin-top:32px}
+footer{border-top:1px solid var(--edge);padding:34px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+footer .links{display:flex;gap:22px;flex-wrap:wrap}footer a{text-decoration:none}footer a:hover{color:var(--cream)}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .9s ease,transform .9s ease}.reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.reveal{opacity:1;transform:none}}
+@media (max-width:980px){.app{grid-template-columns:1fr}.app .vis{border-left:0;border-top:1px solid var(--edge);min-height:400px}.why{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){.wrap{padding:0 18px}.navlinks>a:not(.btn){display:none}.navlinks{gap:8px}.hero{padding:140px 0 80px}.hero .lead{font-size:17.5px}
+ .app .info{padding:34px 24px}.app .head h3{font-size:38px}.why{grid-template-columns:1fr}section{padding:80px 0}.chip{font-size:12.5px}.chip.c2{right:4%}}
 </style>
 </head>
 <body>
-
-<nav class="top" id="nav">
-  <div class="wrap">
-    <a href="#top" class="brand" aria-label="Semafor — главная"><img src="/assets/icon-512.png" alt="" width="30" height="30">Semafor <small>от Kastel Labs</small></a>
-    <div class="navlinks">
-      <a href="#signal">Как это работает</a>
-      <a href="#recover">Возврат клиентов</a>
-      <a href="#pricing">Тарифы</a>
-      <a href="#faq">Вопросы</a>
-      <details class="lang"><summary aria-label="Language"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>RU</summary><nav class="menu"><a class="lang-a" href="/" hreflang="en" lang="en" data-l="en">English<small>en</small></a><a class="lang-a" href="/ro/" hreflang="ro" lang="ro" data-l="ro">Română<small>ro</small></a><a class="lang-a" href="/es/" hreflang="es" lang="es" data-l="es">Español<small>es</small></a><a class="lang-a" href="/fr/" hreflang="fr" lang="fr" data-l="fr">Français<small>fr</small></a><a class="lang-a" href="/pl/" hreflang="pl" lang="pl" data-l="pl">Polski<small>pl</small></a><a class="lang-a" href="/ru/" hreflang="ru" lang="ru" data-l="ru" aria-current="page">Русский<small>ru</small></a></nav></details>
-      <a class="btn btn-glow btn-sm" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Установить</a>
-    </div>
+<nav class="top" id="nav"><div class="wrap">
+  <a class="logo" href="/ru/" aria-label="Kastel Labs"><span class="mark"><i></i></span><span>Kastel Labs</span></a>
+  <div class="navlinks">
+    <a href="#apps">Приложения</a><a href="#why">Почему мы</a><a href="#contact">Контакты</a>
+    <details class="lang"><summary aria-label="Язык"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>RU</summary><nav class="menu"><a class="lang-a" href="/" hreflang="en" lang="en" data-l="en">English<small>en</small></a><a class="lang-a" href="/ro/" hreflang="ro" lang="ro" data-l="ro">Română<small>ro</small></a><a class="lang-a" href="/es/" hreflang="es" lang="es" data-l="es">Español<small>es</small></a><a class="lang-a" href="/fr/" hreflang="fr" lang="fr" data-l="fr">Français<small>fr</small></a><a class="lang-a" href="/pl/" hreflang="pl" lang="pl" data-l="pl">Polski<small>pl</small></a><a class="lang-a" href="/ru/" hreflang="ru" lang="ru" data-l="ru" aria-current="page">Русский<small>ru</small></a></nav></details>
   </div>
-</nav>
+</div></nav>
 
-<header class="hero grain" id="top">
-  <div class="wrap">
-    <div>
-      <a class="pill reveal" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener"><b>НОВОЕ</b>Уже в Shopify App Store</a>
-      <h1 class="serif reveal">У каждого заказа есть свой <em>сигнал</em>.</h1>
-      <p class="lead reveal">Semafor проверяет каждый заказ в Shopify за секунды, незаметно останавливает покупателей, которые отказываются от посылок с наложенным платежом, — даже под новым именем — и возвращает тех, кто ушёл, не завершив покупку.</p>
-      <div class="cta reveal">
-        <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Начните с 14 дней Pro — бесплатно</a>
-        <a class="btn btn-line" href="#signal">Посмотреть в деле</a>
-      </div>
-      <div class="note reveal"><span>Без карты</span><span>Без настройки</span><span>Работает за секунды</span></div>
-    </div>
-    <div class="stage" aria-hidden="true">
-      <div class="halo" id="halo"></div>
-      <div class="pole"></div>
-      <div class="tl" id="heroTL">
-        <div class="lamp r"><span class="visor"></span></div>
-        <div class="lamp y"><span class="visor"></span></div>
-        <div class="lamp g on"><span class="visor"></span></div>
-      </div>
-      <div class="feed">
-        <div class="oc oc1" data-l="2"><span class="dot" style="background:var(--green);color:var(--green)"></span><div><span class="n">#2481</span><small>Предоплата · надёжный покупатель</small></div></div>
-        <div class="oc oc2" data-l="1"><span class="dot" style="background:var(--amber);color:var(--amber)"></span><div><span class="n">#2482</span><small>Наложенный платёж уже в пути</small></div></div>
-        <div class="oc oc3" data-l="0"><span class="dot" style="background:var(--red);color:var(--red)"></span><div><span class="n">#2483</span><small>Отказался от 2 посылок · оплата скрыта</small></div></div>
-      </div>
-    </div>
-  </div>
-</header>
+<header class="hero"><div class="wrap">
+  <div style="display:flex;align-items:center;gap:14px"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="eyebrow">Студия приложений для Shopify</span></div>
+  <h1>Приложения, которые берегут <em>каждую продажу.</em></h1>
+  <p class="lead">Мы делаем приложения Shopify для магазинов с наложенным платежом — спокойные и точные инструменты, которые останавливают потери ещё до отправки посылки и возвращают ушедших покупателей.</p>
+  <div class="ctas"><a class="btn btn-glow" href="/semafor/ru/">Узнать о Semafor →</a><a class="btn btn-line" href="#contact">Написать нам</a></div>
+</div></header>
 
-<div class="strip" aria-hidden="true">
-  <div class="marq">
-    <span>Светофор для каждого заказа</span><span>Оплата скрыта для отказников</span><span>То же устройство, новое имя — пойман</span><span>Общая сеть магазинов</span><span>Досье покупателя</span><span>Приветственный pop-up в 5 дизайнах</span><span>Автоматические письма-напоминания</span><span>Заказы, которые вернул Semafor</span><span>6 языков</span>
-    <span>Светофор для каждого заказа</span><span>Оплата скрыта для отказников</span><span>То же устройство, новое имя — пойман</span><span>Общая сеть магазинов</span><span>Досье покупателя</span><span>Приветственный pop-up в 5 дизайнах</span><span>Автоматические письма-напоминания</span><span>Заказы, которые вернул Semafor</span><span>6 языков</span>
-  </div>
-</div>
+<section id="apps" style="padding-top:20px"><div class="wrap">
+  <p class="eyebrow">Наше приложение</p>
+  <article class="app reveal">
+    <div class="info">
+      <div class="head"><img src="/assets/icon-512.png" alt="Semafor" width="64" height="64"><div><h3>Semafor</h3><p>Защита наложенного платежа и возврат корзин</p></div></div>
+      <p class="txt">Светофор на каждом заказе. Semafor узнаёт покупателей, которые отказываются от посылок с наложенным платежом, — даже под новым именем, — скрывает для них этот способ оплаты и возвращает брошенные корзины.</p>
+      <ul><li><b style="background:var(--green)"></b>Зелёный, жёлтый или красный на каждом заказе — за секунды</li><li><b style="background:var(--red)"></b>Наложенный платёж скрыт для рискованных покупателей</li><li><b style="background:var(--amber)"></b>Тот же человек, новое имя — связан по устройству</li><li><b style="background:var(--cream)"></b>До 3 автоматических писем-напоминаний</li></ul>
+      <div class="ctas"><a class="btn btn-glow" href="/semafor/ru/">Узнать о Semafor →</a><a class="btn btn-line" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Установить в Shopify</a></div>
+      <p class="trial">14 дней Pro бесплатно · без карты</p>
+    </div>
+    <div class="vis" aria-hidden="true">
+      <div class="tl"><i></i><i></i><i></i></div>
+      <div class="chips">
+        <div class="chip c1"><b style="background:var(--green)"></b><div><strong>#2481</strong><span>Предоплата · надёжный покупатель</span></div></div>
+        <div class="chip c2"><b style="background:var(--amber)"></b><div><strong>#2482</strong><span>Наложенный платёж уже в пути</span></div></div>
+        <div class="chip c3"><b style="background:var(--red)"></b><div><strong>#2483</strong><span>Отказался от 2 посылок · оплата скрыта</span></div></div>
+      </div>
+    </div>
+  </article>
+</div></section>
 
-<!-- SIGNAL + CHECKOUT -->
-<section id="signal">
-  <div class="wrap sig">
-    <div>
-      <div class="eyebrow reveal">01 · Сигнал</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Оформление заказа меняется вместе с сигналом.</h2>
-      <p class="lead reveal">Каждый новый заказ сверяется с вашим чёрным списком и сетью магазинов Semafor. Затем сигнал решает, что этот покупатель может сделать при оформлении, — а он так и не узнает почему.</p>
-      <div class="tabs reveal" role="tablist">
-        <button class="tab g on" data-k="g" role="tab"><i></i>Зелёный</button>
-        <button class="tab y" data-k="y" role="tab"><i></i>Жёлтый</button>
-        <button class="tab r" data-k="r" role="tab"><i></i>Красный</button>
-      </div>
-      <div class="explain reveal">
-        <div data-k="g" class="on"><h3>Надёжный покупатель.</h3><p>Ничего не меняется. Все способы оплаты доступны, а оформление заказа проходит так же гладко, как всегда.</p><ul><li>Предоплаченные заказы всегда зелёные</li><li>Никаких препятствий для хороших клиентов</li></ul></div>
-        <div data-k="y"><h3>Стоит присмотреться.</h3><p>Semafor помечает заказ с указанием причины, а правило для жёлтого выбираете вы — например, без наложенного платежа.</p><ul><li>Заказ с наложенным платежом уже в пути</li><li>Несколько неотправленных заказов — объедините их в одну посылку</li><li>С того же устройства заказали под другим именем</li><li>Перепроверка каждые 15 минут — сам станет зелёным</li></ul></div>
-        <div data-k="r"><h3>Известный отказник.</h3><p>Оплата незаметно исчезает. Покупатель просто не может завершить заказ — и никогда не узнает, что его заблокировали.</p><ul><li>Узнаём по e-mail, телефону, имени, адресу или устройству</li><li>Без оплаты вовсе или только без наложенного платежа — решаете вы</li><li>Автоматическая отмена по желанию</li></ul></div>
-      </div>
-    </div>
-    <div class="reveal">
-      <div class="phone" aria-hidden="true">
-        <div class="screen" id="screen">
-          <div class="bar"><span>9:41</span><span>оформление</span></div>
-          <h4>Оплата</h4>
-          <div class="sub">Все транзакции защищены и зашифрованы.</div>
-          <div class="sumline"><div><span class="ph"></span><span>1 товар</span></div><b>189,00 €</b></div>
-          <div class="paylbl">Выберите способ оплаты</div>
-          <div class="pm sel" data-m="card"><span class="rad"></span>Карта<small>Visa · Mastercard</small></div>
-          <div class="pm" data-m="cod"><span class="rad"></span>Наложенный платёж<small>Оплата курьеру</small></div>
-          <div class="nopay" id="nopay">Для этого заказа нет доступных способов оплаты.</div>
-          <div class="paybtn" id="paybtn">Оплатить</div>
-          <div class="tagline">Что видит ваш покупатель</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<section class="light-sec" id="why"><div class="wrap">
+  <p class="eyebrow">Как мы работаем</p>
+  <h2 class="big">Сделано под то, как вы продаёте.</h2>
+  <div class="why"><div class="reveal"><p class="n">01</p><h3>Создано для наложенного платежа</h3><p>Каждая функция начинается с одного вопроса: вернётся ли посылка оплаченной?</p></div><div class="reveal"><p class="n">02</p><h3>Работает с первой минуты</h3><p>Установили — и работает. Без долгой настройки и сторонних аккаунтов.</p></div><div class="reveal"><p class="n">03</p><h3>Конфиденциально по устройству</h3><p>Магазины обмениваются анонимными отпечатками, никогда — именами и адресами. Данные ваших покупателей остаются у вас.</p></div><div class="reveal"><p class="n">04</p><h3>Шесть языков</h3><p>Английский, румынский, испанский, французский, польский и русский — в приложении и в каждом письме.</p></div></div>
+</div></section>
 
-<!-- DEVICE -->
-<section class="grain" style="background:var(--night-2)">
-  <div class="wrap dev">
-    <div class="graph reveal" aria-hidden="true">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#E0483C" stop-opacity=".2"/><stop offset="1" stop-color="#E0483C" stop-opacity=".9"/></linearGradient></defs>
-        <path class="flow" d="M22 16 C 30 30, 40 40, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
-        <path class="flow" d="M78 16 C 70 30, 60 40, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
-        <path class="flow" d="M22 84 C 30 70, 40 60, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
-        <path class="flow" d="M78 84 C 70 70, 60 60, 50 50" stroke="url(#lg)" stroke-width=".5" fill="none"/>
-      </svg>
-      <div class="idc id1"><b>Ana Popa</b><span>ana.p@example.com</span><br><span class="o">Заказ #1983 · отказ</span></div>
-      <div class="idc id2"><b>A. Popescu</b><span>+40 7•• ••• 214</span><br><span class="o">Заказ #2107</span></div>
-      <div class="idc id3"><b>Mihai Popa</b><span>mihai.p@example.com</span><br><span class="o">Заказ #2290</span></div>
-      <div class="idc id4"><b>Ana P.</b><span>новый адрес</span><br><span class="o">Оформление · заблокировано</span></div>
-      <div class="devcore"><div><svg viewBox="0 0 24 24" fill="none" stroke="#F0A69C" stroke-width="1.5"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg><b>1 устройство</b><small>4 личности</small></div></div>
-    </div>
-    <div>
-      <div class="eyebrow reveal">02 · Распознавание устройства</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Новое имя. Тот же телефон. <em class="it">Пойман.</em></h2>
-      <p class="lead reveal">Отказники возвращаются с e-mail мужа, телефоном сестры или новым адресом. Semafor узнаёт устройство, с которого они заказывают, и сводит все личности в одного человека.</p>
-      <ul class="checks reveal">
-        <li style="--c:var(--red)"><span><b>Блокировка и при оформлении</b>Новый e-mail или телефон, введённый в браузере из чёрного списка, останавливается ещё до того, как заказ появится.</span></li>
-        <li style="--c:var(--amber)"><span><b>Связаны и посчитаны</b>Заказы с одного браузера под разными именами за 90 дней отображаются вместе, с их количеством, — повсюду.</span></li>
-        <li><span><b>Встроено, ничего не нужно вставлять</b>Распознавание устройства устанавливается вместе с приложением. Без кода, без отдельного пикселя, без правок темы.</span></li>
-      </ul>
-    </div>
-  </div>
-</section>
+<section class="contact" id="contact"><div class="wrap">
+  <p class="eyebrow">Контакты</p>
+  <h2 class="big">Есть вопросы? Ответит живой человек.</h2>
+  <p>Напишите нам о Semafor, о нужной функции или о проблеме в вашем магазине.</p>
+  <a class="btn btn-glow" href="mailto:mihailiuc.co@gmail.com">Написать нам</a>
+</div></section>
 
-<!-- DOSSIER -->
-<section class="light-sec">
-  <div class="wrap dos">
-    <div>
-      <div class="eyebrow reveal">03 · Чёрный список по-новому</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Досье, а не список.</h2>
-      <p class="lead reveal">Откройте любого покупателя и увидите всю историю: каждый e-mail, телефон, имя, адрес и устройство, почему и когда он был добавлен, его заказы в Shopify, попытки оформления и каждую проверку Semafor — на одной ленте.</p>
-      <div class="feat-list reveal">
-        <div><h5>Добавление из любого заказа</h5><p>Один клик со страницы заказа или сразу несколько — из списка заказов.</p></div>
-        <div><h5>Без дубликатов</h5><p>Semafor предупредит, если человек уже есть в вашем списке.</p></div>
-        <div><h5>Понятные причины</h5><p>Отказ от посылки с наложенным платежом, частые возвраты без веской причины, chargeback, мошенничество с возвратами, угрозы, другое.</p></div>
-        <div><h5>Перенесите свой старый список</h5><p>Импортируйте всё из CSV-файла за один раз — и редактируйте любую деталь в любой момент.</p></div>
-      </div>
-    </div>
-    <div class="dcard reveal" aria-hidden="true">
-      <div class="dhead">
-        <div><h4>Ana Popa</h4><p>В чёрном списке с 12 сентября · 4 личности</p></div>
-        <div class="mtl"><i class="on" style="--c:var(--red)"></i><i></i><i></i></div>
-      </div>
-      <div class="dbody">
-        <div class="chips"><span class="chip red">Отказ от посылки с наложенным платежом</span><span class="chip">ana.p@example.com</span><span class="chip">mihai.p@example.com</span><span class="chip">+40 7•• ••• 214</span><span class="chip">2 адреса</span><span class="chip amb">1 устройство</span></div>
-        <ul class="tlist">
-          <li style="--c:var(--red)"><b>Оформление заблокировано</b> — новый e-mail, то же устройство<small>Сегодня, 10:42</small></li>
-          <li style="--c:var(--amber)"><b>Заказ #2290</b> под другим именем — связан по устройству<small>3 октября</small></li>
-          <li style="--c:var(--red)"><b>Отказ от посылки</b> — заказ #1983<small>12 сентября · добавлен в чёрный список</small></li>
-          <li><b>Отмечен ещё 2 магазинами</b> в сети Semafor<small>Сеть</small></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- NETWORK -->
-<section id="network">
-  <div class="wrap net">
-    <div>
-      <div class="eyebrow reveal">04 · Сеть магазинов</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Отказ в одном месте — предупреждение везде.</h2>
-      <p class="lead reveal">Магазины на Semafor делятся информацией о том, кто отказывался от посылок или оспаривал платежи, — в виде анонимных отпечатков, никогда не в виде персональных данных. Вы видите предупреждение ещё до отправки.</p>
-      <ul class="bul reveal">
-        <li><span><b>Ваши пороги.</b> Жёлтый — от 1 другого магазина, красный — от 3. Или любые цифры на ваш выбор.</span></li>
-        <li><span><b>Ваши причины.</b> Решите, какие сигналы учитываются для вашего магазина.</span></li>
-        <li><span><b>Честно по определению.</b> Учитываются только сигналы других магазинов, отказ передаётся в сеть со второго раза, а всё, что вы удалите, отзывается.</span></li>
-      </ul>
-    </div>
-    <div class="panel reveal" aria-hidden="true">
-      <div class="ph"><b>Сеть магазинов</b><span>Настройки</span></div>
-      <div class="row"><span class="l"><i style="background:var(--amber)"></i>Жёлтый, если отметили</span><span class="stepper"><span>−</span><b>1</b><span>+</span></span></div>
-      <div class="row"><span class="l"><i style="background:var(--red)"></i>Красный, если отметили</span><span class="stepper"><span>−</span><b>3</b><span>+</span></span></div>
-      <div class="chips"><span class="chip">Отказ от посылки с наложенным платежом</span><span class="chip">Возвраты без веской причины</span><span class="chip">Оспоренный платёж</span><span class="chip">Мошенничество с возвратами</span><span class="chip">Угрозы</span><span class="chip alt">Другое</span></div>
-      <div class="row"><span>Скрывать оплату для покупателей, отмеченных сетью</span><span class="tog"></span></div>
-      <div class="row"><span>Делиться моими сигналами с сетью</span><span class="tog on"></span></div>
-    </div>
-  </div>
-</section>
-
-<!-- INSIDE SHOPIFY -->
-<section class="light-sec">
-  <div class="wrap">
-    <div class="eyebrow reveal">05 · Живёт внутри Shopify</div>
-    <h2 class="big serif reveal" style="margin-top:18px;max-width:15ch">Решайте с одного взгляда — прямо в заказах.</h2>
-    <p class="lead reveal">Никакой новой панели, за которой нужно следить. Сигнал, причина и действие — ровно там, где вы уже работаете.</p>
-    <div class="admin reveal" style="margin-top:48px" aria-hidden="true">
-      <div class="chrome"><i></i><i></i><i></i><span>admin.shopify.com · Orders</span></div>
-      <div class="body">
-        <div class="atable">
-          <div class="h"><span>Заказ</span><span>Покупатель</span><span>Оплата</span><span>Semafor</span></div>
-          <div class="r"><b>#2486</b><span>Elena Marin</span><span>Оплачен</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
-          <div class="r"><b>#2485</b><span>Radu Ionescu</span><span>Наложенный платёж</span><span class="tag3"><i></i><i class="on" style="--c:var(--amber)"></i><i></i></span></div>
-          <div class="r"><b>#2484</b><span>Ioana Stan</span><span>Оплачен</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
-          <div class="r"><b>#2483</b><span>A. Popescu</span><span>Наложенный платёж</span><span class="tag3"><i class="on" style="--c:var(--red)"></i><i></i><i></i></span></div>
-          <div class="r"><b>#2482</b><span>Vlad Toma</span><span>Наложенный платёж</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
-          <div class="r"><b>#2481</b><span>Maria Dobre</span><span>Оплачен</span><span class="tag3"><i></i><i></i><i class="on" style="--c:var(--green)"></i></span></div>
-        </div>
-        <div>
-          <div class="ablock">
-            <div class="t">Semafor · #2483<span class="mtl h" style="padding:5px;gap:4px;border-radius:9px"><i class="on" style="--c:var(--red);width:10px;height:10px"></i><i style="width:10px;height:10px"></i><i style="width:10px;height:10px"></i></span></div>
-            <div class="why"><span>Телефон в вашем чёрном списке — отказ от посылки с наложенным платежом</span><span>То же устройство, что у заказа #1983</span><span>Отмечен ещё 2 магазинами</span></div>
-            <div class="act"><span class="d">В чёрный список</span><span>Открыть досье</span></div>
-          </div>
-          <div class="ablock">
-            <div class="t">Заблокированные попытки · онлайн</div>
-            <div class="kpi"><div><small>Остановлено при оформлении</small><b>7</b></div><div><small>Возвращённые заказы</small><b>12</b></div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="cards3">
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></div><h5>Заблокированные попытки в реальном времени</h5><p>Смотрите, кто пытался купить, находясь в вашем чёрном списке, — обновление каждые 30 секунд.</p></div>
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h5>Аналитика, которая рассказывает историю</h5><p>Попытки оформления по каждому человеку: кто прошёл, кто постоянно менял данные, подозрительные устройства.</p></div>
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Создано для телефона</h5><p>На мобильном каждая страница превращается в аккуратные карточки. Проверяйте заказ откуда угодно.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- RECOVER -->
-<section class="light-sec" id="recover" style="padding-top:40px">
-  <div class="wrap">
-    <div class="rec">
-      <div>
-        <div class="eyebrow reveal">06 · Возврат клиентов</div>
-        <h2 class="big serif reveal" style="margin-top:18px">Защита, которая ещё и <em class="it">продаёт</em>.</h2>
-        <p class="lead reveal">Приветственный pop-up превращает новых посетителей в подписчиков. Он спрашивает один раз при первом визите и ещё раз — по пути к оформлению заказа, а код скидки уже в корзине.</p>
-        <div class="seasons reveal" id="seasons">
-          <button class="on" data-s="classic">Классика</button><button data-s="winter">Зима</button><button data-s="spring">Весна</button><button data-s="summer">Лето</button><button data-s="autumn">Осень</button>
-        </div>
-      </div>
-      <div class="storefront reveal" id="sf" data-s="classic" aria-hidden="true">
-        <div class="sf-top"><i></i><i></i><i></i></div>
-        <div class="sf-grid"><div></div><div></div><div></div></div>
-        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">на первый заказ</div><div class="fld">your@email.com</div><div class="go">Получить код</div></div></div>
-      </div>
-    </div>
-
-    <div class="seq">
-      <div>
-        <h3 class="serif reveal" style="font-size:clamp(32px,4vw,48px);line-height:1.05">Ушли с оформления? Semafor напишет за вас.</h3>
-        <ol class="steps reveal" style="margin-top:28px">
-          <li><span class="num">1</span><div><div class="when">Примерно через час</div><h5>Дружеское напоминание</h5><p>Элегантное, с товарами из их корзины.</p></div></li>
-          <li><span class="num">2</span><div><div class="when">На следующее утро, по их времени</div><h5>Мягкий толчок со скидкой</h5><p>По умолчанию 15% — или напоминание о скидке, которая уже в корзине.</p></div></li>
-          <li class="last"><span class="num">3</span><div><div class="when">День 3</div><h5>Последний шанс</h5><p>Скидка побольше, действует только в этот день. Всё время и все проценты задаёте вы.</p></div></li>
-        </ol>
-        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Цепочка останавливается, как только клиент сделал заказ, пропускает распроданные товары и доходит даже до подписчиков pop-up, ушедших до ввода e-mail.</p>
-      </div>
-      <div class="mail reveal" aria-hidden="true">
-        <div class="mh"><span><b>Ваш магазин</b> &lt;hello@yourstore.com&gt;</span><span>10:00</span></div>
-        <div class="mb">
-          <div class="brandm">Ваш магазин</div>
-          <h4>Ваша корзина всё ещё ждёт вас.</h4>
-          <div class="prod"></div>
-          <div class="price"><s>189,00 €</s><b>160,65 €</b></div>
-          <div class="code">COMEBACK15</div>
-          <span class="cta">Вернуться в корзину</span>
-          <div class="fine">Отписаться в один клик</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="attr">
-      <div class="c3 reveal"><span class="src">● Отправлено Semafor</span><h5>Никаких почтовых сервисов для подключения</h5><p>Письма уже включены в ваш тариф — или уходят с вашего собственного домена, с пошаговой настройкой для вашего DNS-провайдера.</p></div>
-      <div class="c3 reveal"><span class="src">● 3 дизайна</span><h5>Премиально по умолчанию</h5><p>Elegant, Minimal и Modern — с фото и ценой товара, на языке покупателя.</p></div>
-      <div class="c3 reveal"><span class="src">● Метка на заказе</span><h5>Заказы, которые вернул Semafor</h5><p>Каждый заказ показывает, что его принесло — pop-up, корзина или напоминание, — а возвращённая выручка видна в цифрах.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- EVERYTHING -->
-<section class="grain" style="background:var(--night-2)">
-  <div class="wrap">
-    <div class="eyebrow reveal">Всё, что есть в Semafor</div>
-    <h2 class="big serif reveal" style="margin:18px 0 52px;max-width:14ch">Одно приложение. Вся работа.</h2>
-    <div class="all">
-      <div class="reveal"><h5>Светофор для каждого заказа</h5><p>Зелёный, жёлтый или красный за секунды — в виде тега и сигнала риска Shopify.</p></div>
-      <div class="reveal"><h5>Ваш чёрный список + импорт CSV</h5><p>По e-mail, телефону, имени или адресу, с умным сопоставлением адресов.</p></div>
-      <div class="reveal"><h5>Сеть магазинов</h5><p>Узнайте, кто отказывался от посылок в других магазинах, ещё до отправки.</p></div>
-      <div class="reveal"><h5>Блокировка при оформлении<span class="badge">Basic</span></h5><p>Скрывайте наложенный платёж или все способы оплаты — отдельно для жёлтого и красного.</p></div>
-      <div class="reveal"><h5>То же устройство, новое имя<span class="badge">Basic</span></h5><p>Все личности с одного телефона или компьютера — связаны и заблокированы.</p></div>
-      <div class="reveal"><h5>Автоматическая отмена<span class="badge">Basic</span></h5><p>Красный заказ, который всё же проскочил, отменяется сам.</p></div>
-      <div class="reveal"><h5>Умный жёлтый</h5><p>Наложенный платёж уже в пути, посылки для объединения — перепроверка каждые 15 минут.</p></div>
-      <div class="reveal"><h5>Приветственный pop-up<span class="badge">Basic</span></h5><p>5 дизайнов, 5 языков, код применяется в корзине, приветственное письмо включено.</p></div>
-      <div class="reveal"><h5>Заблокированные попытки в реальном времени<span class="badge">Basic</span></h5><p>Кто пытался купить, находясь в чёрном списке, — каждые 30 секунд.</p></div>
-      <div class="reveal"><h5>Аналитика по шагам оформления<span class="badge pro">Pro</span></h5><p>Где остановился каждый покупатель и что именно было в корзине.</p></div>
-      <div class="reveal"><h5>Письма-напоминания<span class="badge pro">Pro</span></h5><p>До 3 писем, автоматически или в один клик, с одноразовыми кодами скидки.</p></div>
-      <div class="reveal"><h5>Возвращённые продажи в цифрах<span class="badge pro">Pro</span></h5><p>Отправленные письма, вернувшиеся покупатели, принесённая выручка.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section class="light-sec" id="pricing">
-  <div class="wrap">
-    <div class="eyebrow reveal">Тарифы</div>
-    <h2 class="big serif reveal" style="margin:18px 0 44px">Начните со всего сразу.</h2>
-    <div class="trial reveal">
-      <div><b>14 дней Pro бесплатно.</b><span>Все функции включены с первой минуты. Ничего не списывается, пока вы не выберете тариф.</span></div>
-      <a class="btn btn-ink" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Установить Semafor</a>
-    </div>
-    <div class="plans">
-      <div class="plan reveal">
-        <div class="top"><h4>Бесплатный</h4></div><div class="tag">Чтобы начать</div>
-        <div class="price">0 $</div><div class="yr">Без ограничения по времени</div>
-        <ul><li>Светофор для 50 заказов в месяц</li><li>Собственный чёрный список + импорт CSV</li><li>Сеть магазинов</li><li>Тег риска на каждом заказе</li></ul>
-      </div>
-      <div class="plan reveal">
-        <div class="top"><h4>Basic</h4></div><div class="tag">Полная защита наложенного платежа</div>
-        <div class="price">9,99 $ <small>/ месяц</small></div><div class="yr">или 7,99 $ / месяц при оплате за год</div>
-        <ul><li>Безлимитные заказы</li><li>Блокировка при оформлении, правила для жёлтого и красного</li><li>Автоматическая отмена красных заказов</li><li>То же устройство, новое имя</li><li>Приветственный pop-up со скидкой</li></ul>
-      </div>
-      <div class="plan feat reveal">
-        <div class="top"><h4>Pro</h4><span class="pill2">Самый полный</span></div><div class="tag">Защита + возвращённые продажи</div>
-        <div class="price">24,99 $ <small>/ месяц</small></div><div class="yr">или 19,99 $ / месяц при оплате за год</div>
-        <ul><li>Всё из Basic</li><li>Аналитика по шагам оформления</li><li>Автоматические письма-напоминания, до 3</li><li>Напоминания даже без e-mail при оформлении</li><li>Возвращённые продажи в цифрах, с вашего собственного домена</li></ul>
-      </div>
-    </div>
-    <p class="fineprint">Оплата через Shopify. Меняйте тариф или отменяйте в любой момент.</p>
-  </div>
-</section>
-
-<!-- FAQ -->
-<section id="faq">
-  <div class="wrap">
-    <div class="eyebrow reveal" style="text-align:center">Вопросы</div>
-    <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Полезно знать.</h2>
-    <div class="faq">
-      <details class="reveal"><summary>Нужно ли что-то настраивать?</summary><p>Нет. Установите Semafor — и он сразу начнёт проверять заказы. Блокировка при оформлении, распознавание устройства и pop-up включаются автоматически — без кода и правок темы.</p></details>
-      <details class="reveal"><summary>Узнает ли заблокированный покупатель?</summary><p>Нет. Он просто не видит способов оплаты (или наложенного платежа) — в зависимости от выбранного вами правила. Никакого сообщения о блокировке нет.</p></details>
-      <details class="reveal"><summary>А как же конфиденциальность?</summary><p>Сеть магазинов обменивается только анонимными отпечатками — никогда не именами или адресами. В каждом письме есть отписка в один клик, а запросы Shopify на доступ к данным и их удаление обрабатываются автоматически.</p></details>
-      <details class="reveal"><summary>Нужен ли почтовый сервис?</summary><p>Нет. Письма-напоминания и приветственные письма отправляет Semafor, и они включены в ваш тариф. При желании подключите собственный домен по пошаговой инструкции.</p></details>
-      <details class="reveal"><summary>На каких языках говорит Semafor?</summary><p>Приложение доступно на английском, румынском, испанском, французском, польском и русском. Письма и pop-up подстраиваются под язык покупателя.</p></details>
-      <details class="reveal"><summary>Что будет после бесплатного периода?</summary><p>Ваш магазин перейдёт на тариф «Бесплатный» и продолжит проверять 50 заказов в месяц. Настройки сохранятся — выберите тариф в любой момент, чтобы снова включить всё.</p></details>
-    </div>
-  </div>
-</section>
-
-<section class="final grain">
-  <div class="wrap">
-    <div class="mtl reveal" aria-hidden="true" id="finalTL"><i style="--c:var(--red)"></i><i style="--c:var(--amber)"></i><i class="on" style="--c:var(--green)"></i></div>
-    <h2 class="serif reveal">Отправляйте только те посылки, за которые заплатят.</h2>
-    <p class="reveal">Установите Semafor и получите 14 дней всех функций Pro — бесплатно.</p>
-    <div class="cta reveal">
-      <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Добавить Semafor в Shopify</a>
-      <a class="btn btn-line" href="mailto:mihailiuc.co@gmail.com">Связаться с нами</a>
-    </div>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <span>© 2026 Semafor by Kastel Labs</span>
-    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Политика конфиденциальности</a><a href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Shopify App Store</a></span>
-  </div>
-</footer>
+<footer><div class="wrap">
+  <span>© 2026 Kastel Labs</span>
+  <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="/semafor/ru/">Semafor</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Политика конфиденциальности</a><a href="https://apps.shopify.com/semafor?locale=ru" target="_blank" rel="noopener">Shopify App Store</a></span>
+</div></footer>
 
 <script>
 (function(){
   document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){try{localStorage.setItem('kl-lang',a.getAttribute('data-l'))}catch(e){}})});
-  var nav=document.getElementById('nav');
-  function onS(){nav.classList.toggle('scrolled',scrollY>10)} onS();
-  addEventListener('scroll',onS,{passive:true});
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.1});
-  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
-  var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // hero
-  var lamps=document.querySelectorAll('#heroTL .lamp'),halo=document.getElementById('halo'),cards=document.querySelectorAll('.oc');
-  var cols=['#E0483C','#F2A23A','#27B874'],i=0;
-  function hero(){
-    var c=cards[i%cards.length],k=+c.dataset.l;
-    lamps.forEach(function(l,j){l.classList.toggle('on',j===k)}); halo.style.background=cols[k];
-    cards.forEach(function(x){x.classList.toggle('show',x===c)}); i++;
-  }
-  hero(); if(!still) setInterval(hero,2600); else cards.forEach(function(x){x.classList.add('show')});
-
-  // checkout demo
-  var tabs=document.querySelectorAll('.tab'),panes=document.querySelectorAll('.explain > div');
-  var cod=document.querySelector('.pm[data-m=cod]'),card=document.querySelector('.pm[data-m=card]'),nop=document.getElementById('nopay'),pay=document.getElementById('paybtn');
-  var order=['g','y','r'],cur=0,timer;
-  function setK(k){
-    tabs.forEach(function(t){t.classList.toggle('on',t.dataset.k===k)});
-    panes.forEach(function(p){p.classList.toggle('on',p.dataset.k===k)});
-    cod.classList.toggle('gone',k!=='g'); card.classList.toggle('gone',k==='r');
-    nop.classList.toggle('show',k==='r'); pay.classList.toggle('dis',k==='r');
-  }
-  tabs.forEach(function(t){t.addEventListener('click',function(){clearInterval(timer);setK(t.dataset.k)})});
-  if(!still){var sec=document.getElementById('signal');var sio=new IntersectionObserver(function(es){if(es[0].isIntersecting&&!timer){timer=setInterval(function(){cur=(cur+1)%3;setK(order[cur])},3800)}},{threshold:.4});sio.observe(sec)}
-
-  // seasons
-  var sf=document.getElementById('sf');
-  document.querySelectorAll('#seasons button').forEach(function(b){b.addEventListener('click',function(){
-    document.querySelectorAll('#seasons button').forEach(function(x){x.classList.toggle('on',x===b)}); sf.dataset.s=b.dataset.s;
-  })});
-
-  // final light
-  var fl=document.querySelectorAll('#finalTL i'),fi=2;
-  if(!still) setInterval(function(){fl.forEach(function(x){x.classList.remove('on')}); fi=(fi+2)%3; fl[fi].classList.add('on')},1600);
+  var nav=document.getElementById('nav');function s(){nav.classList.toggle('scrolled',window.scrollY>20)}s();window.addEventListener('scroll',s,{passive:true});
+  var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12}):null;
+  document.querySelectorAll('.reveal').forEach(function(el){io?io.observe(el):el.classList.add('in')});
 })();
 </script>
 </body>

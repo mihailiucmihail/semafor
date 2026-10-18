@@ -12,8 +12,10 @@ EN=json.load(open('strings.en.json'))
 tpl=open('template.html').read()
 OUT='../site'
 
-def url(code): return SITE+'/' if code=='en' else f'{SITE}/{code}/'
-def path(code): return '/' if code=='en' else f'/{code}/'
+BASE='/semafor'
+def url(code): return SITE+BASE+'/' if code=='en' else f'{SITE}{BASE}/{code}/'
+def path(code): return BASE+'/' if code=='en' else f'{BASE}/{code}/'
+def home(code): return '/' if code=='en' else f'/{code}/'
 
 SW_CSS='''
 .lang{position:relative}
@@ -30,8 +32,9 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 @media (max-width:600px){.navlinks{gap:8px}.navlinks .btn-glow{padding:9px 14px;font-size:13px}}
 '''
 
+CUR=' aria-current="page"'
 def switcher(code):
-    items=''.join(f'<a class="lang-a" href="{path(c)}" hreflang="{c}" lang="{c}" data-l="{c}"{" aria-current=\"page\"" if c==code else ""}>{n}<small>{c}</small></a>' for c,n,_ in LANGS)
+    items=''.join(f'<a class="lang-a" href="{path(c)}" hreflang="{c}" lang="{c}" data-l="{c}"{CUR if c==code else ""}>{n}<small>{c}</small></a>' for c,n,_ in LANGS)
     globe='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>'
     return f'<details class="lang"><summary aria-label="Language">{globe}{code.upper()}</summary><nav class="menu">{items}</nav></details>\n      '
 
@@ -39,9 +42,9 @@ REDIRECT='''<script>
 (function(){try{
   var KEY='kl-lang',S=['ro','es','fr','pl','ru'],saved=null;
   try{saved=localStorage.getItem(KEY)}catch(e){}
-  if(saved){ if(saved!=='en'&&S.indexOf(saved)>-1&&location.pathname==='/') location.replace('/'+saved+'/'+location.hash); return; }
+  if(saved){ if(saved!=='en'&&S.indexOf(saved)>-1&&location.pathname==='/semafor/') location.replace('/semafor/'+saved+'/'+location.hash); return; }
   var ls=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language||'en']);
-  for(var i=0;i<ls.length;i++){var l=String(ls[i]).slice(0,2).toLowerCase(); if(l==='en')return; if(S.indexOf(l)>-1){location.replace('/'+l+'/'+location.hash);return;}}
+  for(var i=0;i<ls.length;i++){var l=String(ls[i]).slice(0,2).toLowerCase(); if(l==='en')return; if(S.indexOf(l)>-1){location.replace('/semafor/'+l+'/'+location.hash);return;}}
 }catch(e){}})();
 </script>'''
 
@@ -84,13 +87,8 @@ for code,name,d in LANGS:
     h=h.replace('<a class="btn btn-glow btn-sm" href="https://apps.shopify.com/semafor"',switcher(code)+'<a class="btn btn-glow btn-sm" href="https://apps.shopify.com/semafor"',1)
     if code!='en': h=h.replace('https://apps.shopify.com/semafor"',f'https://apps.shopify.com/semafor?locale={code}"')
     h=h.replace('(function(){\n  var nav',"(function(){\n  "+SAVE_JS+"\n  var nav",1)
-    d_=OUT if code=='en' else f'{OUT}/{code}'
+    h=h.replace('href="/" class="kl-mark" data-home',f'href="{home(code)}" class="kl-mark" data-home').replace('<a href="/" data-home>',f'<a href="{home(code)}" data-home>')
+    d_=OUT+BASE if code=='en' else f'{OUT}{BASE}/{code}'
     os.makedirs(d_,exist_ok=True)
     open(f'{d_}/index.html','w').write(h)
-# sitemap + robots
-sm='<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
-for c,_,_ in LANGS:
-    sm+=f'  <url><loc>{url(c)}</loc>'+''.join(f'<xhtml:link rel="alternate" hreflang="{x}" href="{url(x)}"/>' for x,_,_ in LANGS)+'</url>\n'
-open(f'{OUT}/sitemap.xml','w').write(sm+'</urlset>\n')
-open(f'{OUT}/robots.txt','w').write(f'User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n')
-print('built', [c for c,_,_ in LANGS])
+print('built semafor', [c for c,_,_ in LANGS])
