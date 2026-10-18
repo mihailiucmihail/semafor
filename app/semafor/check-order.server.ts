@@ -25,6 +25,8 @@ const ALL_TAGS = [...Object.values(TAG), '🔴 Semafor', '🟡 Semafor', '🟢 S
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
   settings: ShopSettings; order: any; admin: AdminClient; skipCancel?: boolean;
+  /** periodic re-check (app/semafor/recheck.server.ts): Shopify risk is written only when the light changed */
+  recheck?: boolean;
 }): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
   const { db, secret, shopId, order, admin } = opts;
   const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true } }));
@@ -101,6 +103,9 @@ export async function checkOrder(opts: {
 
   // Act in Shopify
   let action = 'tag';
+  const prev = opts.recheck ? await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { level: true, networkLevel: true } }) : null;
+  const prevLevel: Level | null = prev ? (({ green: 0, yellow: 1, red: 2 } as const)[prev.level as Level] >= ({ green: 0, yellow: 1, red: 2 } as const)[prev.networkLevel as Level] ? prev.level as Level : prev.networkLevel as Level) : null;
+  const changed = !opts.recheck || prevLevel !== combined;
   {
     const tag = TAG[combined];
     const cur: any = await gql(admin, `#graphql
@@ -115,7 +120,13 @@ export async function checkOrder(opts: {
     await gql(admin, `#graphql
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
   }
-  if (combined !== 'green') {
+  if (opts.recheck && changed && combined === 'green') {
+    // the reason is gone (e.g. the other order was delivered): Shopify shows Semafor's latest assessment
+    await gql(admin, `#graphql
+      mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
+      { in: { orderId: order.admin_graphql_api_id, riskLevel: 'NONE', facts: [{ description: 'Semafor: verificat din nou — nimic de semnalat', sentiment: 'POSITIVE' }] } });
+  }
+  if (combined !== 'green' && changed) {
     const facts = result.matches.map((m) => ({ description: (m.kind as string) === 'device' || (m.kind as string) === 'order' ? `Semafor: ${m.normalized}` : (ro ? `Semafor: ${labelKind(m.kind, true)} în lista neagră (${m.reason})` : `Semafor: ${labelKind(m.kind, false)} is on the blacklist (${REASON_EN[m.reason as string] ?? m.reason})`), sentiment: 'NEGATIVE' }));
     if (result.networkShops) facts.push({ description: (ro ? `Semafor: raportat de ${result.networkShops} magazin(e) din rețea` : `Semafor: reported by ${result.networkShops} store(s) in the network`), sentiment: 'NEGATIVE' });
     await gql(admin,

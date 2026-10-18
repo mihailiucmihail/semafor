@@ -827,6 +827,16 @@ export function startRecoveryScheduler() {
           }
         } catch (e: any) { console.error("[semafor] order catch-up", sh.domain, e?.message || e); }
         try { await runAutomation(sh); } catch (e: any) { console.error("[semafor] recovery", sh.domain, e?.message || e); }
+        // yellow lights that depend on other orders (in transit / unshipped) → checked again every 15 min
+        try {
+          const lastR = (g.__semaforRecheck ??= new Map<string, number>()).get(sh.id) || 0;
+          if (Date.now() - lastR > 15 * 60_000) {
+            g.__semaforRecheck.set(sh.id, Date.now());
+            const { recheckTransient } = await import("./recheck.server");
+            const { admin } = await unauthenticated.admin(sh.domain);
+            await recheckTransient(admin as any, { id: sh.id, domain: sh.domain, country: sh.country, settings: settingsOf(sh.settings) });
+          }
+        } catch (e: any) { console.error("[semafor] recheck", sh.domain, e?.message || e); }
         // network blocking on: other shops' reports change without this shop doing anything → refresh its blocklist every 30 min
         try {
           const st = settingsOf(sh.settings);
