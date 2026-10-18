@@ -14,9 +14,9 @@
   "cancel": "Cancel",
   "reasons": {
     "refuz_colet": "Refused a cash-on-delivery parcel",
+    "return_no_reason": "Frequent returns without a valid reason",
     "chargeback": "Disputed a card payment (chargeback)",
     "return_fraud": "Cheated on a return (sent back a different or damaged item)",
-    "return_no_reason": "Frequent returns without a valid reason",
     "abuse": "Threats or insults",
     "other": "Other"
   },

@@ -14,9 +14,9 @@
   "cancel": "Cancelar",
   "reasons": {
     "refuz_colet": "Rechazó un paquete contra entrega",
+    "return_no_reason": "Devoluciones frecuentes sin motivo justificado",
     "chargeback": "Disputó un pago con tarjeta (contracargo)",
     "return_fraud": "Fraude en la devolución (devolvió otro artículo o uno dañado)",
-    "return_no_reason": "Devoluciones frecuentes sin motivo justificado",
     "abuse": "Amenazas o insultos",
     "other": "Otro"
   },
