@@ -61,17 +61,15 @@ export function SignalStrip({ green, yellow, red, labels, emptyText }: { green: 
 /** Metric card: icon tile, label, big number, optional hint. */
 export function Kpi({ icon, label, value, hint, tone, onClick, active }: { icon?: IconSource; label: string; value: ReactNode; hint?: ReactNode; tone?: KpiTone; onClick?: () => void; active?: boolean }) {
   const card = (
-    <Card>
-      <BlockStack gap="300">
-        <InlineStack gap="200" blockAlign="center" wrap={false}>
+    <Card padding={{ xs: "300", sm: "400" }}>
+      <div className="sf-kpi">
+        <div className="sf-kpi-head">
           {icon && <span className={`sf-kpi-icon${tone ? ` ${tone}` : ""}`}><Icon source={icon} /></span>}
-          <Text as="p" variant="bodyMd" tone="subdued">{label}</Text>
-        </InlineStack>
-        <BlockStack gap="100">
-          <span className={`sf-kpi-value${tone ? ` ${tone}` : ""}`}>{value}</span>
-          {hint && <Text as="p" variant="bodySm" tone="subdued">{hint}</Text>}
-        </BlockStack>
-      </BlockStack>
+          <span className="sf-kpi-label">{label}</span>
+        </div>
+        <span className={`sf-kpi-value${tone ? ` ${tone}` : ""}`}>{value}</span>
+        {hint && <span className="sf-kpi-hint">{hint}</span>}
+      </div>
     </Card>
   );
   if (!onClick) return card;

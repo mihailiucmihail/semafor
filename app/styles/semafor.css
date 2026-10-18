@@ -149,6 +149,10 @@
 .sf-kpi-icon.caution svg { fill: #a87400; }
 .sf-kpi-icon.success { background: var(--sf-green-soft); }
 .sf-kpi-icon.success svg { fill: var(--sf-green); }
+.sf-kpi { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sf-kpi-head { display: flex; align-items: center; gap: 8px; min-width: 0; margin-bottom: 8px; }
+.sf-kpi-label { font-size: var(--p-font-size-350); line-height: 1.3; color: var(--p-color-text-secondary); min-width: 0; }
+.sf-kpi-hint { font-size: var(--p-font-size-300); line-height: 1.35; color: var(--p-color-text-secondary); }
 .sf-kpi-value { font-size: 1.75rem; line-height: 1.15; font-weight: 650; letter-spacing: -0.015em; font-variant-numeric: tabular-nums; }
 .sf-kpi-value.critical { color: var(--sf-red); }
 .sf-kpi-value.caution { color: #a87400; }
@@ -506,3 +510,14 @@
 .sf-cl-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 5px; font-size: 12px; }
 .sf-cl-chips .Polaris-Badge { font-size: 12px; }
 .sf-cl-muted { color: var(--p-color-text-secondary); font-size: 12px; }
+/* ── phones: compact KPI tiles (small icon, two-line label and hint) ── */
+@media (max-width: 640px) {
+  .sf-kpi { gap: 2px; }
+  .sf-kpi-head { gap: 6px; margin-bottom: 4px; align-items: flex-start; }
+  .sf-kpi-icon { width: 22px; height: 22px; border-radius: 6px; }
+  .sf-kpi-icon .Polaris-Icon { width: 14px; height: 14px; }
+  .sf-kpi-label { font-size: 12px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sf-kpi-value { font-size: 1.375rem; line-height: 1.1; }
+  .sf-kpi-hint { font-size: 11px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .Polaris-InlineGrid:has(> .sf-kpi-click), .Polaris-InlineGrid:has(> .Polaris-ShadowBevel .sf-kpi) { gap: 10px !important; }
+}
