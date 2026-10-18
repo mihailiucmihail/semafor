@@ -1,18 +1,20 @@
 // One blacklisted customer: every e-mail / phone / name / address / device on the entry, why and when it was
 // added, all their Shopify orders, Semafor's order checks, checkout attempts and what changed on the entry.
 import { useEffect, useState } from "react";
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner } from "@shopify/polaris";
+import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner, FormLayout, TextField } from "@shopify/polaris";
 import { EmailIcon, PhoneIcon, LocationIcon, MobileIcon, PersonIcon } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { IdLine, Dot, SectionHead, worst, type Level } from "../components/semafor-ui";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
+import { addToEntry, pushCheckoutMetafield, isWeakAddress } from "../semafor/entries.server";
+import { shopLang } from "../i18n.server";
 import { planOf } from "../semafor/plan.server";
 import { can } from "../../core/plans";
-import { useT, useLang, dateLocale, type TKey } from "../i18n";
+import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
 
 type ShopOrder = {
   id: string; name: string; createdAt: string; financial: string | null; fulfillment: string | null; cancelledAt: string | null;
@@ -27,8 +29,25 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     include: { identifiers: { select: { kind: true, raw: true, normalized: true } } },
   });
   if (!entry) throw new Response("Not found", { status: 404 });
+  // Entries added from an order before addresses without a house number were kept: take the address from the order again
+  if (entry.orderId && !entry.identifiers.some((i) => i.kind === "address")) {
+    try {
+      const r = await admin.graphql(`#graphql
+        query($id: ID!) { order(id: $id) { shippingAddress { address1 address2 city } billingAddress { address1 address2 city } } }`, { variables: { id: entry.orderId } });
+      const o: any = (await r.json())?.data?.order;
+      const a = o?.shippingAddress || o?.billingAddress;
+      if (a?.address1 && (await addToEntry(shop.id, entry.id, { address1: a.address1, address2: a.address2 || undefined, city: a.city || undefined }, shop.country, "semafor:repair"))) {
+        const fresh = await db.identifier.findMany({ where: { entryId: entry.id }, select: { kind: true, raw: true, normalized: true } });
+        entry.identifiers = fresh as any;
+        await pushCheckoutMetafield(admin as any, shop.id).catch(() => {});
+      }
+    } catch (e) {
+      console.error("[semafor] address repair", e);
+    }
+  }
   const of = (k: string) => [...new Set(entry.identifiers.filter((i) => i.kind === k).map((i) => i.raw))];
   const emails = of("email"), phones = of("phone"), names = of("name"), addresses = of("address");
+  const weakAddresses = [...new Set(entry.identifiers.filter((i) => i.kind === "address" && isWeakAddress(i.normalized)).map((i) => i.raw))];
   const devices = [...new Set(entry.identifiers.filter((i) => i.kind === "device").map((i) => i.normalized))];
 
   // every Shopify order placed with one of the customer's e-mails or phones
@@ -65,20 +84,43 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     select: { id: true, orderId: true, orderName: true, level: true, networkLevel: true, actionTaken: true, checkedAt: true },
   })) as any[];
 
-  // checkout attempts from the customer's browsers or with their e-mails
-  const attempts = (devices.length || emails.length) ? ((await db.checkoutAttempt.findMany({
-    where: { shopId: shop.id, event: { not: "cart" }, OR: [...(devices.length ? [{ deviceId: { in: devices } }] : []), ...emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } }))] },
-    orderBy: { createdAt: "desc" }, take: 60,
-    select: { deviceId: true, event: true, email: true, phone: true, firstName: true, lastName: true, city: true, total: true, currency: true, orderId: true, createdAt: true },
+  // the customer's browsers: those on the entry + every browser that ever typed one of their e-mails / phones
+  const seed = (emails.length || phones.length) ? ((await db.checkoutAttempt.findMany({
+    where: { shopId: shop.id, OR: [...emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } })), ...(phones.length ? [{ phone: { in: phones } }] : [])] },
+    select: { deviceId: true }, distinct: ["deviceId"], take: 50,
+  })) as any[]).map((r) => r.deviceId) : [];
+  const allDevices = [...new Set([...devices, ...seed])];
+
+  // checkout attempts from those browsers or with the customer's e-mails
+  const attempts = (allDevices.length || emails.length) ? ((await db.checkoutAttempt.findMany({
+    where: { shopId: shop.id, event: { not: "cart" }, OR: [...(allDevices.length ? [{ deviceId: { in: allDevices } }] : []), ...emails.map((e) => ({ email: { equals: e, mode: "insensitive" as const } }))] },
+    orderBy: { createdAt: "desc" }, take: 100,
+    select: { deviceId: true, event: true, email: true, phone: true, firstName: true, lastName: true, address1: true, city: true, total: true, currency: true, orderId: true, createdAt: true },
   })) as any[]) : [];
+
+  // e-mails / phones / addresses typed from the same browsers that are NOT on the entry yet → one click to add them
+  const lc = (x: string) => x.trim().toLowerCase();
+  const digits = (x: string) => x.replace(/\D/g, "").slice(-9);
+  const haveE = new Set(emails.map(lc)), haveP = new Set(phones.map(digits)), haveA = new Set(addresses.map(lc));
+  const other = new Map<string, { kind: "email" | "phone" | "address"; value: string; city: string | null; last: Date; count: number }>();
+  const note = (kind: "email" | "phone" | "address", value: string | null, city: string | null, at: Date) => {
+    if (!value || !value.trim()) return;
+    const known = kind === "email" ? haveE.has(lc(value)) : kind === "phone" ? haveP.has(digits(value)) : haveA.has(lc(value)) || haveA.has(lc([value, city].filter(Boolean).join(", ")));
+    if (known) return;
+    const k = kind + ":" + (kind === "phone" ? digits(value) : lc(value));
+    const cur = other.get(k);
+    if (cur) { cur.count++; if (+at > +cur.last) cur.last = at; } else other.set(k, { kind, value: value.trim(), city, last: at, count: 1 });
+  };
+  for (const a of attempts) { note("email", a.email, null, a.createdAt); note("phone", a.phone, null, a.createdAt); note("address", a.address1, a.city, a.createdAt); }
+  const otherData = [...other.values()].sort((x, y) => +y.last - +x.last).slice(0, 20);
 
   const history = (await db.auditLog.findMany({ where: { shopId: shop.id, entryId: entry.id }, orderBy: { at: "desc" }, take: 30, select: { action: true, actor: true, at: true, payload: true } })) as any[];
 
   const live = orders.filter((o) => !o.cancelledAt);
   return {
     entry: { id: entry.id, reason: entry.reason, note: entry.note, source: entry.source, orderId: entry.orderId ? entry.orderId.split("/").pop() : null, orderName: entry.orderName, createdBy: entry.createdBy, shared: entry.shared, createdAt: entry.createdAt, expiresAt: entry.expiresAt },
-    emails, phones, names, addresses, devices,
-    orders, ordersError, checks, attempts, history,
+    emails, phones, names, addresses, weakAddresses, devices,
+    orders, ordersError, checks, attempts, history, otherData,
     stats: {
       orders: orders.length,
       cancelled: orders.length - live.length,
@@ -93,6 +135,34 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   };
 };
 
+export const action = async ({ request, params }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  const entry = await db.blockEntry.findFirst({ where: { id: String(params.id), shopId: shop.id }, select: { id: true } });
+  if (!entry) throw new Response("Not found", { status: 404 });
+  const fd = await request.formData();
+  const str = (k: string) => { const v = fd.get(k); return typeof v === "string" && v.trim() ? v.trim() : undefined; };
+  const actor = (session as any).email || session.shop;
+  try {
+    let n = 0;
+    if (fd.get("pick") === "all") {
+      const list = JSON.parse(String(fd.get("all") || "[]")) as Array<{ kind: string; value: string; city?: string | null }>;
+      for (const o of list.slice(0, 30)) {
+        n += await addToEntry(shop.id, entry.id, o.kind === "email" ? { email: o.value } : o.kind === "phone" ? { phone: o.value } : { address1: o.value, city: o.city || undefined }, shop.country, actor);
+      }
+    } else {
+      n = await addToEntry(shop.id, entry.id, {
+        email: str("email"), phone: str("phone"), firstName: str("firstName"), lastName: str("lastName"), address1: str("address1"), city: str("city"),
+      }, shop.country, actor);
+    }
+    if (n) await pushCheckoutMetafield(admin as any, shop.id);
+    return { ok: true, added: n };
+  } catch (e: any) {
+    const lang = shopLang(shop, request);
+    return { ok: false, error: e?.message ? trMsg(lang, e.message) : t(lang, "common.error") };
+  }
+};
+
 const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning" };
 const FIN_TONE: Record<string, "success" | "attention" | "critical" | "info" | undefined> = { PAID: "success", PENDING: "attention", AUTHORIZED: "attention", REFUNDED: "critical", PARTIALLY_REFUNDED: "warning" as any, VOIDED: "critical" };
 const STEPS = ["started", "contact", "address", "shipping", "payment", "completed"];
@@ -105,13 +175,22 @@ export default function Customer() {
   const navigate = useNavigate();
   const fetcher = useFetcher<any>();
   const [confirm, setConfirm] = useState(false);
+  const adder = useFetcher<any>();
+  const EMPTY = { email: "", phone: "", firstName: "", lastName: "", address1: "", city: "" };
+  const [form, setForm] = useState(EMPTY);
+  const set = (k: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
+  useEffect(() => {
+    if (adder.state !== "idle" || !adder.data) return;
+    if (adder.data.ok) { app.toast.show(adder.data.added ? tr("cust.addedData", { n: adder.data.added }) : tr("cust.nothingNew")); setForm(EMPTY); }
+    else app.toast.show(adder.data.error || tr("common.error"), { isError: true });
+  }, [adder.state, adder.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const when = (x: string | Date, time = true) => new Date(x).toLocaleString(dateLocale(lang), time ? { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" } : { day: "numeric", month: "short", year: "numeric" });
   const money = (v: number, c: string) => { try { return new Intl.NumberFormat(dateLocale(lang), { style: "currency", currency: c || "RON", maximumFractionDigits: 0 }).format(v); } catch { return `${Math.round(v)} ${c}`; } };
   const admin = (path: string) => `https://admin.shopify.com/store/${d.storeHandle}/${path}`;
   const title = d.names[0] || d.emails[0] || d.phones[0] || tr("common.customer");
   const sourceLabel = (s: string) => (["manual", "order", "import", "courier"].includes(s) ? tr(`source.${s}` as TKey) : s);
   const stepLabel = (s: string) => (STEPS.includes(s) ? tr(`cust.step.${s}` as TKey) : s);
-  const actionLabel = (a: string) => (["entry.create", "entry.delete", "entry.link_device"].includes(a) ? tr(`cust.audit.${a.replace("entry.", "")}` as TKey) : a);
+  const actionLabel = (a: string) => (["entry.create", "entry.delete", "entry.link_device", "entry.add_data"].includes(a) ? tr(`cust.audit.${a.replace("entry.", "")}` as TKey) : a);
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data?.ok) { app.toast.show(tr("common.saved")); navigate("/app/blacklist"); }
@@ -228,6 +307,7 @@ export default function Customer() {
                 <Group label={tr("cust.emails")} items={d.emails} icon={EmailIcon} />
                 <Group label={tr("cust.phones")} items={d.phones} icon={PhoneIcon} />
                 <Group label={tr("cust.addresses")} items={d.addresses} icon={LocationIcon} />
+                {d.weakAddresses.length > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("cust.weakAddr")}</Text>}
                 {d.devices.length > 0 && (
                   <BlockStack gap="100">
                     <Text as="p" variant="bodySm" tone="subdued">{tr("cust.devices")}</Text>
@@ -236,6 +316,58 @@ export default function Customer() {
                       : <IdLine key={x} icon={MobileIcon} label={tr("kind.device")}>{x.slice(0, 10)}…</IdLine>)}
                   </BlockStack>
                 )}
+              </BlockStack>
+            </Card>
+
+            {/* data typed from the same browsers that isn't on the list yet */}
+            {d.otherData.length > 0 && (
+              <Card>
+                <BlockStack gap="300">
+                  <BlockStack gap="050">
+                    <Text as="h2" variant="headingMd">{tr("cust.otherTitle")}</Text>
+                    <Text as="p" variant="bodySm" tone="subdued">{tr("cust.otherHint")}</Text>
+                  </BlockStack>
+                  {(d.otherData as any[]).map((o) => (
+                    <InlineStack key={o.kind + o.value} align="space-between" blockAlign="center" gap="200" wrap={false}>
+                      <BlockStack gap="050">
+                        <IdLine icon={o.kind === "email" ? EmailIcon : o.kind === "phone" ? PhoneIcon : LocationIcon} label={tr(`kind.${o.kind}` as TKey)}>{[o.value, o.city].filter(Boolean).join(", ")}</IdLine>
+                        <Text as="span" variant="bodySm" tone="subdued">{when(o.last)}</Text>
+                      </BlockStack>
+                      <Button size="slim" loading={adder.state !== "idle" && adder.formData?.get("pick") === o.kind + o.value}
+                        onClick={() => adder.submit({ pick: o.kind + o.value, ...(o.kind === "email" ? { email: o.value } : o.kind === "phone" ? { phone: o.value } : { address1: o.value, city: o.city || "" }) }, { method: "post" })}>{tr("cust.addThis")}</Button>
+                    </InlineStack>
+                  ))}
+                  {d.otherData.length > 1 && (
+                    <InlineStack align="end">
+                      <Button variant="primary" loading={adder.state !== "idle" && adder.formData?.get("pick") === "all"}
+                        onClick={() => adder.submit({ pick: "all", all: JSON.stringify(d.otherData.map((o: any) => ({ kind: o.kind, value: o.value, city: o.city }))) }, { method: "post" })}>{tr("cust.addAll")}</Button>
+                    </InlineStack>
+                  )}
+                </BlockStack>
+              </Card>
+            )}
+
+            {/* add more data to the entry */}
+            <Card>
+              <BlockStack gap="300">
+                <BlockStack gap="050">
+                  <Text as="h2" variant="headingMd">{tr("cust.addTitle")}</Text>
+                  <Text as="p" variant="bodySm" tone="subdued">{tr("cust.addHint")}</Text>
+                </BlockStack>
+                <FormLayout>
+                  <TextField label={tr("kind.email")} type="email" value={form.email} onChange={set("email")} autoComplete="off" />
+                  <TextField label={tr("kind.phone")} type="tel" value={form.phone} onChange={set("phone")} autoComplete="off" />
+                  <FormLayout.Group condensed>
+                    <TextField label={tr("cust.firstName")} value={form.firstName} onChange={set("firstName")} autoComplete="off" />
+                    <TextField label={tr("cust.lastName")} value={form.lastName} onChange={set("lastName")} autoComplete="off" />
+                  </FormLayout.Group>
+                  <TextField label={tr("kind.address")} value={form.address1} onChange={set("address1")} autoComplete="off" />
+                  <TextField label={tr("cust.city")} value={form.city} onChange={set("city")} autoComplete="off" />
+                </FormLayout>
+                <InlineStack align="end">
+                  <Button variant="primary" loading={adder.state !== "idle"} disabled={!Object.values(form).some((v) => v.trim())}
+                    onClick={() => adder.submit(form, { method: "post" })}>{tr("cust.addSave")}</Button>
+                </InlineStack>
               </BlockStack>
             </Card>
 

@@ -22,7 +22,7 @@ export interface EntryInput {
 
 interface Ident { kind: IdKind; raw: string; normalized: string }
 
-export function buildIdentifiers(i: EntryInput, country = "RO"): Ident[] {
+export function buildIdentifiers(i: EntryInput, country = "RO", opts?: { keepWeakAddress?: boolean }): Ident[] {
   const out: Ident[] = [];
   const add = (kind: IdKind, raw: string | undefined, normalized: string | null) => {
     if (raw && normalized) out.push({ kind, raw: raw.trim(), normalized });
@@ -34,10 +34,28 @@ export function buildIdentifiers(i: EntryInput, country = "RO"): Ident[] {
   add("name", rawName || undefined, name);
   const addr = normAddress({ address1: i.address1, address2: i.address2, city: i.city });
   const rawAddr = [i.address1, i.address2, i.city].filter(Boolean).join(", ");
-  add("address", rawAddr || undefined, addr);
+  // An address without a house number ("Strada Lungă", a village) is too weak to block on, but the merchant typed it
+  // and must see it on the customer: when saving an entry (keepWeakAddress) it is kept under a display-only key ("~…").
+  // Lookups never build that key, so it never matches; it never reaches the checkout blocklist or the network either.
+  add("address", rawAddr || undefined, addr ?? (rawAddr && opts?.keepWeakAddress ? weakAddressKey(rawAddr) : null));
   add("name_address", rawName && rawAddr ? `${rawName} / ${rawAddr}` : undefined, normNameAddress(name, addr));
   add("device", i.device, i.device ? normDevice(i.device) : null);
   return out;
+}
+
+/** Display-only key of an address that normAddress cannot use for matching. */
+export const weakAddressKey = (raw: string) => "~" + raw.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 200);
+export const isWeakAddress = (normalized: string) => normalized.startsWith("~");
+
+/** Adds e-mails / phones / names / addresses to an existing entry (skips what it already holds). Returns how many were added. */
+export async function addToEntry(shopId: string, entryId: string, input: Omit<EntryInput, "reason">, country: string, actor: string) {
+  const ids = buildIdentifiers({ ...input, reason: "other" }, country, { keepWeakAddress: true });
+  const have = new Set((await db.identifier.findMany({ where: { entryId }, select: { hash: true } })).map((r) => r.hash));
+  const add = ids.map((x) => ({ ...x, hash: hmacId(SECRET, x.kind, x.normalized) })).filter((x) => !have.has(x.hash));
+  if (!add.length) return 0;
+  await db.identifier.createMany({ data: add.map((x) => ({ entryId, shopId, kind: x.kind, raw: x.raw, normalized: x.normalized, hash: x.hash, normVersion: NORM_VERSION })) });
+  await db.auditLog.create({ data: { shopId, actor, action: "entry.add_data", entryId, payload: { added: add.map((x) => ({ kind: x.kind, raw: x.raw })) } as any } });
+  return add.length;
 }
 
 /** Kinds strong enough to say "this is the same customer" (a name or an address alone is not). */
@@ -76,7 +94,7 @@ export async function findExisting(shopId: string, input: Partial<EntryInput>, c
 
 export async function createEntry(opts: { shopId: string; shopDomain: string; country: string; settings: ShopSettings; input: EntryInput; actor: string }) {
   const { shopId, input } = opts;
-  const ids = buildIdentifiers(input, opts.country);
+  const ids = buildIdentifiers(input, opts.country, { keepWeakAddress: true });
   if (!ids.length) throw new Error("Nu există niciun identificator valid (e-mail, telefon, nume + adresă).");
 
   // "со второго раза": count earlier refuz_colet entries of this shop sharing any identifier
@@ -131,7 +149,7 @@ export async function deleteEntry(shopId: string, shopDomain: string, entryId: s
 /** Name-only entries (no e-mail, phone, address or device): normalized name + when it was added to the list. */
 export async function nameOnlyEntries(shopId: string): Promise<{ name: string; at: Date }[]> {
   const rows = (await db.identifier.findMany({
-    where: { shopId, kind: "name", entry: { identifiers: { every: { kind: "name" } }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
+    where: { shopId, kind: "name", entry: { identifiers: { every: { OR: [{ kind: "name" }, { kind: "address", normalized: { startsWith: "~" } }] } }, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
     select: { normalized: true, entry: { select: { createdAt: true } } },
   })) as any[];
   return rows.filter((r) => r.normalized).map((r) => ({ name: String(r.normalized), at: new Date(r.entry.createdAt) }));
@@ -167,7 +185,7 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const sh = (kind: string, n: string) => createHash("sha256").update(`${kind}:${n}`).digest("hex").slice(0, 16);
   const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set(), n: new Set(), w: new Set() };
   const key: Record<string, string> = { email: "e", phone: "p", address: "a", device: "d" };
-  for (const r of rows) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
+  for (const r of rows) if (!(r.kind === "address" && isWeakAddress(r.normalized))) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
   // Name-only entries (the merchant blocked a person by name, with no e-mail/phone/address): match the delivery name.
   // One word ("picioruș") = that word anywhere in first/last name; several words = the full name (any order).
   // Names that are only part of a fuller entry are NOT used here — too many people share a name.

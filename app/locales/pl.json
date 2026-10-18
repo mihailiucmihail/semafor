@@ -808,7 +808,21 @@
   "cust.openShopify": "Otwórz w Shopify",
   "cust.remove": "Usuń z czarnej listy",
   "cust.removeTitle": "Usunąć tego klienta?",
-  "cust.removeText": "{name} znów będzie mógł płacić przy odbiorze."
+  "cust.removeText": "{name} znów będzie mógł płacić przy odbiorze.",
+  "cust.addedData": "Dodano do czarnej listy: {n}",
+  "cust.nothingNew": "Już jest na liście",
+  "cust.weakAddr": "Adres bez numeru domu jest zapisany do wglądu, ale nie służy do blokowania (zbyt wiele osób mieszka przy tej samej ulicy).",
+  "cust.addTitle": "Dodaj więcej danych",
+  "cust.addHint": "Inny e-mail, telefon lub adres tego samego klienta — też zostaną zablokowane.",
+  "cust.firstName": "Imię",
+  "cust.lastName": "Nazwisko",
+  "cust.city": "Miasto",
+  "cust.addSave": "Dodaj do czarnej listy",
+  "cust.otherTitle": "Użyte też z tego samego urządzenia",
+  "cust.otherHint": "E-maile, telefony i adresy wpisane w kasie z urządzeń tego klienta, których jeszcze nie ma na liście.",
+  "cust.addThis": "Zablokuj",
+  "cust.addAll": "Zablokuj wszystkie",
+  "cust.audit.add_data": "Dodano dane"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

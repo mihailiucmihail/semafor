@@ -879,6 +879,20 @@ const D = {
   "cust.remove": { en: "Remove from blacklist", ro: "Scoate din lista neagră" },
   "cust.removeTitle": { en: "Remove this customer?", ro: "Scoți clientul din listă?" },
   "cust.removeText": { en: "{name} will be able to pay with cash on delivery again.", ro: "{name} va putea plăti din nou ramburs." },
+  "cust.addedData": { en: "Added to the blacklist: {n}", ro: "Adăugate în lista neagră: {n}" },
+  "cust.nothingNew": { en: "Already on the list", ro: "Este deja în listă" },
+  "cust.weakAddr": { en: "An address without a house number is kept for your records but isn’t used for blocking (too many people share a street).", ro: "O adresă fără număr este păstrată pentru evidență, dar nu se folosește la blocare (prea mulți oameni stau pe aceeași stradă)." },
+  "cust.addTitle": { en: "Add more details", ro: "Adaugă alte date" },
+  "cust.addHint": { en: "Another e-mail, phone or address of the same customer — they will be blocked too.", ro: "Alt e-mail, telefon sau adresă a aceluiași client — vor fi blocate și ele." },
+  "cust.firstName": { en: "First name", ro: "Prenume" },
+  "cust.lastName": { en: "Last name", ro: "Nume" },
+  "cust.city": { en: "City", ro: "Oraș" },
+  "cust.addSave": { en: "Add to the blacklist", ro: "Adaugă în lista neagră" },
+  "cust.otherTitle": { en: "Also used from the same device", ro: "Folosite și de pe același dispozitiv" },
+  "cust.otherHint": { en: "E-mails, phones and addresses typed at checkout from this customer’s browsers that aren’t on the list yet.", ro: "E-mailuri, telefoane și adrese introduse în checkout de pe dispozitivele clientului, care nu sunt încă în listă." },
+  "cust.addThis": { en: "Block", ro: "Blochează" },
+  "cust.addAll": { en: "Block all", ro: "Blochează toate" },
+  "cust.audit.add_data": { en: "Details added", ro: "Date adăugate" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;
