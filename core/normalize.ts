@@ -114,14 +114,18 @@ export function normAddress(a: AddressInput): string | null {
 
   const street: string[] = [];
   let number: string | null = null;
+  let block: string | null = null;
   for (let i = 0; i < toks.length; i++) {
     const t = toks[i];
-    if (UNIT_WORDS.has(t) || t === 'sector') { i++; continue; } // skip "bloc A2", "ap 5"
+    if (UNIT_WORDS.has(t) || t === 'sector') { if (t === 'bloc' && toks[i + 1]) block = block ?? toks[i + 1]; i++; continue; } // skip "bloc A2", "ap 5"
     if (t === 'nr') { if (toks[i + 1]) { number = number ?? toks[i + 1]; i++; } continue; }
     if (STREET_TYPES.has(t)) continue;
     if (/^\d+[a-z]?$/.test(t)) { if (number === null && street.length) number = t; continue; }
-    if (number === null) street.push(t);
+    // street words: before the number, or after it when the number came first ("nr 12 strada lunga")
+    if (number === null || !street.length) street.push(t);
   }
+  // block flats often have no street number ("Aleea Lalelelor bl 12 ap 3"): the block identifies the building
+  if (number === null && block) number = 'bl' + block;
   if (!street.length || !number) return null;
   return `${street.join(' ')}|${number}|${city}`;
 }
