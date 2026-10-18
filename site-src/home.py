@@ -337,9 +337,10 @@ for c, _ in LANGS:
     os.makedirs(d, exist_ok=True)
     open(f'{d}/index.html', 'w').write(inject(page(c), c))
 
-# sitemap: studio home + Semafor page, each with its 6 languages
+# sitemap: studio home + Semafor page + its data & privacy page, each with its 6 languages
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
-for fn in (home, semafor):
+def datapage(c): return semafor(c) + 'data/'
+for fn in (home, semafor, datapage):
     for c, _ in LANGS:
         sm += f'  <url><loc>{url(fn(c))}</loc>' + ''.join(f'<xhtml:link rel="alternate" hreflang="{x}" href="{url(fn(x))}"/>' for x, _ in LANGS) + '</url>\n'
 open(f'{OUT}/sitemap.xml', 'w').write(sm + '</urlset>\n')

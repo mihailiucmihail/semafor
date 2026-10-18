@@ -379,6 +379,7 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .faq summary::after{content:"+";font-size:24px;line-height:1;color:var(--mute);transition:transform .3s}
 .faq details[open] summary::after{transform:rotate(45deg)}
 .faq details p{color:var(--soft);padding:0 40px 26px 0;margin-top:-6px}
+.faq details p a.faq-more{color:var(--cream);text-underline-offset:3px;white-space:nowrap}
 
 /* final */
 .final{text-align:center;padding:150px 0;overflow:hidden;background:radial-gradient(700px 400px at 50% 100%,rgba(39,184,116,.18),transparent 70%),var(--night)}
@@ -797,7 +798,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="faq">
       <details class="reveal"><summary>Trebuie să configurez ceva?</summary><p>Nu. Instalezi Semafor și începe imediat să verifice comenzile. Blocarea la finalizarea comenzii pornește automat. Pornește o singură dată extensia Semafor în editorul temei — de ea depind recunoașterea dispozitivului și pop-up-ul. Fără cod.</p></details>
       <details class="reveal"><summary>Clientul blocat va afla?</summary><p>Nu. Pur și simplu nu vede nicio metodă de plată (sau nu vede plata ramburs), în funcție de regula aleasă. Nu apare niciun mesaj că a fost blocat.</p></details>
-      <details class="reveal"><summary>Cum rămâne cu confidențialitatea?</summary><p>Rețeaua de magazine schimbă doar amprente anonime, niciodată nume sau adrese. Fiecare e-mail are dezabonare dintr-un clic, iar cererile Shopify de ștergere a datelor se aplică automat.</p></details>
+      <details class="reveal"><summary>Cum rămâne cu confidențialitatea?</summary><p>Rețeaua de magazine schimbă doar amprente anonime, niciodată nume sau adrese. Fiecare e-mail are dezabonare dintr-un clic, iar cererile Shopify de ștergere a datelor se aplică automat. <a class="faq-more" href="/semafor/ro/data/">Vezi cum lucrează Semafor cu datele →</a></p></details>
       <details class="reveal"><summary>Am nevoie de un serviciu de e-mail?</summary><p>Nu. E-mailurile de reamintire și de bun venit sunt trimise de Semafor și incluse în planul tău. Dacă preferi, îți conectezi propriul domeniu cu un ghid pas cu pas.</p></details>
       <details class="reveal"><summary>Ce limbi vorbește Semafor?</summary><p>Aplicația vorbește engleză, română, spaniolă, franceză, poloneză și rusă. E-mailurile și pop-up-ul ajung la clienți în engleză, română, germană, poloneză sau spaniolă.</p></details>
       <details class="reveal"><summary>Ce se întâmplă după perioada de probă gratuită?</summary><p>Magazinul tău trece pe planul Gratuit și continuă să verifice 50 de comenzi pe lună. Setările rămân salvate — alege oricând un plan ca să reactivezi totul.</p></details>
@@ -820,7 +821,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <footer>
   <div class="wrap">
     <span>© 2026 Semafor de la <a href="/ro/" data-home>Kastel Labs</a></span>
-    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Politica de confidențialitate</a><a href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Shopify App Store</a></span>
+    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="/semafor/ro/data/">Date și confidențialitate</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Politica de confidențialitate</a><a href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>
 

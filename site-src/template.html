@@ -359,6 +359,7 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .faq summary::after{content:"+";font-size:24px;line-height:1;color:var(--mute);transition:transform .3s}
 .faq details[open] summary::after{transform:rotate(45deg)}
 .faq details p{color:var(--soft);padding:0 40px 26px 0;margin-top:-6px}
+.faq details p a.faq-more{color:var(--cream);text-underline-offset:3px;white-space:nowrap}
 
 /* final */
 .final{text-align:center;padding:150px 0;overflow:hidden;background:radial-gradient(700px 400px at 50% 100%,rgba(39,184,116,.18),transparent 70%),var(--night)}
@@ -753,7 +754,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
     <div class="faq">
       <details class="reveal"><summary>Do I need to set anything up?</summary><p>No. Install Semafor and it starts checking orders right away. Checkout blocking switches on automatically. Turn on the Semafor app embed in your theme editor once — it powers device recognition and the pop-up. No code.</p></details>
       <details class="reveal"><summary>Will a blocked customer know?</summary><p>No. They simply see no payment method (or no cash on delivery), depending on the rule you chose. There is no message saying they were blocked.</p></details>
-      <details class="reveal"><summary>What about privacy?</summary><p>The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically.</p></details>
+      <details class="reveal"><summary>What about privacy?</summary><p>The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically. <a class="faq-more" href="/semafor/data/">Read how Semafor handles data →</a></p></details>
       <details class="reveal"><summary>Do I need an e-mail service?</summary><p>No. Reminder and welcome e-mails are sent by Semafor and included in your plan. If you prefer, connect your own domain with a step-by-step guide.</p></details>
       <details class="reveal"><summary>Which languages does Semafor speak?</summary><p>The app speaks English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up reach customers in English, Romanian, German, Polish or Spanish.</p></details>
       <details class="reveal"><summary>What happens after the free trial?</summary><p>Your store moves to the Free plan and keeps checking 50 orders a month. Your settings are saved — choose a plan any time to switch everything back on.</p></details>
@@ -776,7 +777,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
 <footer>
   <div class="wrap">
     <span>© 2026 Semafor by <a href="/" data-home>Kastel Labs</a></span>
-    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacy policy</a><a href="https://apps.shopify.com/semafor" target="_blank" rel="noopener">Shopify App Store</a></span>
+    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="/semafor/data/">Data &amp; privacy</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacy policy</a><a href="https://apps.shopify.com/semafor" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>
 

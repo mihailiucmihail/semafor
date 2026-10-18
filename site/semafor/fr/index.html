@@ -379,6 +379,7 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .faq summary::after{content:"+";font-size:24px;line-height:1;color:var(--mute);transition:transform .3s}
 .faq details[open] summary::after{transform:rotate(45deg)}
 .faq details p{color:var(--soft);padding:0 40px 26px 0;margin-top:-6px}
+.faq details p a.faq-more{color:var(--cream);text-underline-offset:3px;white-space:nowrap}
 
 /* final */
 .final{text-align:center;padding:150px 0;overflow:hidden;background:radial-gradient(700px 400px at 50% 100%,rgba(39,184,116,.18),transparent 70%),var(--night)}
@@ -797,7 +798,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="faq">
       <details class="reveal"><summary>Dois-je configurer quoi que ce soit ?</summary><p>Non. Installez Semafor et il vérifie les commandes immédiatement. Le blocage au paiement s'active tout seul. Activez une fois l'extension Semafor dans l'éditeur de thème : elle fait fonctionner la reconnaissance des appareils et le pop-up. Sans code.</p></details>
       <details class="reveal"><summary>Un client bloqué le saura-t-il ?</summary><p>Non. Il ne voit simplement aucun moyen de paiement (ou pas de paiement à la livraison), selon la règle que vous avez choisie. Aucun message ne lui indique qu'il a été bloqué.</p></details>
-      <details class="reveal"><summary>Et la confidentialité ?</summary><p>Le réseau de boutiques n'échange que des empreintes anonymes, jamais de noms ni d'adresses. Chaque e-mail permet de se désabonner en un clic, et les demandes de suppression de données transmises par Shopify sont appliquées automatiquement.</p></details>
+      <details class="reveal"><summary>Et la confidentialité ?</summary><p>Le réseau de boutiques n'échange que des empreintes anonymes, jamais de noms ni d'adresses. Chaque e-mail permet de se désabonner en un clic, et les demandes de suppression de données transmises par Shopify sont appliquées automatiquement. <a class="faq-more" href="/semafor/fr/data/">Comment Semafor traite les données →</a></p></details>
       <details class="reveal"><summary>Ai-je besoin d'un service d'e-mailing ?</summary><p>Non. Les e-mails de relance et de bienvenue sont envoyés par Semafor et inclus dans votre forfait. Si vous préférez, connectez votre propre domaine grâce à un guide pas à pas.</p></details>
       <details class="reveal"><summary>Quelles langues Semafor parle-t-il ?</summary><p>L'app parle anglais, roumain, espagnol, français, polonais et russe. Les e-mails et le pop-up s'adressent aux clients en anglais, roumain, allemand, polonais ou espagnol.</p></details>
       <details class="reveal"><summary>Que se passe-t-il après l'essai gratuit ?</summary><p>Votre boutique passe au forfait Gratuit et continue de vérifier 50 commandes par mois. Vos réglages sont conservés — choisissez un forfait à tout moment pour tout réactiver.</p></details>
@@ -820,7 +821,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <footer>
   <div class="wrap">
     <span>© 2026 Semafor par <a href="/fr/" data-home>Kastel Labs</a></span>
-    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Politique de confidentialité</a><a href="https://apps.shopify.com/semafor?locale=fr" target="_blank" rel="noopener">Shopify App Store</a></span>
+    <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="/semafor/fr/data/">Données et confidentialité</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Politique de confidentialité</a><a href="https://apps.shopify.com/semafor?locale=fr" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>
 
