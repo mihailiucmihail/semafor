@@ -106,11 +106,14 @@ export async function checkOrder(opts: {
   const prev = opts.recheck ? await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { level: true, networkLevel: true } }) : null;
   const prevLevel: Level | null = prev ? (({ green: 0, yellow: 1, red: 2 } as const)[prev.level as Level] >= ({ green: 0, yellow: 1, red: 2 } as const)[prev.networkLevel as Level] ? prev.level as Level : prev.networkLevel as Level) : null;
   const changed = !opts.recheck || prevLevel !== combined;
+  let staleRisk = false; // Shopify still shows an older yellow/red Semafor assessment
   {
     const tag = TAG[combined];
     const cur: any = await gql(admin, `#graphql
-      query($id:ID!){ order(id:$id){ tags } }`, { id: order.admin_graphql_api_id });
+      query($id:ID!){ order(id:$id){ tags risk{ assessments{ riskLevel provider{ title } } } } }`, { id: order.admin_graphql_api_id });
     const present: string[] = cur?.data?.order?.tags ?? [];
+    const ours = ((cur?.data?.order?.risk?.assessments ?? []) as any[]).filter((a) => /semafor/i.test(a?.provider?.title || ''));
+    staleRisk = !!ours.length && ours[ours.length - 1].riskLevel !== 'NONE';
     const stale = present.filter((t) => t !== tag && ALL_TAGS.includes(t));
     if (stale.length) {
       const r: any = await gql(admin, `#graphql
@@ -120,7 +123,7 @@ export async function checkOrder(opts: {
     await gql(admin, `#graphql
       mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
   }
-  if (opts.recheck && changed && combined === 'green') {
+  if (combined === 'green' && ((opts.recheck && changed) || staleRisk)) {
     // the reason is gone (e.g. the other order was delivered): Shopify shows Semafor's latest assessment
     await gql(admin, `#graphql
       mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,

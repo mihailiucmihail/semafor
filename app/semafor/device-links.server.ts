@@ -6,6 +6,7 @@ import { normEmail, normPhone, normName } from "../../core/normalize";
 export type DeviceFinding = { kind: "device"; normalized: string; entryId: string; reason: string; weight: number };
 
 const DAY = 86_400_000;
+const orderNum = (id: string) => String(id).split("/").pop() || "";
 
 /**
  * Looks at every checkout attempt made from the same device as this order (same browser id,
@@ -60,11 +61,18 @@ export async function deviceLinks(db: PrismaClient, secret: string, shopId: stri
   }
   // other orders placed from the same browser (90 days), whatever name / e-mail / address they used
   const devOrders = (await db.checkoutAttempt.findMany({
-    where: { shopId, deviceId: { in: devices }, orderId: { not: null }, createdAt: { gt: new Date(Date.now() - 90 * DAY) }, ...(orderId ? { NOT: { orderId } } : {}) },
+    where: { shopId, deviceId: { in: devices }, orderId: { not: null }, createdAt: { gt: new Date(Date.now() - 90 * DAY) } },
     orderBy: { createdAt: "desc" }, select: { orderId: true, firstName: true, lastName: true, email: true },
   })) as any[];
+  // the pixel reports gid://shopify/OrderIdentity/N, the webhook gid://shopify/Order/N — compare by the number,
+  // and never list the order being checked itself
+  const self = orderId ? orderNum(orderId) : "";
   const byOrder = new Map<string, string>();
-  for (const a of devOrders) if (a.orderId && !byOrder.has(a.orderId)) byOrder.set(a.orderId, [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email || "");
+  for (const a of devOrders) {
+    const num = a.orderId ? orderNum(a.orderId) : ""; if (!num || num === self) continue;
+    const gid = `gid://shopify/Order/${num}`;
+    if (!byOrder.has(gid)) byOrder.set(gid, [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email || "");
+  }
   if (byOrder.size) {
     const names = (await db.orderCheck.findMany({ where: { shopId, orderId: { in: [...byOrder.keys()] } }, select: { orderId: true, orderName: true } })) as any[];
     const nameOf = new Map(names.map((n) => [n.orderId, n.orderName]));

@@ -61,7 +61,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     data: {
       shopId: shop.id, deviceId, fingerprint: cut(b.fingerprint, 64), ip, checkoutToken: cut(b.checkoutToken, 100), event,
       email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80),
-      address1: cut(b.address1), city: cut(b.city, 80), orderId: cut(b.orderId, 80),
+      address1: cut(b.address1), city: cut(b.city, 80), orderId: cut(typeof b.orderId === "string" ? b.orderId.replace("/OrderIdentity/", "/Order/") : b.orderId, 80),
       host: cut(b.host, 120), locale: cut(b.locale, 10)?.toLowerCase() ?? null, country: cut(b.country, 4)?.toUpperCase() ?? null,
       currency: cut(b.currency, 4), total: Number.isFinite(Number(b.total)) && b.total !== null ? Number(b.total) : null,
       discountCode: cut(b.discountCode, 80),
