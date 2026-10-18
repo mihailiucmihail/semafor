@@ -894,7 +894,10 @@
   "bl.fChecksS": "Signalées",
   "bl.fTriesS": "Essais",
   "bl.fLastS": "Vu le",
-  "bl.recent": "Activité récente d'abord"
+  "bl.recent": "Activité récente d'abord",
+  "stats.showMore": "Afficher {n} de plus · encore {left}",
+  "stats.updatedAt": "Mis à jour à {time} · actualisé toutes les 10 min",
+  "stats.refresh": "Actualiser"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

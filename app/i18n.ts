@@ -965,6 +965,9 @@ const D = {
   "bl.fTriesS": { en: "Tries", ro: "Încercări" },
   "bl.fLastS": { en: "Last seen", ro: "Ultima dată" },
   "bl.recent": { en: "Recent activity first", ro: "Activitate recentă întâi" },
+  "stats.showMore": { en: "Show {n} more · {left} left", ro: "Arată încă {n} · mai sunt {left}" },
+  "stats.updatedAt": { en: "Updated at {time} · refreshes every 10 min", ro: "Actualizat la {time} · se reîmprospătează la 10 min" },
+  "stats.refresh": { en: "Refresh now", ro: "Actualizează acum" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

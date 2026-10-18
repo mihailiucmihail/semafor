@@ -894,7 +894,10 @@
   "bl.fChecksS": "Oznaczone",
   "bl.fTriesS": "Próby",
   "bl.fLastS": "Ostatnio",
-  "bl.recent": "Najpierw ostatnia aktywność"
+  "bl.recent": "Najpierw ostatnia aktywność",
+  "stats.showMore": "Pokaż {n} więcej · zostało {left}",
+  "stats.updatedAt": "Zaktualizowano o {time} · odświeżane co 10 min",
+  "stats.refresh": "Odśwież teraz"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

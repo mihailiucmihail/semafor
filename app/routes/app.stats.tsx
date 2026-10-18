@@ -11,6 +11,7 @@ import { popupLeadMap } from "../semafor/popup.server";
 import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
+import { memo } from "../semafor/memo.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers, nameOnlyEntries, nameOnlyHit } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
@@ -18,14 +19,33 @@ import { normEmail, normPhone, normName } from "../../core/normalize";
 import { useT, useLang, dateLocale, type TKey } from "../i18n";
 
 const DAY = 86_400_000;
+const PAGE = 20, SPAGE = 10, TTL = 10 * 60_000;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, redirect, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   requireFeature(shop, "checkout_stats", redirect);
+  const sp = new URL(request.url).searchParams;
+  const f = sp.get("f") || "";
+  const days = Math.min(90, Math.max(1, Number(sp.get("d")) || 30));
+  // how many rows the page shows ("Arată încă" adds a page); only these rows are sent to the browser
+  const n = Math.min(2000, Math.max(PAGE, Number(sp.get("n")) || PAGE));
+  const sn = Math.min(50, Math.max(SPAGE, Number(sp.get("sn")) || SPAGE));
+  // the heavy part (every checkout step of the period) is computed at most every 10 minutes per shop and period
+  const c = await memo(`stats:${shop.id}:${days}`, TTL, () => computeStats(shop, admin, days), sp.get("fresh") === "1");
+  const pick = c.lists[f as keyof typeof c.lists] ?? c.lists.all;
+  const storeHandle = session.shop.replace(".myshopify.com", "");
+  return {
+    days, f, since: c.since, at: c.at, n, sn,
+    kpi: c.kpi, orders: c.orders,
+    suspicious: c.suspicious.slice(0, sn), suspiciousTotal: c.suspicious.length,
+    devices: pick.slice(0, n).map(c.row), devicesTotal: pick.length,
+    storeHandle, attr: c.attr,
+  };
+};
+
+async function computeStats(shop: Awaited<ReturnType<typeof ensureShop>>, admin: any, days: number) {
   await enrichFromShopify(admin as any, shop.id, 14).catch(() => 0);
-  const f = new URL(request.url).searchParams.get("f") || "";
-  const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("d")) || 30));
   const since = new Date(Date.now() - days * DAY);
 
   const attempts = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: { gt: since } }, orderBy: { createdAt: "asc" }, take: 20000 })) as any[];
@@ -103,22 +123,22 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const orderedAfter = d.completed && +(lastAt.get(d.id) ?? 0) > +first;
     return { count: all.length, kinds: all.map((x) => x.kind), last: all[all.length - 1].createdAt, back, orderedAfter };
   };
-  const pick = f === "black" ? black : f === "slipped" ? slipped : f === "hopping" ? hopping : f === "ordered" ? all.filter((d) => d.completed) : all;
-  const devices = [...pick].sort((a, b) => +b.last - +a.last).slice(0, 200).map((d) => ({
+  const newest = (l: Dev[]) => [...l].sort((a, b) => +b.last - +a.last).slice(0, 2000);
+  const lists = { all: newest(all), black: newest(black), slipped: newest(slipped), hopping: newest(hopping), ordered: newest(all.filter((d) => d.completed)) };
+  const row = (d: Dev) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
     matched: d.matched, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null, popupSource: leads.get(d.id)?.source ?? null,
-  }));
-  const storeHandle = session.shop.replace(".myshopify.com", "");
+  });
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
   return {
-    days, f, since: firstAttempt?.createdAt ?? null,
+    at: new Date().toISOString(), since: (firstAttempt?.createdAt as Date | undefined) ?? null,
     kpi: { attempts: attempts.filter((a) => a.event !== "cart").length, devices: checkoutDevs.length, completedDevices: checkoutDevs.filter((d) => d.completed).length, black: black.length, slipped: slipped.length, hopping: hopping.length },
-    orders, suspicious, devices, storeHandle,
+    orders, suspicious, lists, row,
     attr: await (async () => { await backfillAttribution(db, admin as any, shop); return attributionSummary(db, shop.id, 30); })(),
   };
-};
+}
 
 const initials = (s: string) => (s.split(/[\s@.]+/).filter(Boolean).slice(0, s.includes("@") ? 1 : 2).map((w) => w[0]).join("") || "?").toUpperCase();
 
@@ -129,9 +149,12 @@ function uniqPhones(list: string[]) {
 }
 
 export default function Stats() {
-  const { days, f, since, kpi, orders, suspicious, devices, storeHandle, attr } = useLoaderData<typeof loader>();
+  const { days, f, since, at, n: shown, sn, kpi, orders, suspicious, suspiciousTotal, devices, devicesTotal, storeHandle, attr } = useLoaderData<typeof loader>();
   const [sp, setSp] = useSearchParams();
-  const filterBy = (v: string) => { const n = new URLSearchParams(sp); if (!v || f === v) n.delete("f"); else n.set("f", v); setSp(n); setTimeout(() => document.getElementById("sf-attempts")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300); };
+  const params = () => { const x = new URLSearchParams(sp); x.delete("fresh"); return x; };
+  /** next page of a list: the server sends only the extra rows; the page keeps its scroll position */
+  const more = (key: "n" | "sn", cur: number, step: number) => { const x = params(); x.set(key, String(cur + step)); setSp(x, { preventScrollReset: true, replace: true }); };
+  const filterBy = (v: string) => { const n = params(); n.delete("n"); if (!v || f === v) n.delete("f"); else n.set("f", v); setSp(n); setTimeout(() => document.getElementById("sf-attempts")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300); };
   const tr = useT();
   const lang = useLang();
   const loc = dateLocale(lang);
@@ -143,9 +166,15 @@ export default function Stats() {
         <Layout.Section>
           <BlockStack gap="500">
             <InlineStack align="space-between" blockAlign="center" gap="300">
-              <Text as="p" tone="subdued">{since ? tr("stats.trackingSince", { date: new Date(since).toLocaleString(loc) }) : tr("stats.noAttemptsYet")}</Text>
+              <BlockStack gap="050">
+                <Text as="p" tone="subdued">{since ? tr("stats.trackingSince", { date: new Date(since).toLocaleString(loc) }) : tr("stats.noAttemptsYet")}</Text>
+                <InlineStack gap="200" blockAlign="center">
+                  <Text as="span" variant="bodySm" tone="subdued">{tr("stats.updatedAt", { time: new Date(at).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" }) })}</Text>
+                  <Button variant="plain" size="slim" onClick={() => { const x = params(); x.set("fresh", "1"); setSp(x, { preventScrollReset: true, replace: true }); }}>{tr("stats.refresh")}</Button>
+                </InlineStack>
+              </BlockStack>
               <Box minWidth="200px">
-                <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => { const n = new URLSearchParams(sp); n.set("d", v); setSp(n); }}
+                <Select label={tr("stats.period")} labelInline value={String(days)} onChange={(v) => { const n = params(); n.delete("n"); n.delete("sn"); n.set("d", v); setSp(n); }}
                   options={[{ label: tr("stats.today"), value: "1" }, { label: tr("stats.d7"), value: "7" }, { label: tr("stats.d30"), value: "30" }, { label: tr("stats.d90"), value: "90" }]} />
               </Box>
             </InlineStack>
@@ -216,6 +245,9 @@ export default function Stats() {
                     ))}
                   </IndexTable>
                 </div></>
+              )}
+              {suspiciousTotal > suspicious.length && (
+                <Box padding="300"><InlineStack align="center"><Button onClick={() => more("sn", sn, 10)}>{tr("stats.showMore", { n: Math.min(10, suspiciousTotal - suspicious.length), left: suspiciousTotal - suspicious.length })}</Button></InlineStack></Box>
               )}
             </Card>
 
@@ -309,6 +341,9 @@ export default function Stats() {
                     })}
                   </IndexTable>
                 </div></>
+              )}
+              {devicesTotal > devices.length && (
+                <Box padding="300"><InlineStack align="center"><Button onClick={() => more("n", shown, 20)}>{tr("stats.showMore", { n: Math.min(20, devicesTotal - devices.length), left: devicesTotal - devices.length })}</Button></InlineStack></Box>
               )}
             </Card>
             {kpi.attempts === 0 && <Banner tone="info">{tr("stats.appear")}</Banner>}

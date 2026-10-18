@@ -894,7 +894,10 @@
   "bl.fChecksS": "Marcados",
   "bl.fTriesS": "Intentos",
   "bl.fLastS": "Última vez",
-  "bl.recent": "Actividad reciente primero"
+  "bl.recent": "Actividad reciente primero",
+  "stats.showMore": "Mostrar {n} más · quedan {left}",
+  "stats.updatedAt": "Actualizado a las {time} · se renueva cada 10 min",
+  "stats.refresh": "Actualizar ahora"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",
