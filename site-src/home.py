@@ -153,6 +153,7 @@ nav.top{position:fixed;top:0;left:0;right:0;z-index:40;transition:background .3s
 nav.top.scrolled{background:rgba(15,14,12,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom-color:var(--edge)}
 nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
 .logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+.logo img{width:26px;height:31px}
 .logo .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,#2a2622,#14120f);border:1px solid var(--edge);display:grid;place-items:center}
 .logo .mark i{display:block;width:4px;height:14px;border-radius:2px;background:var(--cream);box-shadow:6px 0 0 var(--soft),-6px 0 0 var(--soft)}
 .logo span{font-family:var(--serif);font-size:24px;letter-spacing:.01em}
@@ -250,14 +251,14 @@ def page(c):
 <meta name="description" content="{H.escape(T[c]["desc"])}">
 <meta property="og:title" content="{H.escape(T[c]["title"])}">
 <meta property="og:description" content="{H.escape(T[c]["desc"])}">
-<meta property="og:image" content="{SITE}/assets/icon-512.png">
+<meta property="og:image" content="{SITE}/assets/kastel-icon-512.png">
 {REDIRECT if c == 'en' else ''}
 <link rel="canonical" href="{url(home(c))}">
 {alts}<meta property="og:url" content="{url(home(c))}">
 <meta property="og:locale" content="{OG[c]}">
 <meta property="og:type" content="website">
-<link rel="icon" type="image/png" href="/assets/favicon.png">
-<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/assets/kastel-favicon.png">
+<link rel="apple-touch-icon" href="/assets/kastel-apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
@@ -265,7 +266,7 @@ def page(c):
 </head>
 <body>
 <nav class="top" id="nav"><div class="wrap">
-  <a class="logo" href="{home(c)}" aria-label="Kastel Labs"><span class="mark"><i></i></span><span>Kastel Labs</span></a>
+  <a class="logo" href="{home(c)}" aria-label="Kastel Labs"><img src="/assets/kastel-mark.svg" alt="" width="26" height="31"><span>Kastel Labs</span></a>
   <div class="navlinks">
     <a href="#apps">{t["nav_apps"]}</a><a href="#why">{t["nav_why"]}</a><a href="#contact">{t["nav_contact"]}</a>
     <details class="lang"><summary aria-label="{t["lang"]}">{GLOBE}{c.upper()}</summary><nav class="menu">{sw}</nav></details>
@@ -314,7 +315,7 @@ def page(c):
 </div></section>
 
 <footer><div class="wrap">
-  <span>© 2026 Kastel Labs</span>
+  <span style="display:flex;align-items:center;gap:10px"><img src="/assets/kastel-mark.svg" alt="" width="16" height="19">© 2026 Kastel Labs</span>
   <span class="links"><a href="mailto:{MAIL}">{MAIL}</a><a href="{semafor(c)}">Semafor</a><a href="{PRIVACY}" target="_blank" rel="noopener">{t["foot_privacy"]}</a><a href="{store}" target="_blank" rel="noopener">{t["foot_store"]}</a></span>
 </div></footer>
 
