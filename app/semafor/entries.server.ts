@@ -6,7 +6,7 @@ import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { hmacId, shopRef } from "../../core/hash";
 import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, NORM_VERSION, type IdKind } from "../../core/normalize";
-import { shouldShareToNetwork, type ShopSettings } from "../../core/settings";
+import { shouldShareToNetwork, settingsOf, type ShopSettings } from "../../core/settings";
 
 import { type Reason } from "../../core/reasons";
 export type { Reason };
@@ -44,16 +44,31 @@ export function buildIdentifiers(i: EntryInput, country = "RO", opts?: { keepWea
 }
 
 /** Strong identifiers (e-mail, phone, name + address) of a shared entry → the network (24 months). */
-export async function shareToNetwork(shopDomain: string, country: string, reason: string, ids: Array<{ kind: string; hash: string }>) {
+export async function shareToNetwork(shopDomain: string, country: string, reason: string, ids: Array<{ kind: string; hash: string; normalized?: string }>) {
   const ref = shopRef(SECRET, shopDomain);
   const expiresAt = new Date(Date.now() + 730 * 86400e3);
   for (const x of ids.filter((i) => ["email", "phone", "name_address"].includes(i.kind))) {
+    const fnHash = (x.kind === "email" || x.kind === "phone") && x.normalized ? fnHashOf(x.kind, x.normalized) : null;
     await db.networkReport.upsert({
       where: { hash_shopRef: { hash: x.hash, shopRef: ref } },
-      create: { hash: x.hash, kind: x.kind as IdKind, reason: reason as any, country, shopRef: ref, expiresAt },
-      update: { reason: reason as any, expiresAt },
+      create: { hash: x.hash, kind: x.kind as IdKind, reason: reason as any, country, shopRef: ref, expiresAt, fnHash },
+      update: { reason: reason as any, expiresAt, ...(fnHash ? { fnHash } : {}) },
     });
   }
+}
+
+/** The short hash the checkout Function compares (see extensions/semafor-hide-payment). */
+export const fnHashOf = (kind: string, normalized: string) => createHash("sha256").update(`${kind}:${normalized}`).digest("hex").slice(0, 16);
+
+/** Older network reports (before fnHash existed): fill it from any identifier with the same HMAC. Cheap when nothing is missing. */
+export async function fillNetworkFnHash() {
+  const rows = await db.networkReport.findMany({ where: { fnHash: null, kind: { in: ["email", "phone"] } }, select: { id: true, hash: true, kind: true }, take: 2000 });
+  if (!rows.length) return 0;
+  const ids = await db.identifier.findMany({ where: { hash: { in: [...new Set(rows.map((r) => r.hash))] } }, select: { hash: true, kind: true, normalized: true }, distinct: ["hash"] });
+  const byHash = new Map(ids.map((i) => [i.hash, fnHashOf(i.kind, i.normalized)]));
+  let n = 0;
+  for (const r of rows) { const f = byHash.get(r.hash); if (f) { await db.networkReport.update({ where: { id: r.id }, data: { fnHash: f } }); n++; } }
+  return n;
 }
 
 /** Takes this shop's network reports of some identifiers back (e.g. data removed from an entry). */
@@ -63,7 +78,7 @@ export async function unshareFromNetwork(shopDomain: string, hashes: string[]) {
 }
 
 /** New identifiers on an entry that is already in the network go to the network too. */
-export async function shareAddedIfShared(entryId: string, ids: Array<{ kind: string; hash: string }>) {
+export async function shareAddedIfShared(entryId: string, ids: Array<{ kind: string; hash: string; normalized?: string }>) {
   const e = await db.blockEntry.findUnique({ where: { id: entryId }, select: { shared: true, reason: true, shop: { select: { domain: true, country: true } } } });
   if (e?.shared) await shareToNetwork(e.shop.domain, e.shop.country, e.reason, ids);
 }
@@ -192,7 +207,8 @@ export function nameOnlyHit(names: (string | { name: string; at: Date })[], firs
 export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const empty = { v: 1, e: [] as string[], p: [] as string[], a: [] as string[], d: [] as string[], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
   // Blocking in checkout (hide cash on delivery / block) is a Basic feature.
-  if (!can(planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true } })), "checkout_block")) return empty;
+  const shopRow = await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, settings: true } });
+  if (!can(planOf(shopRow), "checkout_block")) return empty;
   const rows = await db.identifier.findMany({
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
     select: { kind: true, normalized: true },
@@ -206,6 +222,23 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // Names that are only part of a fuller entry are NOT used here — too many people share a name.
   // Full names go to `n`, single words to `w` (the Function then only hashes the buyer's name words when `w` has entries).
   for (const r of await nameOnlyRows(shopId)) { if (r.includes(" ")) buckets.n.add(sh("name", r)); else buckets.w.add(sh("nw", r)); }
+  // Network blocking (optional, off by default): e-mails / phones reported by at least N OTHER shops
+  const st = settingsOf(shopRow?.settings);
+  if (st.shareNetwork && st.networkBlock?.enabled && shopRow) {
+    const min = Math.min(5, Math.max(1, Number(st.networkBlock.minShops) || 2));
+    const own = shopRef(SECRET, shopRow.domain);
+    const reps = await db.networkReport.findMany({
+      where: { fnHash: { not: null }, kind: { in: ["email", "phone"] }, expiresAt: { gt: new Date() }, shopRef: { not: own } },
+      select: { fnHash: true, kind: true, shopRef: true }, orderBy: { createdAt: "desc" }, take: 20000,
+    });
+    const shops = new Map<string, { kind: string; refs: Set<string> }>();
+    for (const r of reps) { const k = r.fnHash!; const cur = shops.get(k) ?? { kind: r.kind, refs: new Set<string>() }; cur.refs.add(r.shopRef); shops.set(k, cur); }
+    let added = 0;
+    for (const [h, v] of shops) {
+      if (v.refs.size < min || added >= 1500) continue; // keep the Function input small
+      buckets[v.kind === "email" ? "e" : "p"].add(h); added++;
+    }
+  }
   return { v: 1, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], w: [...buckets.w], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 

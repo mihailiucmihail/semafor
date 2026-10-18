@@ -35,6 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
     // language is sent only when the merchant picked one; otherwise the stored choice (or automatic) stays
     uiLang: isLang(fd.get("uiLang")) ? (fd.get("uiLang") as Lang) : shop.settings.uiLang ?? null,
+    networkBlock: { enabled: fd.get("netBlock") === "true", minShops: Math.min(5, Math.max(1, Number(fd.get("netMin")) || 2)) },
     shipCost: Number(String(fd.get("shipCost") ?? "").replace(",", ".")) > 0 ? Math.round(Number(String(fd.get("shipCost")).replace(",", ".")) * 100) / 100 : null,
   }, (session as any).email || session.shop);
   await pushCheckoutMetafield(admin, shop.id);
@@ -47,12 +48,12 @@ export default function Settings() {
   const app = useAppBridge();
   const tr = useT();
   const lang = useLang();
-  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "" });
+  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "", netBlock: !!settings.networkBlock?.enabled, netMin: String(settings.networkBlock?.minShops ?? 2) });
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "ORDERS_UPDATED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
   const allOk = (webhooks as any[]).every((w) => w.ok);
-  const save = () => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork), tagAttributed: String(s.tagAttributed) }, { method: "post" });
+  const save = () => fetcher.submit({ ...s, cancelRed: String(s.cancelRed), shareNetwork: String(s.shareNetwork), tagAttributed: String(s.tagAttributed), netBlock: String(s.netBlock) }, { method: "post" });
 
   return (
     <Page fullWidth>
@@ -87,7 +88,16 @@ export default function Settings() {
 
           <Layout.AnnotatedSection title={tr("settings.networkHeading")} description={tr("settings.networkDesc")}>
             <Card>
-              <Checkbox label={tr("settings.networkLabel")} checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })} helpText={tr("settings.networkHelp")} />
+              <BlockStack gap="300">
+                <Checkbox label={tr("settings.networkLabel")} checked={s.shareNetwork} onChange={(v) => setS({ ...s, shareNetwork: v })} helpText={tr("settings.networkHelp")} />
+                <Divider />
+                <Checkbox label={tr("settings.netBlockLabel")} disabled={!basic || !s.shareNetwork} checked={basic && s.shareNetwork && s.netBlock}
+                  onChange={(v) => setS({ ...s, netBlock: v })} helpText={basic ? tr("settings.netBlockHelp") : tr("ov.lockedBasic")} />
+                {basic && s.shareNetwork && s.netBlock && (
+                  <Select label={tr("settings.netMinLabel")} value={s.netMin} onChange={(v) => setS({ ...s, netMin: v })}
+                    options={["1", "2", "3"].map((n) => ({ label: tr("settings.netMinOpt", { n }), value: n }))} />
+                )}
+              </BlockStack>
             </Card>
           </Layout.AnnotatedSection>
 

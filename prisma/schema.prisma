@@ -144,12 +144,14 @@ model NetworkReport {
   reason    Reason
   country   String
   shopRef   String                              // irreversible shop hash
+  fnHash    String?                             // e-mail / phone only: short SHA-256 the checkout Function compares (network blocking)
   createdAt DateTime @default(now())
   expiresAt DateTime                            // createdAt + 24 months
 
   @@unique([hash, shopRef])
   @@index([hash])
   @@index([expiresAt])
+  @@index([fnHash])
 }
 
 model Session {

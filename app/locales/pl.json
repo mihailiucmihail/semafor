@@ -842,7 +842,11 @@
   "cust.removedData": "Usunięto — już nie jest blokowane",
   "cust.lastIdentifier": "To ostatnia dana klienta. Aby go całkowicie odblokować, użyj „Usuń z czarnej listy”.",
   "cust.deviceHint": "Jeśli z usuniętego urządzenia ktoś znów wpisze dane tego klienta, Semafor ponownie je powiąże.",
-  "cust.audit.remove_data": "Usunięto dane"
+  "cust.audit.remove_data": "Usunięto dane",
+  "settings.netBlockLabel": "Ukrywaj płatność także klientom zgłoszonym przez inne sklepy",
+  "settings.netBlockHelp": "Domyślnie wyłączone. Porównuje e-mail i telefon klienta ze zgłoszeniami innych sklepów w sieci Semafor.",
+  "settings.netMinLabel": "Blokuj, gdy zgłosiło",
+  "settings.netMinOpt": "co najmniej sklepów: {n}"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

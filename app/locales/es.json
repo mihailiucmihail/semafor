@@ -842,7 +842,11 @@
   "cust.removedData": "Quitado: ya no se bloquea",
   "cust.lastIdentifier": "Es el último dato del cliente. Para desbloquearlo del todo, usa «Quitar de la lista negra».",
   "cust.deviceHint": "Si desde un dispositivo quitado se vuelven a escribir los datos de este cliente, Semafor lo vuelve a vincular.",
-  "cust.audit.remove_data": "Datos quitados"
+  "cust.audit.remove_data": "Datos quitados",
+  "settings.netBlockLabel": "Ocultar también el pago a compradores reportados por otras tiendas",
+  "settings.netBlockHelp": "Desactivado por defecto. Compara el correo y el teléfono del comprador con los reportes de otras tiendas de la red Semafor.",
+  "settings.netMinLabel": "Bloquear cuando lo reporten",
+  "settings.netMinOpt": "al menos {n} tienda(s)"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",

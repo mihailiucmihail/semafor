@@ -842,7 +842,11 @@
   "cust.removedData": "Retiré — n’est plus bloqué",
   "cust.lastIdentifier": "C’est la dernière donnée du client. Pour le débloquer entièrement, utilisez « Retirer de la liste noire ».",
   "cust.deviceHint": "Si les données de ce client sont de nouveau saisies depuis un appareil retiré, Semafor le relie à nouveau.",
-  "cust.audit.remove_data": "Données retirées"
+  "cust.audit.remove_data": "Données retirées",
+  "settings.netBlockLabel": "Masquer aussi le paiement pour les acheteurs signalés par d’autres boutiques",
+  "settings.netBlockHelp": "Désactivé par défaut. Compare l’e-mail et le téléphone de l’acheteur aux signalements des autres boutiques du réseau Semafor.",
+  "settings.netMinLabel": "Bloquer quand signalé par",
+  "settings.netMinOpt": "au moins {n} boutique(s)"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

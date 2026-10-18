@@ -913,6 +913,10 @@ const D = {
   "cust.lastIdentifier": { en: "This is the customer’s last detail. To unblock them completely, use “Remove from blacklist”.", ro: "Este ultima dată a clientului. Ca să-l deblochezi complet, folosește „Scoate din lista neagră”." },
   "cust.deviceHint": { en: "If someone types this customer’s details again from a removed device, Semafor links it again.", ro: "Dacă de pe un dispozitiv scos se introduc din nou datele clientului, Semafor îl leagă din nou." },
   "cust.audit.remove_data": { en: "Details removed", ro: "Date scoase" },
+  "settings.netBlockLabel": { en: "Also hide payment for buyers reported by other stores", ro: "Ascunde plata și pentru clienții raportați de alte magazine" },
+  "settings.netBlockHelp": { en: "Off by default. Checks the buyer’s e-mail and phone against reports from other stores in the Semafor network.", ro: "Implicit oprit. Verifică e-mailul și telefonul clientului în rapoartele altor magazine din rețeaua Semafor." },
+  "settings.netMinLabel": { en: "Block when reported by", ro: "Blochează când e raportat de" },
+  "settings.netMinOpt": { en: "at least {n} store(s)", ro: "cel puțin {n} magazin(e)" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

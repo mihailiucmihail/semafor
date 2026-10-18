@@ -810,6 +810,8 @@ export function startRecoveryScheduler() {
     try {
       const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true, country: true } })) as any[];
       const { sessionStorage } = await import("../shopify.server");
+      const net = await import("./entries.server");
+      await net.fillNetworkFnHash().catch((e: any) => console.error("[semafor] network fnHash", e?.message || e));
       for (const sh of shops) {
         // only shops installed in THIS app (two deployments share the database)
         try { const ss = await (sessionStorage as any).findSessionsByShop(sh.domain); if (!ss?.some((x: any) => !x.isOnline)) continue; } catch { continue; }
@@ -825,6 +827,16 @@ export function startRecoveryScheduler() {
           }
         } catch (e: any) { console.error("[semafor] order catch-up", sh.domain, e?.message || e); }
         try { await runAutomation(sh); } catch (e: any) { console.error("[semafor] recovery", sh.domain, e?.message || e); }
+        // network blocking on: other shops' reports change without this shop doing anything → refresh its blocklist every 30 min
+        try {
+          const st = settingsOf(sh.settings);
+          const last = (g.__semaforNetPush ??= new Map<string, number>()).get(sh.id) || 0;
+          if (st.shareNetwork && st.networkBlock?.enabled && Date.now() - last > 30 * 60_000) {
+            g.__semaforNetPush.set(sh.id, Date.now());
+            const { admin } = await unauthenticated.admin(sh.domain);
+            await net.pushCheckoutMetafield(admin as any, sh.id);
+          }
+        } catch (e: any) { console.error("[semafor] network push", sh.domain, e?.message || e); }
       }
     } catch (e: any) { console.error("[semafor] recovery scheduler", e?.message || e); }
   }, 5 * 60_000);
