@@ -2,7 +2,7 @@
 // They use a ready-made design (see designs.ts): the merchant edits only the texts; brand and products are filled in automatically.
 import { DEFAULT_COPY, type DesignId } from "./designs";
 
-const LANG: Record<string, string> = { ro: "RO", de: "DE", pl: "PL", en: "EN", es: "ES" };
+const LANG: Record<string, string> = { ro: "RO", de: "DE", pl: "PL", en: "EN", es: "ES", fr: "FR" };
 
 /** Template names, each in the template's own language. */
 export const TEMPLATE_NAMES: Record<string, Record<"auto1" | "auto2" | "auto3", string>> = {
@@ -11,6 +11,7 @@ export const TEMPLATE_NAMES: Record<string, Record<"auto1" | "auto2" | "auto3", 
   de: { auto1: "1 · Erinnerung", auto2: "2 · Begrenzter Vorrat + Rabatt", auto3: "3 · Letzte Chance" },
   pl: { auto1: "1 · Przypomnienie", auto2: "2 · Ograniczony zapas + rabat", auto3: "3 · Ostatnia szansa" },
   es: { auto1: "1 · Recordatorio", auto2: "2 · Recordatorio + descuento", auto3: "3 · Solo hoy" },
+  fr: { auto1: "1 · Rappel", auto2: "2 · Rappel + réduction", auto3: "3 · Aujourd’hui seulement" },
 };
 
 /** Old default names (all Romanian) → renamed to the template's language, see renameOldDefaults. */

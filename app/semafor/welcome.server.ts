@@ -20,6 +20,7 @@ const WHY: Record<PopupLang, string> = {
   pl: "Otrzymujesz tę wiadomość, ponieważ zapisałaś się na nowości {{shop_name}}.",
   en: "You're receiving this e-mail because you subscribed to {{shop_name}} news.",
   es: "Recibes este correo porque te has suscrito a las novedades de {{shop_name}}.",
+  fr: "Vous recevez cet e-mail à la suite de votre inscription à la newsletter {{shop_name}}.",
 };
 
 export const langOf = (l: string | null | undefined): PopupLang => {

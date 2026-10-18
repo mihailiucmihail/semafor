@@ -406,7 +406,7 @@ export default function Emails() {
                         <Select label={tr("emails.colDesign")} value={edit.design || "custom"} onChange={(v) => setEdit({ ...edit, design: v, copy: edit.copy || copyFor(edit.locale, edit.purpose).copy })} options={[...DESIGNS.map((d) => ({ label: d.name, value: d.id })), { label: tr("emails.customHtmlAdv"), value: "custom" }]} />
                       </FormLayout.Group>
                       <FormLayout.Group>
-                        <Select label={tr("emails.colLang")} value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: tr("emails.lang.ro"), value: "ro" }, { label: tr("emails.lang.de"), value: "de" }, { label: tr("emails.lang.pl"), value: "pl" }, { label: tr("emails.lang.en"), value: "en" }, { label: tr("emails.lang.es"), value: "es" }]} />
+                        <Select label={tr("emails.colLang")} value={edit.locale} onChange={(v) => setEdit({ ...edit, locale: v })} options={[{ label: tr("emails.lang.ro"), value: "ro" }, { label: tr("emails.lang.de"), value: "de" }, { label: tr("emails.lang.pl"), value: "pl" }, { label: tr("emails.lang.en"), value: "en" }, { label: tr("emails.lang.es"), value: "es" }, { label: tr("emails.lang.fr"), value: "fr" }]} />
                         <Select label={tr("emails.colPurpose")} value={edit.purpose} onChange={(v) => setEdit({ ...edit, purpose: v })} options={PURPOSES.map((value) => ({ value, label: purposeLabel(value) }))} />
                       </FormLayout.Group>
                       {isDesign(edit.design) && (

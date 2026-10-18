@@ -14,8 +14,9 @@ export function render(tpl: { subject: string; html: string }, v: Record<string,
     .replace(/\{\{[^}]*\}\}/g, "")
     // greeting without a name: "Hallo ," → "Hallo,"
     .replace(/(\p{L}) +,/gu, "$1,")
-    .replace(/ ?\(\s*\)/g, "").replace(/(de|von|z|of) +%/g, "");
-  return { subject: fill(tpl.subject, false).replace(/\s+/g, " ").trim(), html: fill(tpl.html, true) };
+    .replace(/ ?\(\s*\)/g, "").replace(/(de|von|z|of)[ \u00a0\u202f]+%/g, "");
+  // whitespace collapsed, non-breaking spaces kept (French "15 %", "seulement :")
+  return { subject: fill(tpl.subject, false).replace(/[^\S\u00a0\u202f]+/g, " ").trim(), html: fill(tpl.html, true) };
 }
 
 export const STEP_ORDER = ["started", "contact", "address", "shipping", "payment", "completed"] as const;

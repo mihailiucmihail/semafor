@@ -96,7 +96,7 @@ const THUMB: Record<string, { visual: string; bg: string; accent: string; line: 
   summer: { visual: "linear-gradient(180deg,#f5d083 0%,#eaa660 34%,#2d9c98 68%,#135d5d 100%)", bg: "#fcf7ee", accent: "#1b8584", line: "#e8b545" },
   autumn: { visual: "linear-gradient(155deg,#d08236 0%,#a3531f 45%,#4c2a10 100%)", bg: "#faf3e7", accent: "#b4561d", line: "#dc9c3f" },
 };
-const LANG_NAME: Record<PopupLang, string> = { ro: "Română", de: "Deutsch", pl: "Polski", en: "English", es: "Español" };
+const LANG_NAME: Record<PopupLang, string> = { ro: "Română", de: "Deutsch", pl: "Polski", en: "English", es: "Español", fr: "Français" };
 const GROUPS: Array<{ key: TKey; fields: Array<keyof PopupTexts> }> = [
   { key: "popup.groupBefore", fields: ["bigLabel", "bigSub", "eyebrow", "heading", "text", "placeholder", "button", "note", "decline"] },
   { key: "popup.groupAfter", fields: ["successEyebrow", "successHeading", "successText", "successButton", "successNote"] },
@@ -305,7 +305,7 @@ export default function PopupPage() {
                 </Box>
                 <Collapsible id="sf-pp-langpct" open={langPctOpen}>
                   <BlockStack gap="200">
-                    <InlineGrid columns={{ xs: 2, md: 5 }} gap="200">
+                    <InlineGrid columns={{ xs: 2, md: 6 }} gap="200">
                       {POPUP_LANGS.map((l) => (
                         <TextField key={l} label={LANG_NAME[l]} type="number" min={1} max={90} suffix="%" placeholder={String(p.pct)} autoComplete="off"
                           value={p.pctByLang?.[l] != null ? String(p.pctByLang[l]) : ""} onChange={(v) => setLangPct(l, v)}

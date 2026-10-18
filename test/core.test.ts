@@ -181,7 +181,7 @@ test('popup: storefront config fills {shop} and {pct} in every language', () => 
   assert.match(cfg.texts.ro.text, /noutățile MIHAILIUC și primești 20% reducere/);
   assert.match(cfg.texts.de.text, /20 % Rabatt/);
   assert.ok(!/\{(shop|pct)\}/.test(JSON.stringify(cfg)));
-  assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'es', 'pl', 'ro']);
+  assert.deepEqual(Object.keys(cfg.texts).sort(), ['de', 'en', 'es', 'fr', 'pl', 'ro']);
 });
 
 // ── skip reasons read as sentences (app/i18n.ts trMsg) ──
@@ -280,4 +280,24 @@ test('pop-up: Spanish + percentage per language', async () => {
   assert.equal(isLocalCodeFor('BIENVENIDA10', 'BIENVENIDA10'), true);
   assert.equal(isLocalCodeFor('BIENVENIDA10S', 'BIENVENIDA10'), true);
   assert.equal(isLocalCodeFor('BIENVENIDA10', 'BIENVENIDA1'), false);
+});
+
+test('pop-up + e-mails: French', async () => {
+  const { localCodeName, cleanPopup, buildPopupConfig, popupDefaults, promisesEmail, WELCOME_DEFAULT_TEXTS } = await import('../core/popup.ts');
+  const { POPUP_LANGS } = await import('../core/settings.ts');
+  const { render } = await import('../app/semafor/render.ts');
+  const NB = '\u00a0';
+  assert.ok(POPUP_LANGS.includes('fr'));
+  assert.equal(localCodeName('fr', 15), 'BIENVENUE15');
+  assert.equal(promisesEmail(popupDefaults('fr', true)), true);
+  assert.equal(promisesEmail(popupDefaults('fr', false)), false);
+  const cfg = buildPopupConfig(cleanPopup({ enabled: true, pct: 15, pctByLang: { fr: 10 } }), 'Maison');
+  assert.equal(cfg.texts.fr.bigLabel, `-10${NB}%`);
+  assert.match(cfg.texts.fr.text, /newsletter Maison et profitez de 10\u00a0% de réduction/);
+  assert.equal(cfg.pcts.fr, 10);
+  assert.match(WELCOME_DEFAULT_TEXTS.fr.subject, /\u00a0: \{pct\}\u00a0%/);
+  // subject keeps the non-breaking spaces; greeting without a name loses the space before the comma
+  const out = render({ subject: `Aujourd’hui seulement${NB}: {{discount_pct}}${NB}% de réduction  sur votre sélection`, html: '<p>Bonjour {{first_name}},</p>' }, { discount_pct: '20', first_name: '' }, true);
+  assert.equal(out.subject, `Aujourd’hui seulement${NB}: 20${NB}% de réduction sur votre sélection`);
+  assert.equal(out.html, '<p>Bonjour,</p>');
 });

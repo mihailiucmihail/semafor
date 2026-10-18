@@ -74,8 +74,8 @@ export interface SendingDomain {
 }
 
 export type PopupDesign = 'classic' | 'winter' | 'spring' | 'summer' | 'autumn';
-export type PopupLang = 'ro' | 'de' | 'pl' | 'en' | 'es';
-export const POPUP_LANGS: PopupLang[] = ['ro', 'de', 'pl', 'en', 'es'];
+export type PopupLang = 'ro' | 'de' | 'pl' | 'en' | 'es' | 'fr';
+export const POPUP_LANGS: PopupLang[] = ['ro', 'de', 'pl', 'en', 'es', 'fr'];
 export const POPUP_DESIGNS: PopupDesign[] = ['classic', 'winter', 'spring', 'summer', 'autumn'];
 
 /** Texts of the pop-up in one storefront language ({shop} = shop name, {pct} = discount %). */
@@ -113,7 +113,7 @@ export interface PopupSettings {
   welcome: boolean;
   /** Overrides of the welcome e-mail texts per language. */
   welcomeTexts: Partial<Record<PopupLang, Partial<WelcomeTexts>>>;
-  /** Code per storefront language (RO BUNVENIT15, DE WILLKOMMEN15, PL WITAJ15, EN WELCOME15, ES BIENVENIDA15),
+  /** Code per storefront language (RO BUNVENIT15, DE WILLKOMMEN15, PL WITAJ15, EN WELCOME15, ES BIENVENIDA15, FR BIENVENUE15),
    *  with that language's percentage (pctFor).
    *  Filled by Semafor (created in Shopify); a language without one falls back to `code`. */
   localCodes?: Partial<Record<PopupLang, string>>;

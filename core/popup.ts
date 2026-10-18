@@ -100,6 +100,25 @@ export const POPUP_DEFAULT_TEXTS: Record<PopupLang, PopupTexts> = {
     invalid: 'Introduce un correo electrónico válido.',
     failed: 'Algo ha fallado. Inténtalo de nuevo.',
   },
+  // French (France): vouvoiement, French typography (non-breaking space before % ! ? : ;)
+  fr: {
+    bigLabel: '-{pct} %', bigSub: 'sur votre première commande',
+    eyebrow: 'Bienvenue',
+    heading: 'Un beau début mérite une attention particulière.',
+    text: 'Inscrivez-vous à la newsletter {shop} et profitez de {pct} % de réduction sur votre première commande. Votre code vous est envoyé par e-mail, prêt à l’emploi.',
+    placeholder: 'Votre adresse e-mail',
+    button: 'Recevoir ma réduction',
+    note: 'Le code et le lien vous parviennent par e-mail dès votre inscription. Désinscription possible à tout moment.',
+    decline: 'Pas maintenant, merci',
+    successEyebrow: 'Inscription confirmée',
+    successHeading: 'Merci ! Votre réduction est prête.',
+    successText: 'Nous vous avons envoyé le code et le lien par e-mail, pour que vous les ayez toujours sous la main. Vous pouvez aussi utiliser le code dès maintenant :',
+    successButton: 'Appliquer la réduction et découvrir la collection',
+    successNote: 'La réduction s’applique automatiquement au moment du paiement.',
+    copy: 'Copier', copied: 'Copié', close: 'Fermer',
+    invalid: 'Veuillez saisir une adresse e-mail valide.',
+    failed: 'Une erreur est survenue. Veuillez réessayer.',
+  },
 };
 
 /** Pop-up defaults that would promise an e-mail, replaced when the welcome e-mail is OFF. */
@@ -113,6 +132,11 @@ export const POPUP_NO_EMAIL_TEXTS: Partial<Record<PopupLang, Partial<PopupTexts>
     text: 'Suscríbete a las novedades de {shop} y consigue un {pct} % de descuento en tu primer pedido. El código aparece al momento, listo para usar.',
     note: 'Puedes darte de baja cuando quieras.',
     successText: 'Aquí tienes tu código; puedes usarlo ahora mismo:',
+  },
+  fr: {
+    text: 'Inscrivez-vous à la newsletter {shop} et profitez de {pct} % de réduction sur votre première commande. Votre code s’affiche aussitôt, prêt à l’emploi.',
+    note: 'Désinscription possible à tout moment.',
+    successText: 'Voici votre code, utilisable dès maintenant :',
   },
 };
 
@@ -158,6 +182,14 @@ export const WELCOME_DEFAULT_TEXTS: Record<PopupLang, WelcomeTexts> = {
     button: 'Aplicar mi descuento',
     note: 'El descuento se aplica automáticamente al pulsar el botón. El código se puede usar una sola vez.',
   },
+  fr: {
+    subject: 'Votre réduction de bienvenue : {pct} % chez {shop}',
+    heading: 'Bienvenue ! Voici votre réduction de {pct} %',
+    text: 'Merci pour votre inscription à la newsletter {shop}. Le code ci-dessous vous offre {pct} % de réduction sur votre première commande, à utiliser quand vous le souhaitez.',
+    codeLabel: 'votre code de bienvenue',
+    button: 'Appliquer ma réduction',
+    note: 'La réduction s’applique automatiquement lorsque vous cliquez sur le bouton. Le code n’est utilisable qu’une seule fois.',
+  },
 };
 
 export function welcomeTexts(p: Pick<PopupSettings, 'welcomeTexts'>, lang: PopupLang): WelcomeTexts {
@@ -178,7 +210,7 @@ export function popupDefaults(lang: PopupLang, welcome = true): PopupTexts {
 }
 /** true when pop-up texts say the code comes by e-mail (warn when the welcome e-mail is off). */
 export function promisesEmail(t: Partial<PopupTexts>): boolean {
-  return /(pe e-mail|per e-?mail|e-mailem|by e-?mail|to your inbox|ți-am trimis|wysłaliśmy|haben wir dir|por correo|te hemos enviado|te enviamos)/i.test([t.text, t.note, t.successText].filter(Boolean).join(' '));
+  return /(pe e-mail|per e-?mail|e-mailem|by e-?mail|to your inbox|ți-am trimis|wysłaliśmy|haben wir dir|por correo|te hemos enviado|te enviamos|par e-?mail|nous vous avons envoyé|vous est envoyé)/i.test([t.text, t.note, t.successText].filter(Boolean).join(' '));
 }
 
 /** Texts of one language as the merchant sees them in the editor (defaults + overrides, placeholders kept). */
@@ -230,7 +262,7 @@ export function cleanPopup(p: Partial<PopupSettings>): PopupSettings {
 }
 
 /** Word for "welcome" per language, used to name the per-language code: BUNVENIT15, WILLKOMMEN15 … */
-export const LOCAL_CODE_PREFIX: Record<PopupLang, string> = { ro: 'BUNVENIT', de: 'WILLKOMMEN', pl: 'WITAJ', en: 'WELCOME', es: 'BIENVENIDA' };
+export const LOCAL_CODE_PREFIX: Record<PopupLang, string> = { ro: 'BUNVENIT', de: 'WILLKOMMEN', pl: 'WITAJ', en: 'WELCOME', es: 'BIENVENIDA', fr: 'BIENVENUE' };
 export const localCodeName = (lang: PopupLang, pct: number) => `${LOCAL_CODE_PREFIX[lang]}${Math.round(pct)}`;
 
 /** Percentage for one storefront language: its override (pctByLang) or the general `pct`. */

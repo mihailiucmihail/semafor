@@ -41,9 +41,9 @@ export async function ensureTemplates(shopId: string) {
         await db.emailTemplate.updateMany({ where: { shopId, name: old }, data: { name: `${locale.toUpperCase()} · ${names[k]}` } });
       }
     }
-    // languages added later (Spanish): shops that already had templates get the new language's defaults once
+    // languages added later (Spanish, French): shops that already had templates get the new language's defaults once
     const have = new Set(((await db.emailTemplate.findMany({ where: { shopId }, select: { locale: true }, distinct: ["locale"] })) as Array<{ locale: string }>).map((t) => t.locale));
-    const missing = ["es"].filter((l) => !have.has(l));
+    const missing = ["es", "fr"].filter((l) => !have.has(l));
     if (missing.length) await db.emailTemplate.createMany({ data: defaultTemplates("elegant", missing).map((t) => ({ ...t, shopId })) });
     return;
   }
@@ -133,15 +133,17 @@ export async function enrichFromShopify(admin: Admin, shopId: string, sinceDays 
 
 /** Language for the e-mail: checkout language, else by country, else Romanian. */
 export function localeOf(ctx: Pick<DeviceCtx, "locale" | "country" | "host">) {
-  const l = (ctx.locale || "").slice(0, 2);
+  const l = (ctx.locale || "").slice(0, 2).toLowerCase();
   if (l) return l;
   const c = (ctx.country || "").toUpperCase();
   if (c === "DE" || c === "AT" || c === "CH") return "de";
   if (c === "PL") return "pl";
   if (c === "ES") return "es";
+  if (c === "FR" || c === "MC") return "fr";
   if ((ctx.host || "").endsWith(".de")) return "de";
   if ((ctx.host || "").endsWith(".pl")) return "pl";
   if ((ctx.host || "").endsWith(".es")) return "es";
+  if ((ctx.host || "").endsWith(".fr")) return "fr";
   return "ro";
 }
 
@@ -197,6 +199,7 @@ export const UNSUB_LABEL: Record<string, { link: string; why: string }> = {
   pl: { link: "Wypisz się", why: "Otrzymujesz tę wiadomość, ponieważ rozpoczęłaś zamówienie w {{shop_name}}." },
   en: { link: "Unsubscribe", why: "You're receiving this e-mail because you started an order at {{shop_name}}." },
   es: { link: "Darse de baja", why: "Recibes este correo porque empezaste un pedido en {{shop_name}}." },
+  fr: { link: "Se désinscrire", why: "Vous recevez cet e-mail car vous avez commencé une commande chez {{shop_name}}." },
 };
 
 /** Placeholder for the unsubscribe URL until the real (per-buyer) link is known. */
@@ -341,9 +344,19 @@ export async function createDiscount(admin: Admin, pct: number, hours: number, l
 }
 
 
+/** "valid until" date in the e-mail's language: 19.10., 23:59 (DE) · 19/10 à 23:59 (FR). */
+export function validUntil(d: Date, fmt: string, timeZone: string, locale: string) {
+  if (locale === "fr") {
+    const day = d.toLocaleDateString(fmt, { day: "2-digit", month: "2-digit", timeZone });
+    const time = d.toLocaleTimeString(fmt, { hour: "2-digit", minute: "2-digit", timeZone });
+    return `${day} à ${time}`;
+  }
+  return d.toLocaleString(fmt, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone });
+}
+
 function money(v: number | null, cur: string | null, locale: string) {
   if (v == null) return "";
-  try { return new Intl.NumberFormat(locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : locale === "es" ? "es-ES" : "de-DE", { style: "currency", currency: cur || "EUR" }).format(v); } catch { return `${v} ${cur || ""}`; }
+  try { return new Intl.NumberFormat(locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : locale === "es" ? "es-ES" : locale === "fr" ? "fr-FR" : "de-DE", { style: "currency", currency: cur || "EUR" }).format(v); } catch { return `${v} ${cur || ""}`; }
 }
 
 function itemsHtml(items: DeviceCtx["items"]) {
@@ -560,7 +573,8 @@ export async function sendRecovery(i: SendInput) {
   }
   // the cart already had a code (pop-up …): keep it applied when she comes back
   if (!code && i.cartDiscount?.code && !i.preview) url = withDiscountLink(url, i.cartDiscount.code);
-  const dateFmt = locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : locale === "es" ? "es-ES" : "de-DE";
+  const dateFmt = locale === "ro" ? "ro-RO" : locale === "pl" ? "pl-PL" : locale === "es" ? "es-ES" : locale === "fr" ? "fr-FR" : "de-DE";
+  const dateTz = locale === "ro" ? "Europe/Bucharest" : locale === "pl" ? "Europe/Warsaw" : locale === "es" ? "Europe/Madrid" : locale === "fr" ? "Europe/Paris" : "Europe/Berlin";
   const vars: Record<string, string> = {
     first_name: ctx.firstName || (locale === "de" ? "" : locale === "pl" ? "" : ""),
     // prices as she will pay them: the full price struck through + the price after her discount (the new code, or the one in her cart)
@@ -574,7 +588,7 @@ export async function sendRecovery(i: SendInput) {
     recovery_url: url,
     discount_code: code,
     discount_pct: i.pct ? String(i.pct) : "",
-    valid_until: endsAt ? endsAt.toLocaleString(dateFmt, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: locale === "ro" ? "Europe/Bucharest" : locale === "pl" ? "Europe/Warsaw" : locale === "es" ? "Europe/Madrid" : "Europe/Berlin" }) : "",
+    valid_until: endsAt ? validUntil(endsAt, dateFmt, dateTz, locale) : "",
     shop_name: "",
     cart_discount_pct: !code && i.cartDiscount?.pct ? String(Math.round(i.cartDiscount.pct)) : "",
     cart_discount_code: !code && i.cartDiscount?.code ? i.cartDiscount.code : "",
@@ -584,7 +598,7 @@ export async function sendRecovery(i: SendInput) {
   Object.assign(vars, unsubVars(locale, vars.shop_name));
   const out = render(templateSource(tpl as any, brandOf(i.settings, ident.name), !code && !(i.cartDiscount?.pct || i.cartDiscount?.code)), vars, !!code);
   // greeting without a name: "Hallo ," → "Hallo,"
-  out.html = out.html.replace(/(Hallo|Cześć|Bună|Hola),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună|Hola) ,/g, "$1,");
+  out.html = out.html.replace(/(Hallo|Cześć|Bună|Hola|Bonjour),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună|Hola|Bonjour) ,/g, "$1,");
   if (i.preview) return { ...out, to: ctx.email, code, url };
 
   try {
@@ -616,6 +630,7 @@ export function tzOf(x: { country?: string | null; locale?: string | null; host?
   if (l === "de" || (x.host || "").endsWith(".de")) return "Europe/Berlin";
   if (l === "pl" || (x.host || "").endsWith(".pl")) return "Europe/Warsaw";
   if (l === "es" || (x.host || "").endsWith(".es")) return "Europe/Madrid";
+  if (l === "fr" || (x.host || "").endsWith(".fr")) return "Europe/Paris";
   return "Europe/Bucharest";
 }
 /** Whole days between two local calendar days (YYYY-MM-DD). */
