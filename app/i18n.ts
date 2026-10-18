@@ -908,6 +908,11 @@ const D = {
   "bl.todayAt": { en: "today, {time}", ro: "azi, {time}" },
   "cust.risk": { en: "Risk", ro: "Risc" },
   "cust.timelineHint": { en: "Orders, checkout attempts, Semafor checks and changes to this customer, newest first.", ro: "Comenzi, încercări în checkout, verificări Semafor și modificări, cele mai noi primele." },
+  "cust.removeData": { en: "Remove from the list", ro: "Scoate din listă" },
+  "cust.removedData": { en: "Removed — no longer blocked", ro: "Scos — nu mai este blocat" },
+  "cust.lastIdentifier": { en: "This is the customer’s last detail. To unblock them completely, use “Remove from blacklist”.", ro: "Este ultima dată a clientului. Ca să-l deblochezi complet, folosește „Scoate din lista neagră”." },
+  "cust.deviceHint": { en: "If someone types this customer’s details again from a removed device, Semafor links it again.", ro: "Dacă de pe un dispozitiv scos se introduc din nou datele clientului, Semafor îl leagă din nou." },
+  "cust.audit.remove_data": { en: "Details removed", ro: "Date scoase" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;

@@ -837,7 +837,12 @@
   "bl.fLast": "Vu la dernière fois",
   "bl.todayAt": "aujourd’hui, {time}",
   "cust.risk": "Risque",
-  "cust.timelineHint": "Commandes, tentatives au checkout, vérifications Semafor et modifications, les plus récentes d’abord."
+  "cust.timelineHint": "Commandes, tentatives au checkout, vérifications Semafor et modifications, les plus récentes d’abord.",
+  "cust.removeData": "Retirer de la liste",
+  "cust.removedData": "Retiré — n’est plus bloqué",
+  "cust.lastIdentifier": "C’est la dernière donnée du client. Pour le débloquer entièrement, utilisez « Retirer de la liste noire ».",
+  "cust.deviceHint": "Si les données de ce client sont de nouveau saisies depuis un appareil retiré, Semafor le relie à nouveau.",
+  "cust.audit.remove_data": "Données retirées"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

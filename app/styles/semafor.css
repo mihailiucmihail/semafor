@@ -332,3 +332,5 @@
 .sf-cu-title { margin: 2px 0 0; font-weight: 600; }
 .sf-cu-title a { color: var(--p-color-text-link); text-decoration: none; }
 .sf-cu-text { margin: 2px 0 0; font-size: 13px; color: var(--p-color-text-secondary); overflow-wrap: anywhere; display: block; }
+.sf-cu-id { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.sf-cu-id > :first-child { min-width: 0; }

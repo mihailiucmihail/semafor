@@ -837,7 +837,12 @@
   "bl.fLast": "Ostatnio",
   "bl.todayAt": "dziś, {time}",
   "cust.risk": "Ryzyko",
-  "cust.timelineHint": "Zamówienia, próby w kasie, sprawdzenia Semafor i zmiany, od najnowszych."
+  "cust.timelineHint": "Zamówienia, próby w kasie, sprawdzenia Semafor i zmiany, od najnowszych.",
+  "cust.removeData": "Usuń z listy",
+  "cust.removedData": "Usunięto — już nie jest blokowane",
+  "cust.lastIdentifier": "To ostatnia dana klienta. Aby go całkowicie odblokować, użyj „Usuń z czarnej listy”.",
+  "cust.deviceHint": "Jeśli z usuniętego urządzenia ktoś znów wpisze dane tego klienta, Semafor ponownie je powiąże.",
+  "cust.audit.remove_data": "Usunięto dane"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

@@ -837,7 +837,12 @@
   "bl.fLast": "Última vez",
   "bl.todayAt": "hoy, {time}",
   "cust.risk": "Riesgo",
-  "cust.timelineHint": "Pedidos, intentos en el checkout, revisiones de Semafor y cambios, los más nuevos primero."
+  "cust.timelineHint": "Pedidos, intentos en el checkout, revisiones de Semafor y cambios, los más nuevos primero.",
+  "cust.removeData": "Quitar de la lista",
+  "cust.removedData": "Quitado: ya no se bloquea",
+  "cust.lastIdentifier": "Es el último dato del cliente. Para desbloquearlo del todo, usa «Quitar de la lista negra».",
+  "cust.deviceHint": "Si desde un dispositivo quitado se vuelven a escribir los datos de este cliente, Semafor lo vuelve a vincular.",
+  "cust.audit.remove_data": "Datos quitados"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",

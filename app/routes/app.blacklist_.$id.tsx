@@ -1,10 +1,10 @@
 // One blacklisted customer: every e-mail / phone / name / address / device on the entry, why and when it was
 // added, all their Shopify orders, Semafor's order checks, checkout attempts and what changed on the entry.
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { Page, Layout, Card, BlockStack, InlineStack, Text, Badge, Button, Box, Divider, Modal, IndexTable, Banner, FormLayout, TextField } from "@shopify/polaris";
-import { EmailIcon, PhoneIcon, LocationIcon, MobileIcon, PersonIcon } from "@shopify/polaris-icons";
+import { EmailIcon, PhoneIcon, LocationIcon, MobileIcon, PersonIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { IdLine, SectionHead, Lamp, worst, type Level } from "../components/semafor-ui";
 import { authenticate } from "../shopify.server";
@@ -143,6 +143,20 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const fd = await request.formData();
   const str = (k: string) => { const v = fd.get(k); return typeof v === "string" && v.trim() ? v.trim() : undefined; };
   const actor = (session as any).email || session.shop;
+  if (fd.get("intent") === "remove") {
+    const kind = String(fd.get("kind") || ""), value = String(fd.get("value") || "");
+    const all = await db.identifier.findMany({ where: { entryId: entry.id }, select: { id: true, kind: true, raw: true, normalized: true } });
+    const gone = all.filter((i) => i.kind === kind && (i.raw === value || i.normalized === value));
+    if (!gone.length) return { ok: true, removed: 0 };
+    if (gone.length >= all.filter((i) => i.kind !== "name_address").length) {
+      const lang = shopLang(shop, request);
+      return { ok: false, error: t(lang, "cust.lastIdentifier") };
+    }
+    await db.identifier.deleteMany({ where: { id: { in: gone.map((i) => i.id) } } });
+    await db.auditLog.create({ data: { shopId: shop.id, actor, action: "entry.remove_data", entryId: entry.id, payload: { removed: gone.map((i) => ({ kind: i.kind, raw: i.raw })) } as any } });
+    await pushCheckoutMetafield(admin as any, shop.id);
+    return { ok: true, removed: gone.length };
+  }
   try {
     let n = 0;
     if (fd.get("pick") === "all") {
@@ -181,6 +195,17 @@ export default function Customer() {
   const fetcher = useFetcher<any>();
   const [confirm, setConfirm] = useState(false);
   const adder = useFetcher<any>();
+  const remover = useFetcher<any>();
+  const removing = remover.state !== "idle" ? String(remover.formData?.get("value") || "") : null;
+  const rm = (kind: string) => ({
+    removeLabel: tr("cust.removeData"), busy: removing,
+    onRemove: (x: string) => remover.submit({ intent: "remove", kind, value: x }, { method: "post" }),
+  });
+  useEffect(() => {
+    if (remover.state !== "idle" || !remover.data) return;
+    if (remover.data.ok) app.toast.show(tr("cust.removedData"));
+    else app.toast.show(remover.data.error || tr("common.error"), { isError: true });
+  }, [remover.state, remover.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const EMPTY = { email: "", phone: "", firstName: "", lastName: "", address1: "", city: "" };
   const [form, setForm] = useState(EMPTY);
   const set = (k: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -195,7 +220,7 @@ export default function Customer() {
   const title = d.names[0] || d.emails[0] || d.phones[0] || tr("common.customer");
   const sourceLabel = (s: string) => (["manual", "order", "import", "courier"].includes(s) ? tr(`source.${s}` as TKey) : s);
   const stepLabel = (s: string) => (STEPS.includes(s) ? tr(`cust.step.${s}` as TKey) : s);
-  const actionLabel = (a: string) => (["entry.create", "entry.delete", "entry.link_device", "entry.add_data"].includes(a) ? tr(`cust.audit.${a.replace("entry.", "")}` as TKey) : a);
+  const actionLabel = (a: string) => (["entry.create", "entry.delete", "entry.link_device", "entry.add_data", "entry.remove_data"].includes(a) ? tr(`cust.audit.${a.replace("entry.", "")}` as TKey) : a);
 
   type Ev = { at: string; tone: "red" | "yellow" | "green" | "gray"; title: string; text?: string; href?: string; device?: string };
   const timeline: Ev[] = [
@@ -217,7 +242,7 @@ export default function Customer() {
     })),
     ...(d.history as any[]).map((h): Ev => ({
       at: h.at, tone: "gray", title: actionLabel(h.action),
-      text: h.payload?.added ? (h.payload.added as any[]).map((x) => (x.kind === "device" ? tr("kind.device").toLowerCase() : x.raw)).join(", ") : undefined,
+      text: (h.payload?.added || h.payload?.removed) ? ((h.payload.added || h.payload.removed) as any[]).map((x) => (x.kind === "device" ? tr("kind.device").toLowerCase() : x.raw)).join(", ") : undefined,
     })),
   ].sort((x, y) => +new Date(y.at) - +new Date(x.at)).slice(0, 60);
 
@@ -326,19 +351,16 @@ export default function Customer() {
             <Card>
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">{tr("cust.dataTitle")}</Text>
-                <Group label={tr("cust.names")} items={d.names} icon={PersonIcon} />
-                <Group label={tr("cust.emails")} items={d.emails} icon={EmailIcon} />
-                <Group label={tr("cust.phones")} items={d.phones} icon={PhoneIcon} />
-                <Group label={tr("cust.addresses")} items={d.addresses} icon={LocationIcon} />
+                <Group label={tr("cust.names")} items={d.names} icon={PersonIcon} {...rm("name")} />
+                <Group label={tr("cust.emails")} items={d.emails} icon={EmailIcon} {...rm("email")} />
+                <Group label={tr("cust.phones")} items={d.phones} icon={PhoneIcon} {...rm("phone")} />
+                <Group label={tr("cust.addresses")} items={d.addresses} icon={LocationIcon} {...rm("address")} />
                 {d.weakAddresses.length > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("cust.weakAddr")}</Text>}
-                {d.devices.length > 0 && (
-                  <BlockStack gap="100">
-                    <Text as="p" variant="bodySm" tone="subdued">{tr("cust.devices")}</Text>
-                    {d.devices.map((x) => d.clientPage
-                      ? <Link key={x} to={`/app/client/${x}`}><IdLine icon={MobileIcon} label={tr("kind.device")}>{x.slice(0, 10)}…</IdLine></Link>
-                      : <IdLine key={x} icon={MobileIcon} label={tr("kind.device")}>{x.slice(0, 10)}…</IdLine>)}
-                  </BlockStack>
-                )}
+                <Group label={tr("cust.devices")} items={d.devices} icon={MobileIcon} {...rm("device")}
+                  show={(x) => d.clientPage
+                    ? <Link to={`/app/client/${x}`}><IdLine icon={MobileIcon} label={tr("kind.device")}>{x.slice(0, 10)}…</IdLine></Link>
+                    : <IdLine icon={MobileIcon} label={tr("kind.device")}>{x.slice(0, 10)}…</IdLine>} />
+                {d.devices.length > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("cust.deviceHint")}</Text>}
               </BlockStack>
             </Card>
 
@@ -421,12 +443,19 @@ export default function Customer() {
   );
 }
 
-function Group({ label, items, icon }: { label: string; items: string[]; icon: any }) {
+function Group({ label, items, icon, onRemove, removeLabel, busy, show }: {
+  label: string; items: string[]; icon: any; onRemove: (x: string) => void; removeLabel: string; busy: string | null; show?: (x: string) => ReactNode;
+}) {
   if (!items.length) return null;
   return (
     <BlockStack gap="100">
       <Text as="p" variant="bodySm" tone="subdued">{label}</Text>
-      {items.map((x) => <IdLine key={x} icon={icon} label={label}>{x}</IdLine>)}
+      {items.map((x) => (
+        <div key={x} className="sf-cu-id">
+          {show ? show(x) : <IdLine icon={icon} label={label}>{x}</IdLine>}
+          <Button size="micro" variant="tertiary" tone="critical" icon={XSmallIcon} accessibilityLabel={`${removeLabel}: ${x}`} loading={busy === x} onClick={() => onRemove(x)} />
+        </div>
+      ))}
     </BlockStack>
   );
 }
