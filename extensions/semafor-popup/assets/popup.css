@@ -170,24 +170,6 @@
 /* admin preview: no animation, no blur cost */
 .smf-pp--instant .smf-pp__backdrop, .smf-pp--instant .smf-pp__card { transition: none; }
 
-/* ── inline offer in the theme cart: <div data-semafor-cart-offer></div> ── */
-[data-semafor-cart-offer]{display:block;margin:16px 0}
-[data-semafor-cart-offer][hidden]{display:none}
-.smf-ci{position:relative;overflow:hidden;padding:22px 20px 18px;border:1px solid #e6dccd;border-radius:14px;background:linear-gradient(135deg,#fbf7f1 0%,#f3eadf 100%);color:#2b1d14;text-align:left;font-family:inherit;animation:smf-ci-in .5s ease both}
-.smf-ci:after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(160,82,45,.14),rgba(160,82,45,0) 70%);pointer-events:none}
-.smf-ci__badge{position:absolute;right:16px;top:14px;margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;line-height:1;font-weight:600;color:#9a4a26;letter-spacing:-.02em}
-.smf-ci__title{margin:0 70px 6px 0;font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;line-height:1.2;font-weight:600;color:#2b1d14}
-.smf-ci--done .smf-ci__title{margin-right:0}
-.smf-ci__text{margin:0 0 14px;font-size:13px;line-height:1.5;color:#6b5a4b}
-.smf-ci__form{display:flex;gap:8px;margin:0}
-.smf-ci__form input{flex:1 1 auto;min-width:0;height:44px;padding:0 14px;border:1px solid #d9cbb8;border-radius:999px;background:#fff;color:#2b1d14;font:inherit;font-size:14px;outline:none;-webkit-appearance:none;appearance:none}
-.smf-ci__form input:focus{border-color:#9a4a26;box-shadow:0 0 0 3px rgba(154,74,38,.12)}
-.smf-ci__btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 18px;border:0;border-radius:999px;background:#9a4a26;color:#fff;font:inherit;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .2s ease,transform .2s ease}
-.smf-ci__btn:hover{background:#7f3a1c}
-.smf-ci__btn:active{transform:scale(.98)}
-.smf-ci__btn[disabled]{opacity:.6;cursor:default}
-.smf-ci--done .smf-ci__btn{width:100%}
-.smf-ci__err{margin:8px 0 0;font-size:12px;color:#b3261e}
-.smf-ci__note{margin:10px 0 0;font-size:11px;line-height:1.4;color:#8b7a6a}
-@media (max-width:420px){.smf-ci__form{flex-direction:column}.smf-ci__btn{width:100%}}
-@keyframes smf-ci-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* the old inline cart offer is gone; a slot left in a theme stays empty */
+[data-semafor-cart-offer]{display:none!important}

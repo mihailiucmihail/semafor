@@ -92,7 +92,7 @@
     }
     function success(code) {
       code = code || codeOf(cfg, lang);
-      var back = (W.location && !o.preview) ? W.location.pathname + W.location.search : '/';
+      var back = o.redirect || ((W.location && !o.preview) ? W.location.pathname + W.location.search : '/');
       var href = '/discount/' + encodeURIComponent(code) + '?redirect=' + encodeURIComponent(back);
       content.innerHTML = '<p class="smf-pp__eyebrow">' + esc(t.successEyebrow) + '</p>' +
         '<h2 class="smf-pp__heading" id="smf-pp-h">' + esc(t.successHeading) + '</h2>' +
@@ -215,7 +215,7 @@
     } catch (e) { cb(false); }
   }
 
-  var ui = null, siteShown = false, prevOverflow = '';
+  var ui = null, siteShown = false, prevOverflow = '', afterClose = null;
   function onKey(e) { if (e.key === 'Escape' || e.key === 'Esc') close(true); }
   function close(remember) {
     if (!ui) return;
@@ -226,6 +226,7 @@
     setTimeout(function () { if (r.parentNode) r.parentNode.removeChild(r); }, 450);
     if (remember && !designMode) { var s = readState(); if (!s || s.s !== 'subscribed') saveState({ s: 'dismissed' }); }
     ui = null;
+    var then = afterClose; afterClose = null; if (then) setTimeout(then, 0);
   }
   function submit(source) {
     return function (email, done) {
@@ -240,10 +241,15 @@
         .catch(function (e) { done(e); });
     };
   }
-  function show(source) {
+  /** opts: { redirect: where the "apply code" button goes, then: runs after the pop-up is closed } */
+  function show(source, opts) {
     if (ui) return false;
-    if (!designMode && (ciInOpenCart() || ciTyping())) return false;
-    ui = render(cfg, lang, { onSubmit: submit(source), onClose: close });
+    opts = opts || {};
+    var sub = submit(source);
+    // the code is put on the cart right away, so the checkout already shows it even if the button isn't used
+    var onSubmit = function (email, done) { sub(email, function (err, code) { if (!err && code && opts.redirect) { try { fetch('/discount/' + encodeURIComponent(code), { credentials: 'same-origin' }).catch(function () {}); } catch (x) { /* ignore */ } } done(err, code); }); };
+    ui = render(cfg, lang, { onSubmit: onSubmit, onClose: close, redirect: opts.redirect });
+    afterClose = opts.then || null;
     D.body.appendChild(ui.root);
     prevOverflow = D.documentElement.style.overflow;
     D.documentElement.style.overflow = 'hidden';
@@ -255,15 +261,13 @@
   /** Timed pop-up / cart-mode pop-up: once per page, not after a recent dismissal. */
   function open(source) {
     if (siteShown || ui) return;
-    // the cart already shows the inline offer (or the visitor is typing in it): never cover it with the pop-up
-    if (!designMode && (ciInOpenCart() || ciTyping())) return;
     if (designMode) { siteShown = true; show(source); return; }
     if (knownLocally() || dismissedRecently()) return;
     serverKnown(function (known) { if (!known && !siteShown && show(source)) siteShown = true; });
   }
   /** Smart mode: unknown visitor opens a cart without a discount → offer again (once per session, even after a dismissal). */
   function reoffer() {
-    if (ui || ssGet('_smf_pp_cart') || knownLocally() || cartCount <= 0 || ciVisible()) return;
+    if (ui || ssGet('_smf_pp_cart') || knownLocally() || cartCount <= 0) return;
     cartHasDiscount(function (has) {
       if (has || cartCount <= 0) return;
       serverKnown(function (known) {
@@ -274,118 +278,15 @@
   }
 
 
-  // ── inline offer inside the theme's cart (drawer / page): <div data-semafor-cart-offer></div> ──
-  // Shown only to an unknown visitor (no e-mail on file, not subscribed) whose cart has no discount yet.
-  var CI = {
-    ro: { title: 'Ia {pct}% reducere la această comandă', text: 'Lasă-ne e-mailul și reducerea se aplică imediat.', ph: 'Adresa ta de e-mail', btn: 'Vreau -{pct}%', ok: 'Gata! Reducerea de {pct}% e a ta.', okText: 'Codul {code} se aplică automat la finalizare.', go: 'Finalizează cu -{pct}%', err: 'Verifică adresa de e-mail.', fail: 'Nu a mers. Încearcă din nou.', note: 'Primești și noutățile noastre. Te poți dezabona oricând.' },
-    de: { title: 'Sichere dir {pct} % Rabatt auf diese Bestellung', text: 'Hinterlasse deine E-Mail – der Rabatt gilt sofort.', ph: 'Deine E-Mail-Adresse', btn: '-{pct} % sichern', ok: 'Geschafft! Deine {pct} % gehören dir.', okText: 'Der Code {code} wird an der Kasse automatisch angewendet.', go: 'Mit -{pct} % zur Kasse', err: 'Bitte prüfe deine E-Mail-Adresse.', fail: 'Das hat nicht geklappt. Bitte versuche es erneut.', note: 'Du erhältst auch unsere Neuigkeiten. Abmeldung jederzeit möglich.' },
-    pl: { title: 'Odbierz {pct}% rabatu na to zamówienie', text: 'Zostaw e-mail – rabat działa od razu.', ph: 'Twój adres e-mail', btn: 'Chcę -{pct}%', ok: 'Gotowe! Twoje {pct}% rabatu czeka.', okText: 'Kod {code} zostanie dodany automatycznie przy płatności.', go: 'Zamów z -{pct}%', err: 'Sprawdź adres e-mail.', fail: 'Nie udało się. Spróbuj ponownie.', note: 'Otrzymasz też nasze nowości. Możesz zrezygnować w każdej chwili.' },
-    es: { title: 'Llévate un {pct} % de descuento en este pedido', text: 'Déjanos tu correo y el descuento se aplica al momento.', ph: 'Tu correo electrónico', btn: 'Quiero mi -{pct} %', ok: '¡Listo! Ya tienes tu {pct} % de descuento.', okText: 'El código {code} se aplica automáticamente al finalizar la compra.', go: 'Finalizar con -{pct} %', err: 'Revisa tu correo electrónico.', fail: 'No ha funcionado. Inténtalo de nuevo.', note: 'También recibirás nuestras novedades. Puedes darte de baja cuando quieras.' },
-    en: { title: 'Take {pct}% off this order', text: 'Leave your e-mail and the discount applies right away.', ph: 'Your e-mail address', btn: 'Get -{pct}%', ok: 'Done! Your {pct}% is ready.', okText: 'Code {code} is applied automatically at checkout.', go: 'Checkout with -{pct}%', err: 'Please check your e-mail address.', fail: 'That didn’t work. Please try again.', note: 'You’ll also get our news. Unsubscribe anytime.' },
-  };
-  var ciL = String(lang).slice(0, 2).toLowerCase();
-  var ciT = CI[ciL] || CI.en;
-  // percentage of the visitor's language (pcts: per-language override), else the general one
-  var ciPct = String(Number((cfg.pcts || {})[ciL]) || Number(cfg.pct) || (String((textsOf(cfg, lang) || {}).bigLabel || '').match(/\d+/) || [15])[0]);
-  function ciFill(s, code) { return String(s).replace(/\{pct\}/g, ciPct).replace(/\{code\}/g, code || ''); }
-  var ciState = null; // null = not decided, 'hide', 'show', or { code }
-  function ciRender(slot) {
-    if (slot.__smfCi === ciState) return;
-    slot.__smfCi = ciState;
-    if (!ciState || ciState === 'hide') { slot.innerHTML = ''; slot.hidden = true; return; }
-    slot.hidden = false;
-    if (ciState.code) {
-      var href = '/discount/' + encodeURIComponent(ciState.code) + '?redirect=' + encodeURIComponent('/checkout');
-      slot.innerHTML = '<div class="smf-ci smf-ci--done" role="status"><p class="smf-ci__title">' + esc(ciFill(ciT.ok)) + '</p>' +
-        '<p class="smf-ci__text">' + esc(ciFill(ciT.okText, ciState.code)) + '</p>' +
-        '<a class="smf-ci__btn" href="' + esc(href) + '">' + esc(ciFill(ciT.go)) + '</a></div>';
-      return;
-    }
-    slot.innerHTML = '<div class="smf-ci"><p class="smf-ci__badge">-' + esc(ciPct) + '%</p>' +
-      '<p class="smf-ci__title">' + esc(ciFill(ciT.title)) + '</p><p class="smf-ci__text">' + esc(ciFill(ciT.text)) + '</p>' +
-      // no <form>: the slot usually sits inside the theme's cart <form>, and a nested form is dropped by the browser
-      '<div class="smf-ci__form" role="group"><input type="email" name="smf_email" inputmode="email" autocomplete="email" aria-label="E-mail" placeholder="' + esc(ciT.ph) + '">' +
-      '<button type="button" class="smf-ci__btn">' + esc(ciFill(ciT.btn)) + '</button></div>' +
-      '<p class="smf-ci__err" role="alert" hidden></p><p class="smf-ci__note">' + esc(ciT.note) + '</p></div>';
-    var f = slot.querySelector('.smf-ci__form'), inp = f.querySelector('input'), b = f.querySelector('button'), er = slot.querySelector('.smf-ci__err');
-    var go = function (e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      if (b.disabled) return;
-      var email = String(inp.value || '').trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { er.textContent = ciT.err; er.hidden = false; return; }
-      b.disabled = true; er.hidden = true;
-      submit('cart')(email, function (error, code) {
-        if (error) { b.disabled = false; er.textContent = ciT.fail; er.hidden = false; return; }
-        ciState = { code: code || codeOf(cfg, lang) };
-        // attach the code to the cart right away (cookie), so the checkout already shows it
-        try { fetch('/discount/' + encodeURIComponent(ciState.code), { credentials: 'same-origin' }).catch(function () {}); } catch (x) { /* ignore */ }
-        ciMountAll();
-      });
-    };
-    b.addEventListener('click', go);
-    // Enter in the field must not submit the theme's cart form (→ /cart or checkout)
-    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) go(e); });
-    // keep the theme's drawer from treating clicks/keys in our block as its own (some drawers close or re-render)
-    ['click', 'keydown', 'keyup', 'input', 'change'].forEach(function (t) { f.addEventListener(t, function (e) { e.stopPropagation(); }); });
-  }
-  // the theme drew the cart without our slot (e.g. it was empty at page load and was filled in JS) → add one after the items
-  function ciEnsureSlot() {
-    if (cartCount <= 0) return;
-    Array.prototype.forEach.call(D.querySelectorAll('.cart--body'), function (body) {
-      var root = body.parentElement; if (!root || root.querySelector('[data-semafor-cart-offer]')) return;
-      var el = D.createElement('div'); el.className = 'mhl-cart-offer'; el.setAttribute('data-semafor-cart-offer', ''); el.hidden = true; el.__smfSeen = 1;
-      body.parentNode.insertBefore(el, body.nextSibling);
-    });
-  }
-  function ciMountAll() {
-    ciEnsureSlot(); Array.prototype.forEach.call(D.querySelectorAll('[data-semafor-cart-offer]'), ciRender); }
-  var ciAt = 0, ciBusy = false;
-  function ciDecide() {
-    if (ciState && ciState.code) return ciMountAll();
-    if (knownLocally()) { ciState = 'hide'; return ciMountAll(); }
-    if (ciState && Date.now() - ciAt < 15000) return ciMountAll(); // fresh decision: just render new slots
-    if (ciBusy) return;
-    ciBusy = true;
-    cartHasDiscount(function (has) {
-      // empty cart (the slot can be rendered permanently by the theme) → nothing to offer
-      if (has || cartCount <= 0) { ciBusy = false; ciAt = Date.now(); ciState = 'hide'; return ciMountAll(); }
-      serverKnown(function (known) { ciBusy = false; ciAt = Date.now(); ciState = known ? 'hide' : 'show'; ciMountAll(); });
-    });
-  }
-  (function () {
-    var t = null;
-    // only react when a NEW offer slot appears (the drawer re-renders its HTML after every cart change)
-    var scan = function () {
-      var fresh = false;
-      Array.prototype.forEach.call(D.querySelectorAll('[data-semafor-cart-offer]'), function (el) { if (!el.__smfSeen) { el.__smfSeen = 1; fresh = true; } });
-      if (!fresh) return;
-      clearTimeout(t); t = setTimeout(function () { ciAt = 0; ciDecide(); }, 120);
-    };
-    try { new MutationObserver(function (ms) { for (var i = 0; i < ms.length; i++) { if (ms[i].addedNodes && ms[i].addedNodes.length) { scan(); return; } } }).observe(D.body || D.documentElement, { childList: true, subtree: true }); } catch (e) { /* ignore */ }
-    if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', scan); else scan();
-  })();
-  function ciVisible() { var el = D.querySelector('[data-semafor-cart-offer] .smf-ci'); return !!(el && el.offsetParent); }
-  // the theme's cart (drawer or page) with our inline slot is on screen — even while the slot is still deciding (hidden)
-  function ciInOpenCart() {
-    var els = D.querySelectorAll('[data-semafor-cart-offer]');
-    for (var i = 0; i < els.length; i++) {
-      var p = els[i].parentElement; if (!p || !p.getClientRects().length) continue;
-      if (p.checkVisibility && !p.checkVisibility({ visibilityProperty: true, opacityProperty: true })) continue;
-      var r = p.getBoundingClientRect(); if (r.width > 0 && r.right > 0 && r.left < (W.innerWidth || 9999) && r.bottom > 0 && r.top < (W.innerHeight || 9999)) return true;
-    }
-    return false;
-  }
-  function ciTyping() { var a = D.activeElement; return !!(a && a.closest && a.closest('[data-semafor-cart-offer]')); }
+  // (the inline offer that used to sit inside the theme's cart was removed: only the pop-up asks for the e-mail)
 
   if (designMode) { setTimeout(function () { open(smart ? 'site' : cfg.mode); }, 400); return; }
 
   // ── triggers ──
   var cartCount = Number(B.cartCount) || 0;
-  var cartTimer = null, ciTimer = null;
+  var cartTimer = null;
   /** The cart was opened / changed. how: "add" (add-to-cart) or "open" (cart page, drawer, open event). */
   function cartActivity(how) {
-    // the theme often re-draws its cart in JS (no new slot) → decide the inline offer again after every cart change
-    if (D.querySelector('[data-semafor-cart-offer], .cart--body') && !(ciState && ciState.code)) { clearTimeout(ciTimer); ciTimer = setTimeout(function () { ciAt = 0; ciDecide(); }, 300); }
     if (cartCount <= 0) return;
     if (cfg.mode === 'cart') {
       if (siteShown) return;
@@ -436,6 +337,30 @@
       new MutationObserver(function () { var now = isOpen(el); if (now && !was) { if (cartCount <= 0) cartCount = 1; cartActivity('open'); } was = now; }).observe(el, { attributes: true, attributeFilter: ['class', 'open', 'aria-hidden'] });
     });
   } catch (e) { /* ignore */ }
+
+  // going to the checkout (cart's checkout button / link): one last ask for the e-mail, once per session, also after a
+  // dismissal of the timed pop-up. Not for visitors we already know or carts that already have a discount.
+  // After the pop-up (subscribed or closed) the visitor continues to the checkout.
+  if (cfg.mode !== 'site') {
+    var gatePassed = false;
+    D.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('[name="checkout"], a[href$="/checkout"], a[href*="/checkout?"], a[href*="/checkouts/"]') : null;
+      if (!t || gatePassed || ui || ssGet('_smf_pp_co') || knownLocally()) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      var proceed = function () {
+        gatePassed = true;
+        if (t.isConnected) t.click(); else W.location.href = '/checkout';
+      };
+      cartHasDiscount(function (has) {
+        if (has) return proceed();
+        serverKnown(function (known) {
+          if (known) return proceed();
+          ssSet('_smf_pp_co', '1');
+          if (!show('cart', { redirect: '/checkout', then: proceed })) proceed();
+        });
+      });
+    }, true);
+  }
 
   if (cfg.mode !== 'cart') setTimeout(function () { open('site'); }, Math.max(0, Number(cfg.delay) || 0) * 1000);
   if (B.pageType === 'cart' && cartCount > 0) cartActivity('open');
