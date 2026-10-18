@@ -1,6 +1,7 @@
 # Kastel Labs home page (studio) — www.kastellabs.com/ and /ro/ /es/ /fr/ /pl/ /ru/
 # Run after build.py (which writes the Semafor page under /semafor). Also writes sitemap.xml + robots.txt for both.
 import os, html as H
+from analytics import inject
 SITE = 'https://www.kastellabs.com'
 OUT = '../site'
 LANGS = [('en', 'English'), ('ro', 'Română'), ('es', 'Español'), ('fr', 'Français'), ('pl', 'Polski'), ('ru', 'Русский')]
@@ -334,7 +335,7 @@ def page(c):
 for c, _ in LANGS:
     d = OUT if c == 'en' else f'{OUT}/{c}'
     os.makedirs(d, exist_ok=True)
-    open(f'{d}/index.html', 'w').write(page(c))
+    open(f'{d}/index.html', 'w').write(inject(page(c), c))
 
 # sitemap: studio home + Semafor page, each with its 6 languages
 sm = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'

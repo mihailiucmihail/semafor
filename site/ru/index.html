@@ -9,6 +9,13 @@
 <meta property="og:description" content="Kastel Labs делает премиальные приложения Shopify для магазинов, которые продают с наложенным платежом. Наше первое приложение, Semafor, останавливает отказы от посылок и возвращает брошенные корзины.">
 <meta property="og:image" content="https://www.kastellabs.com/assets/kastel-icon-512.png">
 
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
+try{if(localStorage.getItem('kl_consent')==='granted')gtag('consent','update',{analytics_storage:'granted'})}catch(e){}
+gtag('js',new Date());gtag('config','G-X6LMX9VR0Y');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-X6LMX9VR0Y"></script>
 <link rel="canonical" href="https://www.kastellabs.com/ru/">
 <link rel="alternate" hreflang="en" href="https://www.kastellabs.com/">
 <link rel="alternate" hreflang="ro" href="https://www.kastellabs.com/ro/">
@@ -110,6 +117,16 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}footer a{text-decoration:none
 @media (max-width:980px){.app{grid-template-columns:1fr}.app .vis{border-left:0;border-top:1px solid var(--edge);min-height:400px}.why{grid-template-columns:1fr 1fr}}
 @media (max-width:640px){.wrap{padding:0 18px}.navlinks>a:not(.btn){display:none}.navlinks{gap:8px}.hero{padding:140px 0 80px}.hero .lead{font-size:17.5px}
  .app .info{padding:34px 24px}.app .head h3{font-size:38px}.why{grid-template-columns:1fr}section{padding:80px 0}.chip{font-size:12.5px}.chip.c2{right:4%}}
+
+.klc{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;max-width:680px;margin:0 auto;display:flex;align-items:center;gap:14px 18px;padding:14px 16px 14px 20px;background:rgba(23,21,18,.96);color:var(--cream);border:1px solid var(--edge);border-radius:18px;box-shadow:0 24px 60px -24px #000;font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.klc[hidden]{display:none}
+.klc p{flex:1;margin:0;color:var(--soft)}
+.klc p a{color:var(--cream);text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.klc .klb{display:flex;gap:8px;flex:none}
+.klc button{font:inherit;font-size:14px;font-weight:500;min-width:104px;min-height:40px;padding:9px 16px;border-radius:999px;border:1px solid var(--edge);background:rgba(255,255,255,.04);color:var(--cream);cursor:pointer}
+.klc button:hover{border-color:var(--mute)}
+.klc button:focus-visible,.klc a:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+@media (max-width:560px){.klc{flex-direction:column;align-items:stretch;left:8px;right:8px;bottom:8px;padding:14px}.klc .klb button{flex:1;min-width:0}}
 </style>
 </head>
 <body>
@@ -173,6 +190,34 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}footer a{text-decoration:none
   var nav=document.getElementById('nav');function s(){nav.classList.toggle('scrolled',window.scrollY>20)}s();window.addEventListener('scroll',s,{passive:true});
   var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12}):null;
   document.querySelectorAll('.reveal').forEach(function(el){io?io.observe(el):el.classList.add('in')});
+})();
+</script>
+<div class="klc" id="klc" role="region" aria-label="Cookie" hidden><p>Мы используем аналитические cookie, чтобы понимать, как посетители нас находят. <a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Конфиденциальность</a></p><div class="klb"><button type="button" data-c="granted">Принять</button><button type="button" data-c="denied">Отклонить</button></div></div>
+<script>
+(function(){
+  var K='kl_consent',bar=document.getElementById('klc'),v=null;
+  try{v=localStorage.getItem(K)}catch(e){}
+  if(bar&&v!=='granted'&&v!=='denied'){bar.hidden=false;
+    bar.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var c=b.getAttribute('data-c');
+      try{localStorage.setItem(K,c)}catch(e){}
+      if(c==='granted')gtag('consent','update',{analytics_storage:'granted'});
+      bar.hidden=true;});}
+  var lang=document.documentElement.lang||'en',src=null,SK='kl_src';
+  try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium');
+    if(us||uc)src={s:us,c:uc,m:um};else if(q.get('fbclid'))src={s:'meta',m:'paid_social'};
+    if(src)sessionStorage.setItem(SK,JSON.stringify(src));else src=JSON.parse(sessionStorage.getItem(SK)||'null');}catch(e){}
+  function pos(a){
+    if(a.closest('nav.top'))return 'nav';if(a.closest('footer'))return 'footer';
+    if(a.classList.contains('pill'))return 'hero_badge';if(a.closest('header.hero'))return 'hero';
+    var s=a.closest('section');return s?(s.id||(s.classList.contains('final')?'final':'section')):'other';}
+  function go(e){
+    var a=e.target.closest&&e.target.closest('a[href*="apps.shopify.com/semafor"]');if(!a)return;
+    try{var u=new URL(a.href),p=u.searchParams,s=src||{};
+      p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
+      a.href=u.toString();}catch(x){}
+    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}}
+  }
+  document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
 </script>
 </body>

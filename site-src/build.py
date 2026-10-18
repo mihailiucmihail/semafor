@@ -5,6 +5,7 @@ from tr2_ru import RU
 from tr2_es import ES
 from tr2_fr import FR
 from tr2_pl import PL
+from analytics import inject
 SITE='https://www.kastellabs.com'
 LANGS=[('en','English',None),('ro','Română',RO),('es','Español',ES),('fr','Français',FR),('pl','Polski',PL),('ru','Русский',RU)]
 OG={'en':'en_US','ro':'ro_RO','es':'es_ES','fr':'fr_FR','pl':'pl_PL','ru':'ru_RU'}
@@ -88,6 +89,7 @@ for code,name,d in LANGS:
     if code!='en': h=h.replace('https://apps.shopify.com/semafor"',f'https://apps.shopify.com/semafor?locale={code}"')
     h=h.replace('(function(){\n  var nav',"(function(){\n  "+SAVE_JS+"\n  var nav",1)
     h=h.replace('href="/" class="kl-mark" data-home',f'href="{home(code)}" class="kl-mark" data-home').replace('<a href="/" data-home>',f'<a href="{home(code)}" data-home>')
+    h=inject(h,code)
     d_=OUT+BASE if code=='en' else f'{OUT}{BASE}/{code}'
     os.makedirs(d_,exist_ok=True)
     open(f'{d_}/index.html','w').write(h)
