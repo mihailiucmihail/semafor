@@ -16,6 +16,13 @@ export function startVitals() {
   let sent = false;
   const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   const v: Record<string, unknown> = { path: location.pathname, nav: full ? "load" : "in-app", ttfb: full && nav ? nav.responseStart : null, longTasks: 0, longest: 0 };
+  if (full && nav) {
+    // where the first response time went: redirects, DNS, TCP+TLS, waiting for the server, downloading
+    v.redirect = nav.redirectEnd - nav.redirectStart; v.redirects = nav.redirectCount;
+    v.dns = nav.domainLookupEnd - nav.domainLookupStart; v.connect = nav.connectEnd - nav.connectStart;
+    v.tls = nav.secureConnectionStart > 0 ? nav.connectEnd - nav.secureConnectionStart : 0;
+    v.beforeReq = nav.requestStart; v.wait = nav.responseStart - nav.requestStart; v.download = nav.responseEnd - nav.responseStart;
+  }
   const obs: PerformanceObserver[] = [];
   const watch = (type: string, cb: (e: any) => void, extra: Record<string, unknown> = {}) => {
     try { const o = new PerformanceObserver((l) => l.getEntries().forEach(cb)); o.observe({ type, buffered: true, ...extra } as any); obs.push(o); } catch { /* unsupported */ }
