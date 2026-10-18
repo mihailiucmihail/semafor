@@ -101,6 +101,9 @@ export default function Overview() {
       <TitleBar title={tr("nav.overview")}>
         <button variant="primary" onClick={() => navigate("/app/blacklist?add=1")}>{tr("index.addCustomer")}</button>
         <button onClick={() => navigate("/app/import")}>{tr("nav.import")}</button>
+        {/* Shopify shows only the first items of the app menu, so these stay reachable from here */}
+        <button onClick={() => navigate("/app/settings")}>{tr("nav.settings")}</button>
+        <button onClick={() => navigate("/app/plan")}>{tr("nav.plan")}</button>
       </TitleBar>
       <BlockStack gap="400">
         <InlineStack align="space-between" blockAlign="center" gap="300" wrap>

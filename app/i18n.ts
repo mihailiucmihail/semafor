@@ -878,6 +878,23 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^schimbă datele$/, "changing details"],
 ];
 
+/** SERVER_MSG read the other way round: [English text as a pattern, the Romanian text with $1…]. */
+const EN_MSG: Array<[RegExp, string]> = SERVER_MSG.map(([re, en]) => {
+  const enRe = new RegExp("^" + en.replace(/[.*+?^${}()|[\]\\]/g, (c) => "\\" + c).replace(/\\\$(\d)/g, "(.+)") + "$");
+  let n = 0;
+  const ro = re.source.replace(/^\^|\$$/g, "").replace(/\((?:\.\+|\\d\+)\)/g, () => "$" + ++n).replace(/\\(.)/g, "$1");
+  return [enRe, ro];
+});
+
+/** English texts older Semafor versions stored for English-admin shops → [pattern, Romanian equivalent with $1…]. */
+const LEGACY_EN: Array<[RegExp, string]> = [
+  [/^customer has another unshipped order: (.+) — can be combined into one parcel$/, "clientul are încă o comandă neexpediată: $1 — se pot uni într-un singur colet"],
+  [/^customer has (\d+) more unshipped orders: (.+) — can be combined into one parcel$/, "clientul are încă $1 comenzi neexpediate: $2 — se pot uni într-un singur colet"],
+  [/^already has cash-on-delivery order (.+) in transit — wait until it is picked up$/, "are deja comanda $1 cu ramburs, în drum — așteaptă să o ridice"],
+  [/^multiple orders$/, "mai multe comenzi"],
+  [/^order in transit$/, "comandă în drum"],
+];
+
 /** Why an e-mail was not sent (EmailSend.error of "skipped" rows, and the error of a blocked manual send), as a plain sentence. */
 const SKIP_MSG: Array<[RegExp, { en: string; ro: string }]> = [
   [/^out_of_stock: (.+)$/, { en: "Not sent: the item in the cart is out of stock ($1).", ro: "Nu am trimis: produsul din coș nu mai e pe stoc ($1)." }],
@@ -888,16 +905,25 @@ const SKIP_MSG: Array<[RegExp, { en: string; ro: string }]> = [
 
 /** Translates a known Romanian server message for display; unknown messages are returned unchanged. */
 export function trMsg(lang: Lang, msg: string | null | undefined): string {
-  const s = String(msg ?? "");
+  let s = String(msg ?? "");
+  for (const [re, ro] of LEGACY_EN) if (re.test(s)) { s = s.replace(re, ro); break; }
   const x = extra(lang);
   for (let i = 0; i < SKIP_MSG.length; i++) {
     const [re, m] = SKIP_MSG[i];
     if (re.test(s)) return s.replace(re, x?.skip[i] || (lang === "ro" ? m.ro : m.en));
   }
-  if (lang === "ro" || !s) return s;
+  if (!s) return s;
+  if (lang !== "ro") {
+    for (let i = 0; i < SERVER_MSG.length; i++) {
+      const [re, en] = SERVER_MSG[i];
+      if (re.test(s)) return s.replace(re, x?.server[i] || en);
+    }
+  }
+  // some older rows were stored in English: translate those too (to Romanian or any other language)
+  if (lang === "en") return s;
   for (let i = 0; i < SERVER_MSG.length; i++) {
-    const [re, en] = SERVER_MSG[i];
-    if (re.test(s)) return s.replace(re, x?.server[i] || en);
+    const [en, ro] = EN_MSG[i];
+    if (en.test(s)) return s.replace(en, lang === "ro" ? ro : x?.server[i] || ro);
   }
   return s;
 }

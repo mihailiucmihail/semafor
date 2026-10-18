@@ -83,8 +83,9 @@ export async function checkOrder(opts: {
     const others = ph.length ? await db.orderCheck.findMany({ where: { shopId, personHashes: { hasSome: ph }, orderId: { not: order.admin_graphql_api_id }, checkedAt: { gt: new Date(Date.now() - 30 * 86_400_000) } }, select: { orderId: true }, take: 15 }) : [];
     const r = await findRelated(admin as any, order, { country: opts.country, otherIds: others.map((o) => o.orderId) });
     related = r.ids;
-    if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet` : `customer has ${r.unshipped.length === 1 ? 'another unshipped order' : r.unshipped.length + ' more unshipped orders'}: ${r.unshipped.join(', ')} — can be combined into one parcel`, entryId: '', reason: ro ? 'mai multe comenzi' : 'multiple orders', weight: 40 });
-    for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: ro ? `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice` : `already has cash-on-delivery order ${n} in transit — wait until it is picked up`, entryId: '', reason: ro ? 'comandă în drum' : 'order in transit', weight: 40 });
+    // stored in Romanian (the canonical form); trMsg translates it for the admin language when shown
+    if (r.unshipped.length) (result.matches as any[]).push({ kind: 'order', normalized: `clientul are încă ${r.unshipped.length === 1 ? 'o comandă neexpediată' : r.unshipped.length + ' comenzi neexpediate'}: ${r.unshipped.join(', ')} — se pot uni într-un singur colet`, entryId: '', reason: 'mai multe comenzi', weight: 40 });
+    for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
     if ((r.unshipped.length || r.codInTransit.length) && result.level === 'green') result.level = 'yellow';
   } catch (e) { console.error('[semafor] findRelated', e); }
   const combined = combinedLevel(result);
