@@ -178,6 +178,8 @@ export default function PopupPage() {
   // start on the admin language (an English admin sees the English pop-up first)
   const [tab, setTab] = useState(Math.max(0, (POPUP_LANGS as readonly string[]).indexOf(lang)));
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  // on a phone the preview starts in the phone frame (the desktop frame would be tiny)
+  useEffect(() => { try { if (window.matchMedia("(max-width: 640px)").matches) setDevice("mobile"); } catch { /* ignore */ } }, []);
   const [state, setState] = useState<"form" | "success">("form");
   const [advanced, setAdvanced] = useState(p.codeMode === "own");
   const [otherPct, setOtherPct] = useState(!PCT_CHOICES.includes(Number(p.pct)));

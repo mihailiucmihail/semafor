@@ -23,6 +23,17 @@ type ShopOrder = {
   viaDevice?: string;
 };
 
+/** Shopify order statuses in the app language (falls back to the lower-cased code). */
+const ST: Record<string, Record<string, string>> = {
+  ro: { PENDING: "în așteptare", PAID: "plătită", PARTIALLY_PAID: "plătită parțial", REFUNDED: "rambursată", PARTIALLY_REFUNDED: "rambursată parțial", VOIDED: "anulată", AUTHORIZED: "autorizată", EXPIRED: "expirată", UNFULFILLED: "neexpediată", FULFILLED: "expediată", PARTIALLY_FULFILLED: "expediată parțial", IN_PROGRESS: "în lucru", ON_HOLD: "în așteptare", SCHEDULED: "programată", RESTOCKED: "returnată în stoc" },
+  en: { PENDING: "pending", PAID: "paid", PARTIALLY_PAID: "partially paid", REFUNDED: "refunded", PARTIALLY_REFUNDED: "partially refunded", VOIDED: "voided", AUTHORIZED: "authorized", EXPIRED: "expired", UNFULFILLED: "unfulfilled", FULFILLED: "fulfilled", PARTIALLY_FULFILLED: "partially fulfilled", IN_PROGRESS: "in progress", ON_HOLD: "on hold", SCHEDULED: "scheduled", RESTOCKED: "restocked" },
+  es: { PENDING: "pendiente", PAID: "pagado", PARTIALLY_PAID: "pagado en parte", REFUNDED: "reembolsado", PARTIALLY_REFUNDED: "reembolsado en parte", VOIDED: "anulado", AUTHORIZED: "autorizado", EXPIRED: "caducado", UNFULFILLED: "no enviado", FULFILLED: "enviado", PARTIALLY_FULFILLED: "enviado en parte", IN_PROGRESS: "en curso", ON_HOLD: "en espera", SCHEDULED: "programado", RESTOCKED: "reabastecido" },
+  fr: { PENDING: "en attente", PAID: "payée", PARTIALLY_PAID: "payée en partie", REFUNDED: "remboursée", PARTIALLY_REFUNDED: "remboursée en partie", VOIDED: "annulée", AUTHORIZED: "autorisée", EXPIRED: "expirée", UNFULFILLED: "non expédiée", FULFILLED: "expédiée", PARTIALLY_FULFILLED: "expédiée en partie", IN_PROGRESS: "en cours", ON_HOLD: "en attente", SCHEDULED: "planifiée", RESTOCKED: "remise en stock" },
+  pl: { PENDING: "oczekuje", PAID: "opłacone", PARTIALLY_PAID: "opłacone częściowo", REFUNDED: "zwrócone", PARTIALLY_REFUNDED: "zwrócone częściowo", VOIDED: "anulowane", AUTHORIZED: "autoryzowane", EXPIRED: "wygasłe", UNFULFILLED: "niewysłane", FULFILLED: "wysłane", PARTIALLY_FULFILLED: "wysłane częściowo", IN_PROGRESS: "w realizacji", ON_HOLD: "wstrzymane", SCHEDULED: "zaplanowane", RESTOCKED: "przywrócone do magazynu" },
+  ru: { PENDING: "ожидает оплаты", PAID: "оплачен", PARTIALLY_PAID: "оплачен частично", REFUNDED: "возврат денег", PARTIALLY_REFUNDED: "частичный возврат", VOIDED: "отменён", AUTHORIZED: "авторизован", EXPIRED: "просрочен", UNFULFILLED: "не отправлен", FULFILLED: "отправлен", PARTIALLY_FULFILLED: "отправлен частично", IN_PROGRESS: "в работе", ON_HOLD: "приостановлен", SCHEDULED: "запланирован", RESTOCKED: "возвращён на склад" },
+};
+const stLabel = (code: string, lang: string) => ST[lang]?.[code] ?? ST.en[code] ?? code.replace(/_/g, " ").toLowerCase();
+
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
@@ -261,7 +272,7 @@ export default function Customer() {
     ...(d.orders as ShopOrder[]).map((o): Ev => ({
       at: o.createdAt, tone: o.cancelledAt ? "red" : o.financial === "PAID" ? "green" : "gray", href: admin(`orders/${o.id}`),
       title: `${tr("checks.colOrder")} ${o.name} · ${money(o.total, o.currency)}`,
-      text: [o.viaDevice ? tr("cust.viaDevice", { name: o.viaDevice }) : null, o.cancelledAt ? tr("cust.cancelled") : null, o.financial?.replace(/_/g, " ").toLowerCase(), o.fulfillment?.replace(/_/g, " ").toLowerCase(), o.gateways.join(", ")].filter(Boolean).join(" · "),
+      text: [o.viaDevice ? tr("cust.viaDevice", { name: o.viaDevice }) : null, o.cancelledAt ? tr("cust.cancelled") : null, o.financial ? stLabel(o.financial, lang) : null, o.fulfillment ? stLabel(o.fulfillment, lang) : null, o.gateways.join(", ")].filter(Boolean).join(" · "),
     })),
     ...(d.checks as any[]).map((c): Ev => {
       const lv: Level = worst(c.level, c.networkLevel);
@@ -344,8 +355,8 @@ export default function Customer() {
                           <InlineStack gap="100">
                             {o.viaDevice ? <Badge tone="attention">{tr("cust.viaDevice", { name: o.viaDevice })}</Badge> : null}
                             {o.cancelledAt ? <Badge tone="critical">{tr("cust.cancelled")}</Badge> : null}
-                            {o.financial && <Badge tone={FIN_TONE[o.financial]}>{o.financial.replace(/_/g, " ").toLowerCase()}</Badge>}
-                            {o.fulfillment && <Badge>{o.fulfillment.replace(/_/g, " ").toLowerCase()}</Badge>}
+                            {o.financial && <Badge tone={FIN_TONE[o.financial]}>{stLabel(o.financial, lang)}</Badge>}
+                            {o.fulfillment && <Badge>{stLabel(o.fulfillment, lang)}</Badge>}
                           </InlineStack>
                         </IndexTable.Cell>
                         <IndexTable.Cell><Text as="span" variant="bodySm" fontWeight="semibold"><span className="sf-nowrap">{money(o.total, o.currency)}</span></Text></IndexTable.Cell>
