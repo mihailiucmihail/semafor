@@ -6,7 +6,7 @@ import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { hmacId, shopRef } from "../../core/hash";
 import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, NORM_VERSION, type IdKind } from "../../core/normalize";
-import { shouldShareToNetwork, settingsOf, networkOf, type ShopSettings } from "../../core/settings";
+import { shouldShareToNetwork, settingsOf, networkOf, payActions, type ShopSettings } from "../../core/settings";
 
 import { type Reason } from "../../core/reasons";
 export type { Reason };
@@ -225,6 +225,7 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // Network blocking (optional, off by default): e-mails / phones reported by enough OTHER shops for a counted reason
   const st = settingsOf(shopRow?.settings);
   const nw = networkOf(st.network);
+  const yb: Record<"e" | "p", Set<string>> = { e: new Set(), p: new Set() };
   if (st.shareNetwork && nw.block !== "off" && shopRow) {
     const min = nw.block === "red" ? nw.red : nw.yellow;
     const own = shopRef(SECRET, shopRow.domain);
@@ -237,10 +238,15 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
     let added = 0;
     for (const [h, v] of shops) {
       if (v.refs.size < min || added >= 1500) continue; // keep the Function input small
-      buckets[v.kind === "email" ? "e" : "p"].add(h); added++;
+      // red in the network → red tier; flagged by fewer shops (only when the merchant includes yellow) → yellow tier
+      if (v.refs.size >= nw.red) buckets[v.kind === "email" ? "e" : "p"].add(h);
+      else yb[v.kind === "email" ? "e" : "p"].add(h);
+      added++;
     }
   }
-  return { v: 1, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], w: [...buckets.w], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
+  // m: what the checkout does per level (all = no payment method, cod = no cash on delivery, none = nothing)
+  const m = payActions(st);
+  return { v: 2, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], w: [...buckets.w], y: { e: [...yb.e], p: [...yb.p] }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 
 export async function pushCheckoutMetafield(admin: { graphql: (q: string, o?: any) => Promise<Response> }, shopId: string) {

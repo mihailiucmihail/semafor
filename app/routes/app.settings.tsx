@@ -1,3 +1,4 @@
+import { payActions } from "../../core/settings";
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
@@ -28,7 +29,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const fd = await request.formData();
   await saveSettings(shop.id, {
-    yellowAction: String(fd.get("yellowAction")) as any,
+    redPay: (["all", "cod", "none"].includes(String(fd.get("redPay"))) ? String(fd.get("redPay")) : "all") as any,
+    yellowPay: (["all", "cod", "none"].includes(String(fd.get("yellowPay"))) ? String(fd.get("yellowPay")) : "none") as any,
     cancelRed: fd.get("cancelRed") === "true",
     shareNetwork: fd.get("shareNetwork") === "true",
     tagAttributed: fd.get("tagAttributed") !== "false",
@@ -46,8 +48,9 @@ export default function Settings() {
   const fetcher = useFetcher<typeof action>();
   const app = useAppBridge();
   const tr = useT();
+  const payOptions = [{ label: tr("settings.payAll"), value: "all" }, { label: tr("settings.payCod"), value: "cod" }, { label: tr("settings.payNone"), value: "none" }];
   const lang = useLang();
-  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "" });
+  const [s, setS] = useState({ redPay: payActions(settings).r as string, yellowPay: payActions(settings).y as string, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "" });
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "ORDERS_UPDATED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
@@ -64,21 +67,21 @@ export default function Settings() {
               <BlockStack gap="400">
                 {!basic && <Banner tone="info" action={{ content: tr("settings.seePlans"), url: "/app/plan" }}>{tr("settings.freeBanner")}</Banner>}
                 <InlineStack gap="300" blockAlign="start" wrap={false}>
-                  <Lamp level="yellow" label={tr("level.yellow")} />
+                  <Lamp level="red" label={tr("level.red")} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Select label={tr("settings.yellowLabel")} disabled={!basic} value={basic ? s.yellowAction : "tag"} onChange={(v) => setS({ ...s, yellowAction: v as any })}
-                      options={[
-                        { label: tr("settings.yellowTag"), value: "tag" },
-                        { label: tr("settings.yellowPrepaid"), value: "prepaid" },
-                        { label: tr("settings.yellowBlock"), value: "block" },
-                      ]} helpText={tr("settings.yellowHelp")} />
+                    <BlockStack gap="300">
+                      <Select label={tr("settings.redPayLabel")} disabled={!basic} value={basic ? s.redPay : "none"} onChange={(v) => setS({ ...s, redPay: v })}
+                        options={payOptions} helpText={tr("settings.redPayHelp")} />
+                      <Checkbox label={tr("settings.cancelRed")} disabled={!basic} checked={basic && s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText={tr("settings.cancelRedHelp")} />
+                    </BlockStack>
                   </div>
                 </InlineStack>
                 <Divider />
                 <InlineStack gap="300" blockAlign="start" wrap={false}>
-                  <Lamp level="red" label={tr("level.red")} />
+                  <Lamp level="yellow" label={tr("level.yellow")} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <Checkbox label={tr("settings.cancelRed")} disabled={!basic} checked={basic && s.cancelRed} onChange={(v) => setS({ ...s, cancelRed: v })} helpText={tr("settings.cancelRedHelp")} />
+                    <Select label={tr("settings.yellowPayLabel")} disabled={!basic} value={basic ? s.yellowPay : "none"} onChange={(v) => setS({ ...s, yellowPay: v })}
+                      options={payOptions} helpText={tr("settings.yellowPayHelp")} />
                   </div>
                 </InlineStack>
               </BlockStack>

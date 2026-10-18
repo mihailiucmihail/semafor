@@ -1,10 +1,19 @@
 // Refuz — shop settings and the decisions fixed on 2026-10-06.
+export type PayAction = 'all' | 'cod' | 'none';
+export const PAY_ACTIONS: PayAction[] = ['all', 'cod', 'none'];
+
 export interface ShopSettings {
   thresholds: { block: number; warn: number };
   /** What happens to a yellow order. Decision: default "tag" (mark only). */
   yellowAction: 'tag' | 'prepaid' | 'block';
   /** Cancel red orders automatically (off by default). */
   cancelRed: boolean;
+  /** Checkout (payment Function) for a RED customer — on the shop's own list (or red in the network, when the
+   *  network is used at checkout): hide every payment method ("all", the order cannot be placed), hide only
+   *  cash on delivery ("cod", card still works) or hide nothing ("none", the order is only flagged). */
+  redPay?: PayAction;
+  /** Same for a YELLOW customer at checkout (flagged by fewer shops in the network). */
+  yellowPay?: PayAction;
   /** Share with / see the network. */
   shareNetwork: boolean;
   /** Reasons that go to the network after ONE entry (chargeback, abuse). refuz_colet only after the 2nd. */
@@ -167,6 +176,13 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   tagAttributed: true,
   network: DEFAULT_NETWORK,
 };
+
+/** Checkout action per level. Older shops only had yellowAction (which the checkout never used): prepaid → cod, block → all. */
+export function payActions(s: Pick<ShopSettings, 'redPay' | 'yellowPay' | 'yellowAction'>): { r: PayAction; y: PayAction } {
+  const ok = (x: unknown): x is PayAction => PAY_ACTIONS.includes(x as PayAction);
+  const legacyY: PayAction = s.yellowAction === 'block' ? 'all' : s.yellowAction === 'prepaid' ? 'cod' : 'none';
+  return { r: ok(s.redPay) ? s.redPay : 'all', y: ok(s.yellowPay) ? s.yellowPay : legacyY };
+}
 
 export function settingsOf(json: unknown): ShopSettings {
   const j = (json as Partial<ShopSettings>) ?? {};

@@ -1,5 +1,5 @@
 query CartPaymentMethodsTransformRunInput {
-  paymentMethods { id }
+  paymentMethods { id name }
   localization { country { isoCode } }
   cart {
     buyerIdentity { email phone }
