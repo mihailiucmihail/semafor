@@ -5,7 +5,7 @@ from tr2_ru import RU
 from tr2_es import ES
 from tr2_fr import FR
 from tr2_pl import PL
-SITE='https://kastellabs.com'
+SITE='https://www.kastellabs.com'
 LANGS=[('en','English',None),('ro','Română',RO),('es','Español',ES),('fr','Français',FR),('pl','Polski',PL),('ru','Русский',RU)]
 OG={'en':'en_US','ro':'ro_RO','es':'es_ES','fr':'fr_FR','pl':'pl_PL','ru':'ru_RU'}
 EN=json.load(open('strings.en.json'))
