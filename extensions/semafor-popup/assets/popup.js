@@ -175,6 +175,37 @@
     return !!(s && s.s === 'dismissed' && Date.now() - (s.at || 0) < (cfg.hideDays || 14) * DAY);
   }
   var smart = cfg.mode !== 'site' && cfg.mode !== 'cart';
+
+  /** Puts a discount code on the visitor's cart (Shopify cookie) — the checkout then shows it already applied. */
+  function applyCode(code) { if (!code) return; try { fetch('/discount/' + encodeURIComponent(code), { credentials: 'same-origin' }).catch(function () {}); } catch (e) { /* ignore */ } }
+  /** The cart's / product page's way into the checkout. */
+  function checkoutTarget(e) { return e.target && e.target.closest ? e.target.closest('[name="checkout"], a[href$="/checkout"], a[href*="/checkout?"], a[href*="/checkouts/"]') : null; }
+  /** First visit of this browser (the whole first session counts); a returning visitor is not "new". */
+  var isNew = (function () {
+    var v = ssGet('_smf_new'); if (v !== null) return v === '1';
+    var first = lsGet('_smf_first'), n = !first;
+    if (n) lsSet('_smf_first', String(Date.now()));
+    ssSet('_smf_new', n ? '1' : '0');
+    return n;
+  })();
+
+  // A visitor who subscribed in the last 30 days and presses checkout with a cart without a discount: their code is
+  // put on the cart automatically (once per visit), so they don't have to look for it.
+  (function () {
+    var st = readState();
+    if (designMode || !st || st.s !== 'subscribed' || !st.code || Date.now() - (st.at || 0) > 30 * DAY) return;
+    var busy = false;
+    D.addEventListener('click', function (e) {
+      var t = checkoutTarget(e);
+      if (!t || busy || ssGet('_smf_pp_ap')) return;
+      e.preventDefault(); e.stopImmediatePropagation(); busy = true;
+      var go = function () { ssSet('_smf_pp_ap', '1'); if (t.isConnected) t.click(); else W.location.href = '/checkout'; };
+      cartHasDiscount(function (has) {
+        if (has) return go();
+        try { fetch('/discount/' + encodeURIComponent(st.code), { credentials: 'same-origin' }).then(go, go); } catch (x) { go(); }
+      });
+    }, true);
+  })();
   if (!designMode && knownLocally()) return;
   // site / cart modes: a dismissal silences everything; smart: only the timed pop-up (the cart re-offer still runs)
   if (!designMode && !smart && dismissedRecently()) return;
@@ -235,7 +266,7 @@
       fetch(proxy + '/popup', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: body })
         .then(function (r) { return r.json().catch(function () { return {}; }); })
         .then(function (j) {
-          if (j && j.ok) { saveState({ s: 'subscribed', code: j.code || codeOf(cfg, lang) }); ssSet('_smf_pp_k', '1'); done(null, j.code || codeOf(cfg, lang)); }
+          if (j && j.ok) { var c = j.code || codeOf(cfg, lang); saveState({ s: 'subscribed', code: c }); ssSet('_smf_pp_k', '1'); applyCode(c); done(null, c); }
           else done(new Error((j && j.error) || 'failed'));
         })
         .catch(function (e) { done(e); });
@@ -247,8 +278,7 @@
     opts = opts || {};
     var sub = submit(source);
     // the code is put on the cart right away, so the checkout already shows it even if the button isn't used
-    var onSubmit = function (email, done) { sub(email, function (err, code) { if (!err && code && opts.redirect) { try { fetch('/discount/' + encodeURIComponent(code), { credentials: 'same-origin' }).catch(function () {}); } catch (x) { /* ignore */ } } done(err, code); }); };
-    ui = render(cfg, lang, { onSubmit: onSubmit, onClose: close, redirect: opts.redirect });
+    ui = render(cfg, lang, { onSubmit: sub, onClose: close, redirect: opts.redirect });
     afterClose = opts.then || null;
     D.body.appendChild(ui.root);
     prevOverflow = D.documentElement.style.overflow;
@@ -263,6 +293,7 @@
     if (siteShown || ui) return;
     if (designMode) { siteShown = true; show(source); return; }
     if (knownLocally() || dismissedRecently()) return;
+    if (smart && source === 'site' && !isNew) return; // returning visitors: only the checkout ask
     serverKnown(function (known) { if (!known && !siteShown && show(source)) siteShown = true; });
   }
   /** Smart mode: unknown visitor opens a cart without a discount → offer again (once per session, even after a dismissal). */
@@ -342,7 +373,7 @@
   if (cfg.mode !== 'site') {
     var gatePassed = false;
     D.addEventListener('click', function (e) {
-      var t = e.target && e.target.closest ? e.target.closest('[name="checkout"], a[href$="/checkout"], a[href*="/checkout?"], a[href*="/checkouts/"]') : null;
+      var t = checkoutTarget(e);
       if (!t || gatePassed || ui || ssGet('_smf_pp_co') || knownLocally()) return;
       e.preventDefault(); e.stopImmediatePropagation();
       var proceed = function () {
