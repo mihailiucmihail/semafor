@@ -300,6 +300,7 @@ const D = {
   "stats.step.started": { en: "left at email", ro: "a plecat la e-mail" },
   "stats.step.cart": { en: "left in the cart (no checkout)", ro: "a lăsat produsele în coș (fără checkout)" },
   "stats.otherNames": { en: "other names: {list}", ro: "alte nume: {list}" },
+  "stats.moreNames": { en: "+{n} names", ro: "+{n} nume" },
   "stats.stepsOne": { en: "{n} step — view steps →", ro: "{n} pas — vezi pașii →" },
   "stats.stepsMany": { en: "{n} steps — view steps →", ro: "{n} pași — vezi pașii →" },
   "stats.mailOne": { en: "✉ {n} email", ro: "✉ {n} e-mail" },

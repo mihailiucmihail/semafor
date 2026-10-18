@@ -254,6 +254,7 @@
   "stats.step.started": "ушёл(ушла) на e-mail",
   "stats.step.cart": "ушёл(ушла) из корзины (без оформления)",
   "stats.otherNames": "другие имена: {list}",
+  "stats.moreNames": "+{n} имени",
   "stats.stepsOne": "{n} шаг — смотреть шаги →",
   "stats.stepsMany": "Шагов: {n} — смотреть шаги →",
   "stats.mailOne": "✉ {n} письмо",

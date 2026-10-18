@@ -122,6 +122,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 const initials = (s: string) => (s.split(/[\s@.]+/).filter(Boolean).slice(0, s.includes("@") ? 1 : 2).map((w) => w[0]).join("") || "?").toUpperCase();
 
+/** Same number written three ways (0741…, 40741…, +40741…) → shown once. */
+function uniqPhones(list: string[]) {
+  const seen = new Set<string>()
+  return list.filter((p) => { const k = p.replace(/\D/g, "").slice(-9); if (seen.has(k)) return false; seen.add(k); return true })
+}
+
 export default function Stats() {
   const { days, f, since, kpi, orders, suspicious, devices, storeHandle, attr } = useLoaderData<typeof loader>();
   const [sp, setSp] = useSearchParams();
@@ -146,7 +152,7 @@ export default function Stats() {
 
             <BlockStack gap="300">
               <SectionHead title={tr("stats.checkout")} />
-              <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300">
+              <InlineGrid columns={{ xs: 2, sm: 2, lg: 4 }} gap="300">
                 <Kpi icon={PersonIcon} label={tr("stats.kpiDevices")} value={kpi.devices} hint={tr("stats.kpiDevicesHint", { c: kpi.completedDevices, a: kpi.attempts })} onClick={() => filterBy("ordered")} active={f === "ordered"} />
                 <Kpi icon={ShieldPersonIcon} label={tr("stats.kpiBlack")} value={kpi.black} tone={kpi.black ? "critical" : undefined} hint={tr("stats.kpiBlackHint")} onClick={() => filterBy("black")} active={f === "black"} />
                 <Kpi icon={ShieldNoneIcon} label={tr("stats.kpiSlipped")} value={kpi.slipped} tone={kpi.slipped ? "critical" : "success"} hint={tr("stats.kpiSlippedHint")} onClick={() => filterBy("slipped")} active={f === "slipped"} />
@@ -154,7 +160,7 @@ export default function Stats() {
               </InlineGrid>
             </BlockStack>
 
-            <InlineGrid columns={{ xs: 1, sm: 2, lg: 4 }} gap="300"><AttrKpi s={attr} /></InlineGrid>
+            <InlineGrid columns={{ xs: 2, sm: 2, lg: 4 }} gap="300"><AttrKpi s={attr} /></InlineGrid>
 
             <Card>
               <BlockStack gap="300">
@@ -171,7 +177,22 @@ export default function Stats() {
               {suspicious.length === 0 ? (
                 <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noSuspicious")}</Text></Box>
               ) : (
-                <div className="sf-table sf-md-hide-5">
+                <><div className="sf-phone-only sf-cl">
+                  {suspicious.map((s: any, i: number) => (
+                    <div className="sf-cl-row" key={"m" + s.id + i}>
+                      <div className="sf-cl-top">
+                        <span className="sf-cl-name">{s.names[0] || s.emails[0] || "#" + s.id}{s.names.length > 1 ? <small> {tr("stats.moreNames", { n: s.names.length - 1 })}</small> : null}</span>
+                        <span className="sf-cl-date">{short(s.last)}</span>
+                      </div>
+                      <div className="sf-cl-ct">{[...s.emails.slice(0, 2), ...uniqPhones(s.phones).slice(0, 2)].join(" · ") || "—"}</div>
+                      <div className="sf-cl-chips">
+                        {s.matched.length ? s.matched.slice(0, 2).map((m: string, k: number) => <Badge key={k} tone="critical">{m}</Badge>) : s.hopping ? <Badge tone="warning">{tr("stats.hopping")}</Badge> : null}
+                        {s.completed ? <Badge tone="critical">{tr("common.ordered")}</Badge> : <Badge>{tr("stats.notOrdered")}</Badge>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="sf-table sf-md-hide-5 sf-desk-only">
                   <IndexTable resourceName={{ singular: tr("stats.resDevice"), plural: tr("stats.resDevices") }} itemCount={suspicious.length} selectable={false}
                     headings={[{ title: tr("stats.colDevice") }, { title: tr("stats.colTried") }, { title: tr("stats.colBlack") }, { title: tr("common.result") }, { title: tr("stats.colLast") }]}>
                     {suspicious.map((s: any, i: number) => (
@@ -181,7 +202,7 @@ export default function Stats() {
                           <BlockStack gap="050">
                             {s.names.slice(0, 3).map((x: string, k: number) => <Text key={"n" + k} as="span" variant="bodySm" fontWeight="semibold"><span className="sf-break">{x}</span></Text>)}
                             {s.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
-                            {s.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                            {uniqPhones(s.phones).slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
                           </BlockStack>
                         </IndexTable.Cell>
                         <IndexTable.Cell>
@@ -194,7 +215,7 @@ export default function Stats() {
                       </IndexTable.Row>
                     ))}
                   </IndexTable>
-                </div>
+                </div></>
               )}
             </Card>
 
@@ -208,7 +229,33 @@ export default function Stats() {
               {devices.length === 0 ? (
                 <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
               ) : (
-                <div className="sf-table sf-lg-hide-4 sf-md-hide-2 sf-md-hide-6">
+                <><div className="sf-phone-only sf-cl">
+                  {devices.map((d: any, i: number) => {
+                    const stepKey = d.completed ? "completed" : d.events.includes("payment") ? "payment" : d.events.includes("shipping") ? "shipping" : d.events.includes("address") ? "address" : d.events.includes("contact") ? "contact" : !d.events.includes("started") && d.events.includes("cart") ? "cart" : "started";
+                    const title = d.names[0] || d.emails[0] || d.popup || d.phones[0] || tr("common.customer");
+                    const contacts = [...d.emails.slice(0, 2), ...uniqPhones(d.phones).slice(0, 1)];
+                    if (d.popup && !d.emails.some((x: string) => x.toLowerCase() === d.popup)) contacts.push(d.popup);
+                    return (
+                      <div className="sf-cl-row" key={"m" + d.id + i}>
+                        <div className="sf-cl-top">
+                          <span className="sf-cl-name"><Link url={`/app/client/${d.dev}`} removeUnderline>{title}</Link>{d.city ? <small> · {d.city}</small> : null}</span>
+                          <span className="sf-cl-date">{short(d.last)}</span>
+                        </div>
+                        {d.names.length > 1 && <div className="sf-cl-ct">{tr("stats.otherNames", { list: d.names.slice(1).join(", ") })}</div>}
+                        <div className="sf-cl-ct">{contacts.join(" · ") || "—"}</div>
+                        <div className="sf-cl-chips">
+                          {d.orderId
+                            ? <><Badge tone="success">{tr(`stats.step.${stepKey}` as TKey)}</Badge><Link url={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top">{d.orderName || tr("stats.order")}</Link></>
+                            : <><Badge tone={d.matched.length ? "critical" : undefined}>{tr(d.matched.length ? "stats.blackNoOrder" : "stats.abandoned")}</Badge><span className="sf-cl-muted">{tr(`stats.step.${stepKey}` as TKey)}</span></>}
+                          {d.popup && <Badge tone="magic">{tr(d.popupSource === "cart" ? "popup.origin.cart" : d.popupSource === "site" ? "popup.origin.site" : "popup.badge")}</Badge>}
+                          {d.mail && <Badge tone={d.mail.orderedAfter ? "success" : d.mail.back ? "attention" : "info"}>{`✉ ${d.mail.count}` + (d.mail.orderedAfter ? " · " + tr("stats.orderedAfter") : d.mail.back ? " · " + tr("stats.cameBack") : "")}</Badge>}
+                          <Link url={`/app/client/${d.dev}`}>{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="sf-table sf-lg-hide-4 sf-md-hide-2 sf-md-hide-6 sf-desk-only">
                   <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={devices.length} selectable={false}
                     headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("stats.colReached") }, { title: tr("stats.colEmails") }, { title: tr("common.result") }, { title: tr("common.when") }]}>
                     {devices.map((d: any, i: number) => {
@@ -230,7 +277,7 @@ export default function Stats() {
                           <IndexTable.Cell>
                             <BlockStack gap="050">
                               {d.emails.slice(0, 3).map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
-                              {d.phones.slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
+                              {uniqPhones(d.phones).slice(0, 3).map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
                               {d.popup && !d.emails.some((x: string) => x.toLowerCase() === d.popup) && <IdLine icon={EmailIcon} label={tr("kind.email")}>{d.popup}</IdLine>}
                               {d.popup && <span><Badge tone="magic">{tr(d.popupSource === "cart" ? "popup.origin.cart" : d.popupSource === "site" ? "popup.origin.site" : "popup.badge")}</Badge></span>}
                               {!d.emails.length && !d.phones.length && !d.popup && <Text as="span" tone="subdued">—</Text>}
@@ -261,7 +308,7 @@ export default function Stats() {
                       );
                     })}
                   </IndexTable>
-                </div>
+                </div></>
               )}
             </Card>
             {kpi.attempts === 0 && <Banner tone="info">{tr("stats.appear")}</Banner>}

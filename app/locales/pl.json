@@ -254,6 +254,7 @@
   "stats.step.started": "wyszedł przy e-mailu",
   "stats.step.cart": "zostawił koszyk (bez kasy)",
   "stats.otherNames": "inne nazwiska: {list}",
+  "stats.moreNames": "+{n} nazwiska",
   "stats.stepsOne": "{n} krok — zobacz kroki →",
   "stats.stepsMany": "Kroki: {n} — zobacz kroki →",
   "stats.mailOne": "✉ {n} e-mail",

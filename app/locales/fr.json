@@ -254,6 +254,7 @@
   "stats.step.started": "abandon à l'e-mail",
   "stats.step.cart": "resté dans le panier (sans checkout)",
   "stats.otherNames": "autres noms : {list}",
+  "stats.moreNames": "+{n} noms",
   "stats.stepsOne": "{n} étape — voir les étapes →",
   "stats.stepsMany": "{n} étapes — voir les étapes →",
   "stats.mailOne": "✉ {n} e-mail",

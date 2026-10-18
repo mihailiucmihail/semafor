@@ -53,8 +53,8 @@
   .sf-table .Polaris-IndexTable-ScrollContainer, .sf-table .Polaris-IndexTable__IndexTableWrapper { overflow: visible !important; }
   .sf-table table, .sf-table tbody { display: block !important; width: 100% !important; min-width: 0 !important; }
   .sf-table tr {
-    display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px;
-    position: relative; padding: 14px 16px; border-bottom: 1px solid var(--p-color-border-secondary); background: var(--p-color-bg-surface);
+    display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px;
+    position: relative; padding: 10px 12px; border-bottom: 1px solid var(--p-color-border-secondary); background: var(--p-color-bg-surface);
   }
   .sf-table tr:last-child { border-bottom: 0; }
   .sf-table td,
@@ -64,14 +64,20 @@
     padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; white-space: normal !important; text-align: left !important; overflow-wrap: anywhere;
   }
   .sf-table td::before {
-    content: attr(data-label); display: block; margin-bottom: 3px;
-    font-size: 11px; line-height: 1.3; letter-spacing: 0.04em; text-transform: uppercase; color: var(--p-color-text-secondary);
+    content: attr(data-label); display: block; margin-bottom: 1px;
+    font-size: 10px; line-height: 1.2; letter-spacing: 0.04em; text-transform: uppercase; color: var(--p-color-text-secondary);
   }
   .sf-table td[data-label=""]::before, .sf-table td:not([data-label])::before { content: none; }
   /* the first column is the card title, across the whole width */
   .sf-table td:first-child { grid-column: 1 / -1; padding-right: 44px !important; }
   .sf-table td:first-child::before { content: none; }
-  .sf-table td:first-child, .sf-table td:first-child .Polaris-Text--root { font-size: 15px; }
+  .sf-table td:first-child, .sf-table td:first-child .Polaris-Text--root { font-size: 14px; }
+  /* compact: tight stacks, small badges, small identity lines — more customers per screen */
+  .sf-table td .Polaris-BlockStack { row-gap: 2px !important; }
+  .sf-table td .Polaris-Badge { padding-block: 0 !important; font-size: 12px; }
+  .sf-table td .Polaris-Text--root { line-height: 1.35; }
+  .sf-table .sf-id .Polaris-Icon { width: 14px; height: 14px; }
+  .sf-table .Polaris-Avatar { display: none; }
   /* long values (contact lists, addresses, notes) take the whole width */
   .sf-table td:has(.sf-id + .sf-id), .sf-table td:has(.sf-clamp2), .sf-table td:has(.Polaris-BlockStack > :nth-child(3)) { grid-column: 1 / -1; }
   /* row actions (delete etc.): top-right corner of the card, always visible */
@@ -482,3 +488,21 @@
   .Polaris-ButtonGroup--variantSegmented::-webkit-scrollbar { display: none; }
   .Polaris-ButtonGroup--variantSegmented .Polaris-Button { white-space: nowrap; }
 }
+
+/* ── phone-only compact lists (Statistici): one customer = name+date, contacts on one line, status chips on one line ── */
+.sf-phone-only { display: none; }
+@media (max-width: 640px) {
+  .sf-phone-only { display: block; }
+  .sf-desk-only { display: none !important; }
+}
+.sf-cl { border-top: 1px solid var(--p-color-border-secondary); }
+.sf-cl-row { padding: 9px 12px; border-bottom: 1px solid var(--p-color-border-secondary); }
+.sf-cl-row:last-child { border-bottom: 0; }
+.sf-cl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sf-cl-name { font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-cl-name small { font-weight: 400; font-size: 12px; color: var(--p-color-text-secondary); }
+.sf-cl-date { flex: none; font-size: 12px; color: var(--p-color-text-secondary); white-space: nowrap; }
+.sf-cl-ct { font-size: 12px; color: var(--p-color-text-secondary); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf-cl-chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 5px; font-size: 12px; }
+.sf-cl-chips .Polaris-Badge { font-size: 12px; }
+.sf-cl-muted { color: var(--p-color-text-secondary); font-size: 12px; }

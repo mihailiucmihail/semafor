@@ -254,6 +254,7 @@
   "stats.step.started": "abandonó en el correo",
   "stats.step.cart": "abandonó en el carrito (sin checkout)",
   "stats.otherNames": "otros nombres: {list}",
+  "stats.moreNames": "+{n} nombres",
   "stats.stepsOne": "{n} paso — ver pasos →",
   "stats.stepsMany": "{n} pasos — ver pasos →",
   "stats.mailOne": "✉ {n} correo",
