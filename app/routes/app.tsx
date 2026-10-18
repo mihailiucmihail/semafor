@@ -48,12 +48,13 @@ export default function App() {
     <AppProvider isEmbeddedApp apiKey={apiKey}>
       <LangProvider lang={lang}>
         <NavMenu>
-          <Link to="/app" rel="home">{t(lang, "nav.blacklist")}</Link>
+          <Link to="/app" rel="home">{t(lang, "nav.overview")}</Link>
+          <Link to="/app/blacklist">{t(lang, "nav.blacklist")}</Link>
+          <Link to="/app/checks">{t(lang, "nav.checks")}</Link>
           <Link to="/app/blocked">{t(lang, basic ? "nav.blocked" : "nav.blockedBasic")}</Link>
           <Link to="/app/stats">{t(lang, pro ? "nav.stats" : "nav.statsPro")}</Link>
           <Link to="/app/emails">{t(lang, pro ? "nav.emails" : "nav.emailsPro")}</Link>
           <Link to="/app/popup">{t(lang, basic ? "nav.popup" : "nav.popupBasic")}</Link>
-          <Link to="/app/checks">{t(lang, "nav.checks")}</Link>
           <Link to="/app/import">{t(lang, "nav.import")}</Link>
           <Link to="/app/settings">{t(lang, "nav.settings")}</Link>
           <Link to="/app/plan">{t(lang, "nav.plan")}</Link>

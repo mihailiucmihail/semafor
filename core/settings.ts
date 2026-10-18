@@ -28,6 +28,8 @@ export interface ShopSettings {
   tagAttributed: boolean;
   /** Last time the storefront pop-up embed pinged Semafor (ISO) — tells the admin page the embed is on. */
   popupSeenAt?: string | null;
+  /** One-way shipping cost of a parcel in the shop currency — the overview's "saved" estimate (stopped × 2 × cost). */
+  shipCost?: number | null;
 }
 
 export interface DnsRecord { record?: string; type: string; name: string; value: string; priority?: number | null; ttl?: string | null; status?: string | null }

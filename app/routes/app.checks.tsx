@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import { backfill } from "../semafor/backfill.server";
-import { Page, Layout, Card, IndexTable, Badge, Text, EmptyState, BlockStack, InlineStack, Box, Button, Banner } from "@shopify/polaris";
+import { Page, Layout, Card, IndexTable, Badge, Text, EmptyState, BlockStack, InlineStack, Box, Button, Banner, ButtonGroup } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { RefreshIcon } from "@shopify/polaris-icons";
 import { Lamp, SignalStrip, SectionHead, worst, type Level } from "../components/semafor-ui";
@@ -38,6 +38,11 @@ export default function Checks() {
   const LABEL = { green: tr("level.green"), yellow: tr("level.yellow"), red: tr("level.red") };
   const counts = { green: 0, yellow: 0, red: 0 };
   for (const c of checks as any[]) counts[worst(c.level, c.networkLevel)]++;
+  // ?level=red|yellow|green (links from the overview) narrows the table; the summary strip keeps all orders
+  const [params, setParams] = useSearchParams();
+  const level = (["green", "yellow", "red"] as const).find((l) => l === params.get("level")) ?? null;
+  const rows = level ? (checks as any[]).filter((c) => worst(c.level, c.networkLevel) === level) : (checks as any[]);
+  const pick = (l: Level | null) => setParams(l ? { level: l } : {}, { replace: true });
   const kindLabel = (k: string) => (KINDS.includes(k) ? tr(`kind.${k}` as TKey) : k);
   const actionLabel = (a: string) => (ACTIONS.includes(a) ? tr(`action.${a}` as TKey) : a);
   return (
@@ -52,6 +57,14 @@ export default function Checks() {
                   <Button icon={RefreshIcon} loading={f.state !== "idle"} onClick={() => f.submit({}, { method: "post" })}>{tr("checks.checkLast50")}</Button>
                 </SectionHead>
                 <SignalStrip green={counts.green} yellow={counts.yellow} red={counts.red} labels={LABEL} emptyText={tr("checks.emptyHeading")} />
+                {checks.length > 0 && (
+                  <ButtonGroup variant="segmented">
+                    <Button pressed={!level} onClick={() => pick(null)}>{tr("checks.filterAll", { n: checks.length })}</Button>
+                    <Button pressed={level === "red"} onClick={() => pick("red")}>{`${LABEL.red} · ${counts.red}`}</Button>
+                    <Button pressed={level === "yellow"} onClick={() => pick("yellow")}>{`${LABEL.yellow} · ${counts.yellow}`}</Button>
+                    <Button pressed={level === "green"} onClick={() => pick("green")}>{`${LABEL.green} · ${counts.green}`}</Button>
+                  </ButtonGroup>
+                )}
               </BlockStack>
             </Card>
             {d && d.ok && <Banner tone={d.red ? "critical" : d.yellow ? "warning" : "success"}>{`${tr("checks.resChecked", { n: d.checked })}${tr("checks.resRed", { n: d.red })}${tr("checks.resYellow", { n: d.yellow })}${d.failed ? tr("checks.resFailed", { n: d.failed }) : ""}${d.noCustomerData ? tr("checks.resNoData", { n: d.noCustomerData }) : ""}`}</Banner>}
@@ -63,9 +76,9 @@ export default function Checks() {
                 </EmptyState>
               ) : (
                 <div className="sf-table sf-lg-hide-5 sf-md-hide-3 sf-md-hide-6">
-                  <IndexTable resourceName={{ singular: tr("checks.resSingular"), plural: tr("checks.resPlural") }} itemCount={checks.length} selectable={false}
+                  <IndexTable resourceName={{ singular: tr("checks.resSingular"), plural: tr("checks.resPlural") }} itemCount={rows.length} selectable={false}
                     headings={[{ title: tr("checks.colOrder") }, { title: tr("checks.colOwn") }, { title: tr("common.network") }, { title: tr("checks.colMatches") }, { title: tr("checks.colAction") }, { title: tr("common.when") }]}>
-                    {checks.map((c: any, i: number) => {
+                    {rows.map((c: any, i: number) => {
                       const own = c.level as Level; const net = c.networkLevel as Level;
                       const lv = worst(own, net);
                       const m = (c.matched as any[]) || [];

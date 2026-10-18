@@ -35,6 +35,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
     // language is sent only when the merchant picked one; otherwise the stored choice (or automatic) stays
     uiLang: isLang(fd.get("uiLang")) ? (fd.get("uiLang") as Lang) : shop.settings.uiLang ?? null,
+    shipCost: Number(String(fd.get("shipCost") ?? "").replace(",", ".")) > 0 ? Math.round(Number(String(fd.get("shipCost")).replace(",", ".")) * 100) / 100 : null,
   }, (session as any).email || session.shop);
   await pushCheckoutMetafield(admin, shop.id);
   return { ok: true };
@@ -46,7 +47,7 @@ export default function Settings() {
   const app = useAppBridge();
   const tr = useT();
   const lang = useLang();
-  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "" });
+  const [s, setS] = useState({ yellowAction: settings.yellowAction, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "" });
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "ORDERS_UPDATED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
@@ -93,6 +94,12 @@ export default function Settings() {
           <Layout.AnnotatedSection title={tr("attr.settingsHeading")} description={tr("attr.settingsDesc")}>
             <Card>
               <Checkbox label={tr("attr.settingsLabel")} checked={s.tagAttributed} onChange={(v) => setS({ ...s, tagAttributed: v })} helpText={tr("attr.settingsHelp")} />
+            </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.shipHeading")} description={tr("settings.shipDesc")}>
+            <Card>
+              <TextField label={tr("settings.shipLabel")} type="number" min={0} step={0.5} value={s.shipCost} onChange={(v) => setS({ ...s, shipCost: v })} autoComplete="off" helpText={tr("settings.shipHelp")} />
             </Card>
           </Layout.AnnotatedSection>
 

@@ -1,21 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
-import {
-  Page, Layout, Card, BlockStack, InlineStack, Text, TextField, Select, Button, Badge, Avatar, Divider,
-  IndexTable, EmptyState, Banner, Box, Modal, FormLayout, Icon,
-} from "@shopify/polaris";
-import { DeleteIcon, EmailIcon, PhoneIcon, LocationIcon, MobileIcon, SearchIcon, OrderIcon } from "@shopify/polaris-icons";
-import { Lamp, SignalStrip, IdLine, worst } from "../components/semafor-ui";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+// Overview — the first page of Semafor: status, clickable numbers for every section, orders that need a
+// decision and one tile per feature. Every number links to the page that lists it.
+import type { ReactNode } from "react";
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { Link, useLoaderData, useNavigate, useSearchParams } from "@remix-run/react";
+import { Page, Card, BlockStack, InlineStack, Text, Button, ButtonGroup, Badge, Box } from "@shopify/polaris";
+import { TitleBar } from "@shopify/app-bridge-react";
+import { Lamp, Dot, worst, type Level } from "../components/semafor-ui";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { catchUpOrders } from "../semafor/backfill.server";
-import { createEntry, deleteEntry, findExisting, pushCheckoutMetafield } from "../semafor/entries.server";
-import { REASONS, type Reason } from "../../core/reasons";
-import { useT, useLang, dateLocale, t, trMsg, type TKey } from "../i18n";
-import { shopLang } from "../i18n.server";
+import { planOf, checksThisMonth } from "../semafor/plan.server";
+import { blockedSummary } from "../semafor/blocked.server";
+import { attributionSummary } from "../semafor/attribution.server";
+import { can, FREE_MONTHLY_CHECKS } from "../../core/plans";
+import { useT, useLang, dateLocale, trMsg, type TKey } from "../i18n";
+
+const DAY = 86_400_000;
+const PERIODS = [1, 7, 30, 90] as const;
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -25,300 +27,217 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     catchUpOrders(admin as any, shop as any).catch((e) => console.error("[semafor] catch-up", e)),
     new Promise((r) => setTimeout(r, 5000)),
   ]);
-  const q = new URL(request.url).searchParams.get("q")?.trim() || "";
-  const entries = await db.blockEntry.findMany({
-    where: { shopId: shop.id, ...(q ? { identifiers: { some: { OR: [{ raw: { contains: q, mode: "insensitive" } }, { normalized: { contains: q.toLowerCase() } }] } } } : {}) },
-    include: { identifiers: { select: { kind: true, raw: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  const total = await db.blockEntry.count({ where: { shopId: shop.id } });
-  const shared = await db.blockEntry.count({ where: { shopId: shop.id, shared: true } });
-  // read-only summary for the header: order verdicts of the last 30 days (worst of own list / network)
-  const since = new Date(Date.now() - 30 * 86_400_000);
-  const groups = (await (db.orderCheck.groupBy as any)({ by: ["level", "networkLevel"], where: { shopId: shop.id, checkedAt: { gt: since } }, _count: { _all: true } })) as any[];
+  const d = Number(new URL(request.url).searchParams.get("d"));
+  const days = (PERIODS as readonly number[]).includes(d) ? d : 30;
+  const since = days === 1 ? new Date(new Date().setHours(0, 0, 0, 0)) : new Date(Date.now() - days * DAY);
+  const plan = planOf(shop);
+  const s = shop.settings;
+
+  const [total, added, shared, groups, attention] = await Promise.all([
+    db.blockEntry.count({ where: { shopId: shop.id } }),
+    db.blockEntry.count({ where: { shopId: shop.id, createdAt: { gt: since } } }),
+    db.blockEntry.count({ where: { shopId: shop.id, shared: true } }),
+    (db.orderCheck.groupBy as any)({ by: ["level", "networkLevel"], where: { shopId: shop.id, checkedAt: { gt: since } }, _count: { _all: true } }) as Promise<any[]>,
+    // newest yellow / red orders of the last 14 days (or the period, when longer)
+    db.orderCheck.findMany({
+      where: { shopId: shop.id, checkedAt: { gt: new Date(Date.now() - Math.max(days, 14) * DAY) }, OR: [{ level: { in: ["yellow", "red"] } }, { networkLevel: { in: ["yellow", "red"] } }] },
+      orderBy: { checkedAt: "desc" }, take: 6,
+      select: { id: true, orderId: true, orderName: true, level: true, networkLevel: true, networkShops: true, matched: true, actionTaken: true, checkedAt: true, total: true, currency: true },
+    }),
+  ]);
   const verdicts = { green: 0, yellow: 0, red: 0 };
   for (const g of groups) verdicts[worst(g.level, g.networkLevel)] += g._count._all;
-  return { entries, total, shared, q, network: shop.settings.shareNetwork, verdicts };
+
+  const blocked = can(plan, "checkout_block") ? await blockedSummary(shop, since).catch(() => null) : null;
+  const attr = await attributionSummary(db, shop.id, Math.max(1, Math.ceil((Date.now() - +since) / DAY))).catch(() => null);
+  const emailsSent = can(plan, "recovery") ? await db.emailSend.count({ where: { shopId: shop.id, status: "sent", createdAt: { gt: since } } }) : null;
+  const leads = can(plan, "popup") ? await db.popupLead.count({ where: { shopId: shop.id, createdAt: { gt: since } } }) : null;
+  const usedChecks = can(plan, "unlimited_checks") ? null : await checksThisMonth(shop.id);
+  const shipCost = typeof s.shipCost === "number" && s.shipCost > 0 ? s.shipCost : null;
+
+  return {
+    days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
+    attr: attr ? { email: attr.bySource.email.count, popup: attr.bySource.popup_site.count + attr.bySource.popup_cart.count, currency: attr.currency } : null,
+    status: {
+      network: !!s.shareNetwork,
+      checkoutBlock: can(plan, "checkout_block"),
+      recovery: can(plan, "recovery") ? !!s.recovery?.enabled : null,
+      ownDomain: s.sendingDomain?.status === "verified",
+      popup: can(plan, "popup") ? !!s.popup?.enabled : null,
+    },
+    storeHandle: session.shop.replace(".myshopify.com", ""),
+  };
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session, admin } = await authenticate.admin(request);
-  const shop = await ensureShop(session.shop, session.accessToken ?? "");
-  const fd = await request.formData();
-  const intent = String(fd.get("intent"));
-  const actor = (session as any).email || session.shop;
-  try {
-    if (intent === "create") {
-      const input = {
-        email: str(fd, "email"), phone: str(fd, "phone"), firstName: str(fd, "firstName"), lastName: str(fd, "lastName"),
-        address1: str(fd, "address1"), city: str(fd, "city"), reason: (str(fd, "reason") as Reason) || "other", note: str(fd, "note"),
-      };
-      // same e-mail / phone / name + address already on the list → ask before adding a duplicate
-      if (fd.get("force") !== "1") {
-        const existing = await findExisting(shop.id, input, shop.country);
-        if (existing.length) {
-          return { ok: false, duplicate: existing.slice(0, 5).map((e) => ({ reason: e.reason, createdAt: e.createdAt, orderName: e.orderName, matched: e.matched })) };
-        }
-      }
-      await createEntry({ shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: shop.settings, actor, input });
-    } else if (intent === "delete") {
-      await deleteEntry(shop.id, shop.domain, String(fd.get("id")), actor);
-    }
-    await pushCheckoutMetafield(admin, shop.id);
-    return { ok: true };
-  } catch (e: any) {
-    const lang = shopLang(shop, request);
-    return { ok: false, error: e?.message ? trMsg(lang, e.message) : t(lang, "common.error") };
-  }
-};
+const KINDS = ["email", "phone", "name", "address", "name_address", "device"];
 
-function str(fd: FormData, k: string) { const v = fd.get(k); return typeof v === "string" && v.trim() ? v.trim() : undefined; }
-
-const EMPTY_FORM = { email: "", phone: "", firstName: "", lastName: "", address1: "", city: "", reason: "refuz_colet", note: "" };
-const REASON_TONE: Record<string, "critical" | "warning" | undefined> = { refuz_colet: "critical", chargeback: "critical", abuse: "critical", return_fraud: "warning", other: undefined };
-
-function initials(s: string) {
-  const parts = s.replace(/[^\p{L}\p{N}\s@.]/gu, " ").split(/[\s@.]+/).filter(Boolean);
-  return ((parts[0]?.[0] || "?") + (parts.length > 1 && !s.includes("@") ? parts[1][0] : "")).toUpperCase();
-}
-
-export default function Index() {
-  const { entries, total, shared, q, network, verdicts } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-  const app = useAppBridge();
-  const [open, setOpen] = useState(false);
-  const [, setParams] = useSearchParams();
-  const [search, setSearch] = useState(q);
-  const [reasonFilter, setReasonFilter] = useState("");
-  const [netFilter, setNetFilter] = useState("");
-  const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  // earlier entries of the same customer, returned by the server instead of saving a duplicate
-  const [dup, setDup] = useState<any[] | null>(null);
-  const busy = fetcher.state !== "idle";
-  const deletingId = busy && fetcher.formData?.get("intent") === "delete" ? String(fetcher.formData.get("id")) : null;
+export default function Overview() {
+  const data = useLoaderData<typeof loader>();
+  const { days, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost, attr, status, storeHandle } = data;
   const tr = useT();
   const lang = useLang();
-  const reasonLabel = (r: string) => tr(`reason.${r}` as TKey);
-  const sourceLabel = (s: string) => (["manual", "order", "import", "courier"].includes(s) ? tr(`source.${s}` as TKey) : s);
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data) {
-      if (fetcher.data.ok) { app.toast.show(tr("common.saved")); setOpen(false); setToDelete(null); setForm(EMPTY_FORM); setDup(null); }
-      else if ((fetcher.data as any).duplicate) setDup((fetcher.data as any).duplicate);
-      else app.toast.show((fetcher.data as any).error || tr("common.error"), { isError: true });
-    }
-  }, [fetcher.state, fetcher.data, app, tr]);
-
-  const submit = () => fetcher.submit({ intent: "create", ...form, force: dup ? "1" : "" }, { method: "post" });
-  const set = (k: keyof typeof form) => (v: string) => { setDup(null); setForm((f) => ({ ...f, [k]: v })); };
-  const runSearch = () => setParams(search.trim() ? { q: search.trim() } : {});
-
-  const rows = useMemo(() => (entries as any[])
-    .filter((e) => (!reasonFilter || e.reason === reasonFilter) && (!netFilter || (netFilter === "shared" ? e.shared : !e.shared)))
-    .map((e) => {
-      const of = (k: string) => e.identifiers.filter((x: any) => x.kind === k).map((x: any) => x.raw as string);
-      const emails = of("email"), phones = of("phone"), names = of("name"), addresses = of("address"), devices = of("device");
-      const title = names[0] || emails[0] || phones[0] || addresses[0] || tr("common.customer");
-      return { ...e, emails, phones, names, addresses, devices, title };
-    }), [entries, reasonFilter, netFilter, tr]);
-
-  const filtered = !!(reasonFilter || netFilter);
+  const navigate = useNavigate();
+  const [, setParams] = useSearchParams();
   const checked = verdicts.green + verdicts.yellow + verdicts.red;
+  const LABEL = { green: tr("level.green"), yellow: tr("level.yellow"), red: tr("level.red") };
+  const periodLabel = (d: number) => (d === 1 ? tr("ov.today") : tr("ov.days", { n: d }));
+  const money = (v: number) => { try { return new Intl.NumberFormat(dateLocale(lang), { maximumFractionDigits: 0 }).format(v); } catch { return String(Math.round(v)); } };
+  const saved = blocked && shipCost ? blocked.stopped * shipCost * 2 : null;
+  const allOn = status.network && status.checkoutBlock;
+
+  const reasonOf = (c: any) => {
+    const m = ((c.matched as any[]) || [])[0];
+    const parts: string[] = [];
+    if (m) {
+      if (m.kind === "device" || m.kind === "order") parts.push(trMsg(lang, m.normalized));
+      else parts.push(`${KINDS.includes(m.kind) ? tr(`kind.${m.kind}` as TKey) : m.kind}: ${m.normalized}${m.reason ? ` · ${tr(`reason.${m.reason}` as TKey)}` : ""}`);
+    }
+    if (c.networkShops) parts.push(tr("ov.netShops", { n: c.networkShops }));
+    return parts.join(" · ") || tr("ov.noDetails");
+  };
 
   return (
     <Page fullWidth>
-      <TitleBar title={tr("index.title")}>
-        <button variant="primary" onClick={() => setOpen(true)}>{tr("index.addCustomer")}</button>
+      <TitleBar title={tr("nav.overview")}>
+        <button variant="primary" onClick={() => navigate("/app/blacklist?add=1")}>{tr("index.addCustomer")}</button>
+        <button onClick={() => navigate("/app/import")}>{tr("nav.import")}</button>
       </TitleBar>
-      <Layout>
-        <Layout.Section>
-          <BlockStack gap="400">
-            <Card>
-              <BlockStack gap="500">
-                <div className="sf-hero">
-                  <div className="sf-hero-status">
-                    <Lamp size="lg" level={network ? "green" : "yellow"} label={network ? tr("dash.statusOn") : tr("dash.statusOff")} />
-                    <BlockStack gap="100">
-                      <Text as="h1" variant="headingLg">{network ? tr("dash.statusOn") : tr("dash.statusOff")}</Text>
-                      <Text as="p" tone="subdued">{network ? tr("dash.statusOnText") : tr("dash.statusOffText")}</Text>
-                    </BlockStack>
-                  </div>
-                  <div className="sf-hero-metrics">
-                    <div className="sf-metric">
-                      <Text as="p" variant="bodySm" tone="subdued">{tr("index.statBlocked")}</Text>
-                      <div className="sf-metric-value">{total}</div>
-                    </div>
-                    <div className="sf-metric">
-                      <Text as="p" variant="bodySm" tone="subdued">{tr("dash.redStopped")}</Text>
-                      <div className={`sf-metric-value${verdicts.red ? " red" : ""}`}>{verdicts.red}</div>
-                    </div>
-                    <div className="sf-metric">
-                      <Text as="p" variant="bodySm" tone="subdued">{tr("index.statShared")}</Text>
-                      <div className="sf-metric-value">{shared}</div>
-                    </div>
-                  </div>
-                </div>
-                <Divider />
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center" gap="200">
-                    <InlineStack gap="200" blockAlign="center">
-                      <Text as="h2" variant="headingSm">{tr("dash.verdicts")}</Text>
-                      <Text as="span" variant="bodySm" tone="subdued">{(checked === 1 ? tr("dash.checked1") : tr("dash.checked", { n: checked }))}</Text>
-                    </InlineStack>
-                    <Button variant="plain" url="/app/checks" icon={OrderIcon}>{tr("dash.viewChecks")}</Button>
-                  </InlineStack>
-                  <SignalStrip green={verdicts.green} yellow={verdicts.yellow} red={verdicts.red}
-                    labels={{ green: tr("level.green"), yellow: tr("level.yellow"), red: tr("level.red") }} emptyText={tr("dash.noChecks")} />
-                </BlockStack>
+      <BlockStack gap="400">
+        <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
+          <Text as="h1" variant="headingLg">{tr("nav.overview")}</Text>
+          <ButtonGroup variant="segmented">
+            {PERIODS.map((p) => <Button key={p} pressed={days === p} onClick={() => setParams(p === 30 ? {} : { d: String(p) }, { replace: true })}>{periodLabel(p)}</Button>)}
+          </ButtonGroup>
+        </InlineStack>
+
+        {/* status */}
+        <Card>
+          <div className="sf-ov-hero">
+            <span className="sf-lamp-v"><Lamp size="lg" level={allOn ? "green" : "yellow"} label={allOn ? tr("ov.protectOn") : tr("ov.protectPartial")} /></span>
+            <BlockStack gap="150">
+              <Text as="p" variant="bodySm" fontWeight="semibold" tone={allOn ? "success" : "caution"}>{allOn ? tr("ov.protectOn") : tr("ov.protectPartial")}</Text>
+              <Text as="h2" variant="headingXl">{checked === 1 ? tr("ov.checked1", { period: periodLabel(days).toLowerCase() }) : tr("ov.checked", { n: checked, period: periodLabel(days).toLowerCase() })}</Text>
+              <Text as="p" tone="subdued">{tr("ov.heroText", { n: total })}</Text>
+              {usedChecks != null && <Text as="p" variant="bodySm" tone={usedChecks >= FREE_MONTHLY_CHECKS ? "critical" : "subdued"}>{tr("ov.freeQuota", { n: usedChecks, max: FREE_MONTHLY_CHECKS })} <Link to="/app/plan">{tr("ov.seePlans")}</Link></Text>}
+            </BlockStack>
+            <ul className="sf-ov-status">
+              <li><Dot level="green" />{tr("ov.stChecks")}</li>
+              <li><Dot level={status.checkoutBlock ? "green" : "none"} />{status.checkoutBlock ? tr("ov.stBlockOn") : <Link to="/app/plan">{tr("ov.stBlockLocked")}</Link>}</li>
+              <li><Dot level={status.network ? "green" : "yellow"} />{status.network ? tr("ov.stNetOn") : <Link to="/app/settings">{tr("ov.stNetOff")}</Link>}</li>
+              {status.recovery != null && <li><Dot level={status.recovery ? (status.ownDomain ? "green" : "yellow") : "none"} />{!status.recovery ? <Link to="/app/emails">{tr("ov.stMailOff")}</Link> : status.ownDomain ? tr("ov.stMailOn") : <Link to="/app/emails">{tr("ov.stMailNoDomain")}</Link>}</li>}
+            </ul>
+          </div>
+        </Card>
+
+        {/* numbers — each one opens its list */}
+        <div className="sf-ov-kpis">
+          <Link to="/app/blacklist" className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kBlacklist")}</Text>
+            <span className="sf-ov-num">{total}</span>
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kAdded", { n: added })}</Text>
+            <span className="sf-ov-go">{tr("ov.goList")} →</span>
+          </Link>
+          <Link to="/app/checks?level=red" className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued"><Dot level="red" /> {tr("ov.kRed")}</Text>
+            <span className={`sf-ov-num${verdicts.red ? " red" : ""}`}>{verdicts.red}</span>
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kOf", { n: checked })}</Text>
+            <span className="sf-ov-go">{tr("ov.goOrders")} →</span>
+          </Link>
+          <Link to="/app/checks?level=yellow" className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued"><Dot level="yellow" /> {tr("ov.kYellow")}</Text>
+            <span className={`sf-ov-num${verdicts.yellow ? " yellow" : ""}`}>{verdicts.yellow}</span>
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kOf", { n: checked })}</Text>
+            <span className="sf-ov-go">{tr("ov.goCheck")} →</span>
+          </Link>
+          <Link to={blocked ? "/app/blocked" + (days === 7 ? "" : `?d=${days}`) : "/app/plan"} className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kStopped")}</Text>
+            <span className="sf-ov-num">{blocked ? blocked.stopped : "—"}</span>
+            <Text as="span" variant="bodySm" tone={blocked?.through ? "critical" : "subdued"}>{blocked ? (blocked.through ? tr("ov.kThrough", { n: blocked.through }) : tr("ov.kNoThrough")) : tr("ov.lockedBasic")}</Text>
+            <span className="sf-ov-go">{blocked ? tr("ov.goWho") : tr("ov.seePlans")} →</span>
+          </Link>
+          <Link to="/app/blacklist?net=shared" className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kShared")}</Text>
+            <span className="sf-ov-num">{shared}</span>
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kSharedOf", { n: total })}</Text>
+            <span className="sf-ov-go">{tr("ov.goShow")} →</span>
+          </Link>
+          <Link to={blocked ? (shipCost ? "/app/blocked" : "/app/settings") : "/app/plan"} className="sf-ov-card">
+            <Text as="span" variant="bodySm" tone="subdued">{tr("ov.kSaved")}</Text>
+            <span className={`sf-ov-num${saved ? " green" : ""}`}>{saved != null ? `≈ ${money(saved)}` : "—"}</span>
+            <Text as="span" variant="bodySm" tone="subdued">{!blocked ? tr("ov.lockedBasic") : shipCost ? tr("ov.kSavedHow", { n: blocked.stopped }) : tr("ov.kSavedSet")}</Text>
+            <span className="sf-ov-go">{!blocked ? tr("ov.seePlans") : shipCost ? tr("ov.goWho") : tr("ov.goSetCost")} →</span>
+          </Link>
+        </div>
+
+        {/* orders that need a decision */}
+        <Card padding="0">
+          <Box padding="400">
+            <InlineStack align="space-between" blockAlign="center" gap="200">
+              <BlockStack gap="050">
+                <Text as="h2" variant="headingMd">{tr("ov.attnTitle")}</Text>
+                <Text as="p" variant="bodySm" tone="subdued">{tr("ov.attnHint")}</Text>
               </BlockStack>
-            </Card>
-
-            {!network && <Banner tone="warning" action={{ content: tr("nav.settings"), url: "/app/settings" }}>{tr("index.networkOffBanner")}</Banner>}
-
-            <Card padding="0">
-              <Box padding="400" paddingBlockEnd="300">
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center" gap="200">
-                    <BlockStack gap="050">
-                      <Text as="h2" variant="headingMd">{tr("nav.blacklist")}</Text>
-                      <Text as="p" variant="bodySm" tone="subdued">{filtered || q ? tr("dash.showing", { n: rows.length, total }) : tr("dash.totalCustomers", { n: total })}</Text>
-                    </BlockStack>
-                    <Button variant="primary" onClick={() => setOpen(true)}>{tr("index.addCustomer")}</Button>
-                  </InlineStack>
-                  <InlineStack gap="200" wrap blockAlign="start">
-                    <div style={{ flex: "1 1 320px", minWidth: 0 }}>
-                      <form onSubmit={(ev) => { ev.preventDefault(); runSearch(); }}>
-                        <TextField label={tr("common.search")} labelHidden placeholder={tr("index.searchPlaceholder")} value={search} onChange={setSearch} autoComplete="off"
-                          prefix={<Icon source={SearchIcon} tone="subdued" />}
-                          clearButton onClearButtonClick={() => { setSearch(""); setParams({}); }}
-                          connectedRight={<Button submit>{tr("common.search")}</Button>} />
-                      </form>
-                    </div>
-                    <div style={{ flex: "0 1 220px" }}>
-                      <Select label={tr("index.colReason")} labelHidden value={reasonFilter} onChange={setReasonFilter}
-                        options={[{ label: tr("dash.allReasons"), value: "" }, ...REASONS.map((r) => ({ label: reasonLabel(r), value: r }))]} />
-                    </div>
-                    <div style={{ flex: "0 1 200px" }}>
-                      <Select label={tr("common.network")} labelHidden value={netFilter} onChange={setNetFilter}
-                        options={[{ label: tr("dash.allNetwork"), value: "" }, { label: tr("dash.netShared"), value: "shared" }, { label: tr("dash.netLocal"), value: "local" }]} />
-                    </div>
-                  </InlineStack>
-                </BlockStack>
-              </Box>
-              {total === 0 ? (
-                <EmptyState heading={tr("index.emptyHeading")} action={{ content: tr("index.emptyAction"), onAction: () => setOpen(true) }} secondaryAction={{ content: tr("nav.import"), url: "/app/import" }} image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png">
-                  <p>{tr("index.emptyText")}</p>
-                </EmptyState>
-              ) : rows.length === 0 ? (
-                <Box padding="600">
-                  <BlockStack gap="200" inlineAlign="center">
-                    <Text as="p" variant="headingSm">{q ? tr("dash.noResults", { q }) : tr("dash.noMatch")}</Text>
-                    <Button onClick={() => { setReasonFilter(""); setNetFilter(""); setSearch(""); setParams({}); }}>{tr("dash.clearFilters")}</Button>
-                  </BlockStack>
-                </Box>
-              ) : (
-                <div className="sf-table sf-lg-hide-4 sf-md-hide-5 sf-md-hide-2">
-                  <IndexTable resourceName={{ singular: tr("index.resSingular"), plural: tr("index.resPlural") }} itemCount={rows.length} selectable={false}
-                    headings={[{ title: tr("common.customer") }, { title: tr("stats.colContact") }, { title: tr("index.colReason") }, { title: tr("index.colSource") }, { title: tr("index.colAdded") }, { title: tr("dash.actions"), hidden: true }]}>
-                    {rows.map((e: any, i: number) => (
-                      <IndexTable.Row id={e.id} key={e.id} position={i}>
-                        <IndexTable.Cell>
-                          <InlineStack gap="300" wrap={false} blockAlign="start">
-                            <Avatar size="md" initials={initials(e.title)} name={e.title} />
-                            <BlockStack gap="050">
-                              <Text as="span" fontWeight="semibold"><span className="sf-break">{e.title}</span></Text>
-                              {e.addresses.map((a: string, k: number) => <IdLine key={k} icon={LocationIcon} label={tr("kind.address")}>{a}</IdLine>)}
-                              {e.names.length > 1 && <Text as="span" variant="bodySm" tone="subdued">{e.names.slice(1).join(", ")}</Text>}
-                            </BlockStack>
-                          </InlineStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <BlockStack gap="100">
-                            {e.emails.map((x: string, k: number) => <IdLine key={"e" + k} icon={EmailIcon} label={tr("kind.email")}>{x}</IdLine>)}
-                            {e.phones.map((x: string, k: number) => <IdLine key={"p" + k} icon={PhoneIcon} label={tr("kind.phone")}>{x}</IdLine>)}
-                            {e.devices.length > 0 && <IdLine icon={MobileIcon} label={tr("kind.device")}>{tr("dash.devices", { n: e.devices.length })}</IdLine>}
-                            {!e.emails.length && !e.phones.length && !e.devices.length && <Text as="span" tone="subdued">—</Text>}
-                          </BlockStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <BlockStack gap="100" inlineAlign="start">
-                            <Badge tone={REASON_TONE[e.reason]}>{reasonLabel(e.reason)}</Badge>
-                            {e.note ? <Text as="p" variant="bodySm" tone="subdued"><span className="sf-clamp2 sf-break" title={e.note}>{e.note}</span></Text> : null}
-                          </BlockStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <BlockStack gap="100" inlineAlign="start">
-                            <Text as="span" variant="bodySm">{e.orderName ? `${sourceLabel(e.source)} ${e.orderName}` : sourceLabel(e.source)}</Text>
-                            {e.shared && <Badge tone="info" size="small">{tr("index.reported")}</Badge>}
-                          </BlockStack>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <Text as="span" variant="bodySm"><span className="sf-nowrap">{new Date(e.createdAt).toLocaleDateString(dateLocale(lang), { day: "numeric", month: "short", year: "numeric" })}</span></Text>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <div className="sf-row-actions" style={{ display: "flex", justifyContent: "flex-end" }}>
-                            <Button icon={DeleteIcon} variant="tertiary" tone="critical" accessibilityLabel={`${tr("common.delete")}: ${e.title}`} loading={deletingId === e.id}
-                              onClick={() => setToDelete({ id: e.id, name: e.title })} />
-                          </div>
-                        </IndexTable.Cell>
-                      </IndexTable.Row>
-                    ))}
-                  </IndexTable>
-                </div>
-              )}
-            </Card>
-          </BlockStack>
-        </Layout.Section>
-      </Layout>
-
-      <Modal open={!!toDelete} onClose={() => setToDelete(null)} title={tr("dash.deleteTitle")}
-        primaryAction={{ content: tr("common.delete"), destructive: true, loading: !!deletingId, onAction: () => toDelete && fetcher.submit({ intent: "delete", id: toDelete.id }, { method: "post" }) }}
-        secondaryActions={[{ content: tr("common.cancel"), onAction: () => setToDelete(null) }]}>
-        <Modal.Section>
-          <Text as="p">{tr("dash.deleteText", { name: toDelete?.name || "" })}</Text>
-        </Modal.Section>
-      </Modal>
-
-      <Modal open={open} onClose={() => { setOpen(false); setDup(null); }} title={tr("index.modalTitle")}
-        primaryAction={{ content: dup ? tr("index.dupAddAnyway") : tr("common.save"), onAction: submit, loading: busy }}
-        secondaryActions={[{ content: tr("common.cancel"), onAction: () => { setOpen(false); setDup(null); } }]}>
-        <Modal.Section>
-          {dup && (
-            <Box paddingBlockEnd="400">
-              <Banner tone="warning" title={tr("index.dupTitle", { n: String(dup.length) })}>
-                <BlockStack gap="100">
-                  {dup.map((e: any, k: number) => (
-                    <Text as="p" key={k}>
-                      {[new Date(e.createdAt).toLocaleDateString(dateLocale(lang)), e.orderName, reasonLabel(e.reason)].filter(Boolean).join(" · ")}
-                      {e.matched?.length ? ` — ${tr("index.dupMatches", { kinds: [...new Set(e.matched.map((m: any) => tr(`kind.${m.kind}` as TKey)))].join(", ") })}` : ""}
-                    </Text>
-                  ))}
-                  <Text as="p" tone="subdued">{tr("index.dupHint")}</Text>
-                </BlockStack>
-              </Banner>
-            </Box>
+              <Button variant="plain" url="/app/checks">{tr("ov.allChecks")}</Button>
+            </InlineStack>
+          </Box>
+          {attention.length === 0 ? (
+            <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("ov.attnEmpty")}</Text></Box>
+          ) : (
+            <ul className="sf-ov-attn">
+              {(attention as any[]).map((c) => {
+                const lv: Level = worst(c.level, c.networkLevel);
+                const oid = String(c.orderId).split("/").pop();
+                const acts = String(c.actionTaken || "").split("+").filter(Boolean);
+                return (
+                  <li key={c.id}>
+                    <a href={`https://admin.shopify.com/store/${storeHandle}/orders/${oid}`} target="_top">
+                      <Dot level={lv} />
+                      <span className="sf-ov-order">{c.orderName || oid}</span>
+                      <span className="sf-ov-why">{reasonOf(c)}</span>
+                      <span className="sf-ov-when">{new Date(c.checkedAt).toLocaleString(dateLocale(lang), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                      <Badge tone={lv === "red" ? "critical" : "warning"}>{acts.includes("cancel") ? tr("action.cancel") : lv === "red" ? tr("ov.doNotShip") : tr("ov.checkFirst")}</Badge>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-          <FormLayout>
-            <FormLayout.Group>
-              <TextField label={tr("index.email")} value={form.email} onChange={set("email")} autoComplete="off" type="email" />
-              <TextField label={tr("index.phone")} value={form.phone} onChange={set("phone")} autoComplete="off" type="tel" helpText={tr("index.phoneHelp")} />
-            </FormLayout.Group>
-            <FormLayout.Group>
-              <TextField label={tr("index.firstName")} value={form.firstName} onChange={set("firstName")} autoComplete="off" />
-              <TextField label={tr("index.lastName")} value={form.lastName} onChange={set("lastName")} autoComplete="off" />
-            </FormLayout.Group>
-            <FormLayout.Group>
-              <TextField label={tr("index.address")} value={form.address1} onChange={set("address1")} autoComplete="off" />
-              <TextField label={tr("index.city")} value={form.city} onChange={set("city")} autoComplete="off" />
-            </FormLayout.Group>
-            <Select label={tr("index.reason")} options={REASONS.map((r) => ({ label: reasonLabel(r), value: r }))} value={form.reason} onChange={set("reason")} />
-            <TextField label={tr("index.note")} value={form.note} onChange={set("note")} autoComplete="off" multiline={2} />
-            <Text as="p" tone="subdued" variant="bodySm">{tr("index.nameHint")}</Text>
-          </FormLayout>
-        </Modal.Section>
-      </Modal>
+        </Card>
+
+        {/* every feature */}
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">{tr("ov.modulesTitle")}</Text>
+          <div className="sf-ov-tiles">
+            <Tile to="/app/blacklist" title={tr("nav.blacklist")} badge={<Badge tone="success">{tr("ov.on")}</Badge>} text={tr("ov.mBlacklist")}
+              line={tr("ov.mBlacklistLine", { n: total, s: shared })} />
+            <Tile to="/app/checks" title={tr("nav.checks")} badge={<Badge tone="success">{tr("ov.on")}</Badge>} text={tr("ov.mChecks")}
+              line={`${LABEL.green} ${verdicts.green} · ${LABEL.yellow} ${verdicts.yellow} · ${LABEL.red} ${verdicts.red}`} />
+            <Tile to={blocked ? "/app/blocked" : "/app/plan"} title={tr("ov.mBlockTitle")} badge={blocked ? <Badge tone="success">{tr("ov.on")}</Badge> : <Badge>Basic</Badge>} text={tr("ov.mBlock")}
+              line={blocked ? tr("ov.mBlockLine", { n: blocked.stopped, t: blocked.through }) : tr("ov.lockedBasic")} />
+            <Tile to={can(data.plan, "checkout_stats") ? "/app/stats" : "/app/plan"} title={tr("nav.stats")} badge={can(data.plan, "checkout_stats") ? <Badge tone="success">{tr("ov.on")}</Badge> : <Badge>Pro</Badge>} text={tr("ov.mStats")}
+              line={can(data.plan, "checkout_stats") ? tr("ov.open") : tr("ov.lockedPro")} />
+            <Tile to={emailsSent != null ? "/app/emails" : "/app/plan"} title={tr("nav.emails")}
+              badge={emailsSent == null ? <Badge>Pro</Badge> : status.recovery ? <Badge tone="success">{tr("ov.on")}</Badge> : <Badge>{tr("ov.off")}</Badge>} text={tr("ov.mEmails")}
+              line={emailsSent != null ? tr("ov.mEmailsLine", { n: emailsSent, o: attr?.email ?? 0 }) : tr("ov.lockedPro")} />
+            <Tile to={leads != null ? "/app/popup" : "/app/plan"} title={tr("nav.popup")}
+              badge={leads == null ? <Badge>Basic</Badge> : status.popup ? <Badge tone="success">{tr("ov.on")}</Badge> : <Badge>{tr("ov.off")}</Badge>} text={tr("ov.mPopup")}
+              line={leads != null ? tr("ov.mPopupLine", { n: leads, o: attr?.popup ?? 0 }) : tr("ov.lockedBasic")} />
+          </div>
+        </BlockStack>
+      </BlockStack>
     </Page>
+  );
+}
+
+function Tile({ to, title, badge, text, line }: { to: string; title: string; badge: ReactNode; text: string; line: string }) {
+  return (
+    <Link to={to} className="sf-ov-card sf-ov-tile">
+      <InlineStack align="space-between" blockAlign="center" gap="200" wrap={false}>
+        <Text as="span" variant="headingSm">{title}</Text>
+        {badge}
+      </InlineStack>
+      <Text as="span" variant="bodySm" tone="subdued">{text}</Text>
+      <Text as="span" variant="bodySm" fontWeight="semibold">{line}</Text>
+    </Link>
   );
 }
