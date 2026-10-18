@@ -76,7 +76,7 @@ export default function PlanPage() {
 
             <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
               {PLANS.map((id) => {
-                const items = (id === "free" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5]).map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS }));
+                const items = (id === "free" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6]).map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS }));
                 const name = planName(id);
                 const yr = yearly && id !== "free";
                 return (
@@ -110,7 +110,10 @@ export default function PlanPage() {
                         <Divider />
                         <ul className="sf-plan-items">
                           {items.map((it) => (
-                            <li key={it}><Icon source={CheckIcon} /><Text as="span">{it}</Text></li>
+                            <li key={it}><Icon source={CheckIcon} /><span className="sf-plan-item">
+                              <Text as="span" fontWeight="semibold">{it.split("|")[0]}</Text>
+                              {it.includes("|") && <Text as="span" variant="bodySm" tone="subdued">{it.split("|").slice(1).join("|")}</Text>}
+                            </span></li>
                           ))}
                         </ul>
                       </BlockStack>

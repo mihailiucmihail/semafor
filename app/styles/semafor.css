@@ -166,6 +166,8 @@
 .sf-plan-items { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--p-space-200); }
 .sf-plan-items li { display: flex; gap: var(--p-space-200); align-items: flex-start; }
 .sf-plan-items .Polaris-Icon { margin: 0; flex: none; }
+.sf-plan-items { gap: var(--p-space-300); }
+.sf-plan-item { display: grid; gap: 2px; min-width: 0; white-space: pre-line; }
 .sf-plan-items svg { fill: var(--sf-green); }
 
 /* ── checkout timeline (customer page) ── */
