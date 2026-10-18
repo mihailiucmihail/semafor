@@ -7,7 +7,8 @@ import { Lamp, type Level } from "../components/semafor-ui";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
-import { refreshPlan, checksThisMonth, isOwnerShop } from "../semafor/plan.server";
+import { refreshPlan, checksThisMonth, isOwnerShop, trialBanner } from "../semafor/plan.server";
+import { TrialBanner } from "../components/trial-banner";
 import { FREE_MONTHLY_CHECKS, FEATURE_PLAN, type Feature, type Plan } from "../../core/plans";
 import { useT, type TKey } from "../i18n";
 
@@ -21,15 +22,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const used = await checksThisMonth(shop.id);
   const need = new URL(request.url).searchParams.get("need") as Feature | null;
   const store = session.shop.replace(/\.myshopify\.com$/, "");
+  const trial = plan === "free" ? await trialBanner({ ...shop, plan }).catch(() => null) : null;
   return {
-    plan, used, owner: isOwnerShop(session.shop),
+    plan, used, owner: isOwnerShop(session.shop), trial,
     need: need && need in FEATURE_PLAN ? { feature: need, plan: FEATURE_PLAN[need] } : null,
     pricingUrl: `https://admin.shopify.com/store/${store}/charges/${process.env.SHOPIFY_APP_HANDLE || (process.env.SHOPIFY_API_KEY === "a1d407ad72929fc485d5f9a4ef9a42b1" ? "semafor-app" : "semafor")}/pricing_plans`,
   };
 };
 
 export default function PlanPage() {
-  const { plan, used, owner, need, pricingUrl } = useLoaderData<typeof loader>();
+  const { plan, used, owner, need, pricingUrl, trial } = useLoaderData<typeof loader>();
   const rank = { free: 0, basic: 1, pro: 2 } as const;
   const tr = useT();
   const [yearly, setYearly] = useState(false);
@@ -49,6 +51,7 @@ export default function PlanPage() {
               </Banner>
             )}
             {owner && <Banner tone="success">{tr("plan.owner")}</Banner>}
+            <TrialBanner trial={trial as any} />
 
             <InlineStack align="space-between" blockAlign="end" gap="400">
               <BlockStack gap="100">
@@ -61,7 +64,7 @@ export default function PlanPage() {
               </ButtonGroup>
             </InlineStack>
 
-            {plan === "free" && (
+            {plan === "free" && !trial?.active && (
               <Card>
                 <BlockStack gap="200">
                   <InlineStack align="space-between">
@@ -88,7 +91,7 @@ export default function PlanPage() {
                             <Lamp lit={lampsOf[id]} />
                             <Text as="h2" variant="headingLg">{name}</Text>
                           </InlineStack>
-                          {plan === id ? <Badge tone="success">{tr("plan.yourPlan")}</Badge> : id === "basic" && plan === "free" ? <Badge tone="info">{tr("plan.recommended")}</Badge> : null}
+                          {trial?.active && id === "pro" ? <Badge tone="info">{tr("trial.badge", { n: trial.daysLeft })}</Badge> : plan === id && !trial?.active ? <Badge tone="success">{tr("plan.yourPlan")}</Badge> : id === "basic" && plan === "free" ? <Badge tone="info">{tr("plan.recommended")}</Badge> : null}
                         </InlineStack>
                         <Text as="p" tone="subdued">{tr(`plan.tagline.${id}` as TKey)}</Text>
                         <BlockStack gap="100">
@@ -105,7 +108,7 @@ export default function PlanPage() {
                             {rank[id] > rank[plan] ? tr("plan.upgrade", { name }) : tr("plan.switch", { name })}
                           </Button>
                         ) : (
-                          <Button fullWidth disabled>{plan === id ? tr("plan.current") : name}</Button>
+                          <Button fullWidth disabled>{plan === id ? (trial?.active ? tr("trial.afterTrial") : tr("plan.current")) : name}</Button>
                         )}
                         <Divider />
                         <ul className="sf-plan-items">

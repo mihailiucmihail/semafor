@@ -10,6 +10,8 @@ import type { ShopSettings } from './settings';
 export type Plan = 'free' | 'basic' | 'pro';
 export const PLAN_RANK: Record<Plan, number> = { free: 0, basic: 1, pro: 2 };
 export const FREE_MONTHLY_CHECKS = 50;
+/** Every new store gets Pro free for this many days (no billing); then it falls back to its real plan. */
+export const TRIAL_DAYS = 14;
 
 export type Feature =
   | 'unlimited_checks' | 'checkout_block' | 'auto_cancel' | 'yellow_actions' | 'device_links'

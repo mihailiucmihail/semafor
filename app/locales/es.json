@@ -920,7 +920,18 @@
   "dom.wizDone": "¿Las has añadido todas? Pulsa «Verificar ahora». Puede tardar desde unos minutos hasta unas horas en publicarse.",
   "dom.wizIntro": "Escribe el dominio de tu tienda: te mostramos exactamente qué registros añadir y dónde.",
   "plan.basic.6": "Pop-up de bienvenida con descuento|Ofrece a los nuevos visitantes un descuento de bienvenida a cambio de su e-mail y vuelve a preguntar cuando pasan al checkout. El código llega por e-mail y se aplica solo en el carrito. 5 diseños (clásico + uno por estación), en 5 idiomas.",
-  "plan.pro.6": "Ventas recuperadas en cifras, desde tu propia dirección|Ve cuántos e-mails se enviaron, cuántos clientes volvieron y compraron y cuántos ingresos generaron los recordatorios. Los e-mails salen desde tu propio dominio (p. ej., info@tutienda.com)."
+  "plan.pro.6": "Ventas recuperadas en cifras, desde tu propia dirección|Ve cuántos e-mails se enviaron, cuántos clientes volvieron y compraron y cuántos ingresos generaron los recordatorios. Los e-mails salen desde tu propio dominio (p. ej., info@tutienda.com).",
+  "trial.title": "Prueba gratuita de Pro: quedan {n} días",
+  "trial.titleLast": "Tu prueba gratuita de Pro termina hoy",
+  "trial.body": "Todas las funciones de Pro están activas: bloqueo en el checkout, reglas por color, recordatorios automáticos por e-mail y el pop-up de bienvenida. Al terminar la prueba, tu tienda pasa al plan Free; elige un plan para conservarlas. No se cobra nada hasta que lo hagas.",
+  "trial.stats": "pedidos verificados: {checked} · de riesgo: {risky} · detenidos en el checkout: {blocked} · recordatorios enviados: {sent}",
+  "trial.soFar": "Hasta ahora — {stats}.",
+  "trial.cta": "Elegir un plan",
+  "trial.endedTitle": "Tu prueba gratuita de Pro ha terminado",
+  "trial.endedBody": "Tu tienda está ahora en el plan Free: los pedidos se siguen verificando (50 al mes), pero el bloqueo en el checkout, los recordatorios y el pop-up están desactivados. Elige un plan para volver a activarlos; tu configuración se conserva.",
+  "trial.endedStats": "Durante la prueba — {stats}.",
+  "trial.badge": "gratis · quedan {n} días",
+  "trial.afterTrial": "Después de la prueba"
  },
  "server": [
   "No hay un identificador válido (correo, teléfono, nombre + dirección).",

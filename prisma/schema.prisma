@@ -16,6 +16,8 @@ model Shop {
   settings    Json     @default("{}")     // { thresholds:{block:100,warn:40}, yellowAction:"tag"|"prepaid"|"block", shareNetwork:bool, cancelRed:bool }
   installedAt DateTime @default(now())
   uninstalledAt DateTime?
+  trialEndsAt DateTime?                  // free Pro trial (TRIAL_DAYS from the first install); never renewed on reinstall
+  trialOver   Boolean  @default(false)   // the end of the trial was applied (checkout / pop-up config refreshed)
 
   entries     BlockEntry[]
   checks      OrderCheck[]

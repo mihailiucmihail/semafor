@@ -920,7 +920,18 @@
   "dom.wizDone": "Dodane wszystkie? Kliknij „Sprawdź teraz”. Publikacja może potrwać od kilku minut do kilku godzin.",
   "dom.wizIntro": "Wpisz domenę sklepu — pokażemy dokładnie, jakie rekordy dodać i gdzie.",
   "plan.basic.6": "Pop-up powitalny z rabatem|Proponuje nowym odwiedzającym rabat powitalny w zamian za e-mail i pyta jeszcze raz przy przejściu do kasy. Kod przychodzi e-mailem i sam nalicza się w koszyku. 5 wzorów (klasyczny + po jednym na każdą porę roku), w 5 językach.",
-  "plan.pro.6": "Odzyskana sprzedaż w liczbach, z Twojego adresu|Zobacz, ile e-maili wysłano, ilu klientów wróciło i zamówiło oraz ile przychodu przyniosły przypomnienia. E-maile wychodzą z Twojej własnej domeny (np. info@twojsklep.pl)."
+  "plan.pro.6": "Odzyskana sprzedaż w liczbach, z Twojego adresu|Zobacz, ile e-maili wysłano, ilu klientów wróciło i zamówiło oraz ile przychodu przyniosły przypomnienia. E-maile wychodzą z Twojej własnej domeny (np. info@twojsklep.pl).",
+  "trial.title": "Darmowy okres próbny Pro: zostało dni: {n}",
+  "trial.titleLast": "Twój darmowy okres próbny Pro kończy się dziś",
+  "trial.body": "Wszystkie funkcje Pro są włączone: blokada przy składaniu zamówienia, reguły dla kolorów, automatyczne e-maile z przypomnieniem i pop-up powitalny. Po okresie próbnym sklep przejdzie na plan Free — wybierz plan, aby je zachować. Nic nie jest pobierane, dopóki tego nie zrobisz.",
+  "trial.stats": "sprawdzone zamówienia: {checked} · ryzykowne: {risky} · zatrzymane w kasie: {blocked} · wysłane przypomnienia: {sent}",
+  "trial.soFar": "Do tej pory — {stats}.",
+  "trial.cta": "Wybierz plan",
+  "trial.endedTitle": "Darmowy okres próbny Pro dobiegł końca",
+  "trial.endedBody": "Twój sklep jest teraz na planie Free: zamówienia są nadal sprawdzane (50 miesięcznie), ale blokada przy składaniu zamówienia, przypomnienia i pop-up są wyłączone. Wybierz plan, aby je ponownie włączyć — Twoje ustawienia są zapisane.",
+  "trial.endedStats": "W okresie próbnym — {stats}.",
+  "trial.badge": "za darmo · dni: {n}",
+  "trial.afterTrial": "Po okresie próbnym"
  },
  "server": [
   "Brak prawidłowego identyfikatora (e-mail, telefon, imię i nazwisko + adres).",

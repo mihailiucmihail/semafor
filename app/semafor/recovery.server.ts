@@ -808,13 +808,22 @@ export function startRecoveryScheduler() {
   if (g.__semaforRecovery) return;
   g.__semaforRecovery = setInterval(async () => {
     try {
-      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true, country: true } })) as any[];
+      const shops = (await db.shop.findMany({ where: { uninstalledAt: null }, select: { id: true, domain: true, settings: true, plan: true, country: true, trialEndsAt: true, trialOver: true } })) as any[];
       const { sessionStorage } = await import("../shopify.server");
       const net = await import("./entries.server");
       await net.fillNetworkFnHash().catch((e: any) => console.error("[semafor] network fnHash", e?.message || e));
       for (const sh of shops) {
         // only shops installed in THIS app (two deployments share the database)
         try { const ss = await (sessionStorage as any).findSessionsByShop(sh.domain); if (!ss?.some((x: any) => !x.isOnline)) continue; } catch { continue; }
+        // the free Pro trial just ended: switch off at checkout / on the storefront what the real plan doesn't include
+        if (sh.trialEndsAt && !sh.trialOver && new Date(sh.trialEndsAt).getTime() <= Date.now()) {
+          try {
+            await db.shop.update({ where: { id: sh.id }, data: { trialOver: true } });
+            const { applyPlanChange } = await import("./plan.server");
+            await applyPlanChange(sh.domain);
+            console.log("[semafor] trial ended", sh.domain);
+          } catch (e: any) { console.error("[semafor] trial end", sh.domain, e?.message || e); }
+        }
         // safety net: orders whose orders/create webhook never arrived get checked (and tagged) within 5 minutes
         try {
           const { withinQuota } = await import("./plan.server");

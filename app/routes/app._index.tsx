@@ -10,7 +10,8 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { catchUpOrders } from "../semafor/backfill.server";
-import { planOf, checksThisMonth } from "../semafor/plan.server";
+import { planOf, checksThisMonth, trialBanner } from "../semafor/plan.server";
+import { TrialBanner } from "../components/trial-banner";
 import { blockedSummary } from "../semafor/blocked.server";
 import { attributionSummary } from "../semafor/attribution.server";
 import { can, FREE_MONTHLY_CHECKS } from "../../core/plans";
@@ -55,8 +56,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const usedChecks = can(plan, "unlimited_checks") ? null : await checksThisMonth(shop.id);
   const shipCost = typeof s.shipCost === "number" && s.shipCost > 0 ? s.shipCost : null;
 
+  const trial = await trialBanner(shop).catch(() => null);
   return {
-    days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
+    trial, days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
     attr: attr ? { email: attr.bySource.email.count, popup: attr.bySource.popup_site.count + attr.bySource.popup_cart.count, currency: attr.currency } : null,
     status: {
       network: !!s.shareNetwork,
@@ -106,6 +108,7 @@ export default function Overview() {
         <button onClick={() => navigate("/app/plan")}>{tr("nav.plan")}</button>
       </TitleBar>
       <BlockStack gap="400">
+        <TrialBanner trial={data.trial as any} onPlans={() => navigate("/app/plan")} />
         <InlineStack align="space-between" blockAlign="center" gap="300" wrap>
           <Text as="h1" variant="headingLg">{tr("nav.overview")}</Text>
           <ButtonGroup variant="segmented">

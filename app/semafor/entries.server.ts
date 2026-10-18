@@ -207,7 +207,7 @@ export function nameOnlyHit(names: (string | { name: string; at: Date })[], firs
 export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const empty = { v: 1, e: [] as string[], p: [] as string[], a: [] as string[], d: [] as string[], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
   // Blocking in checkout (hide cash on delivery / block) is a Basic feature.
-  const shopRow = await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, settings: true } });
+  const shopRow = await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, settings: true, trialEndsAt: true } });
   if (!can(planOf(shopRow), "checkout_block")) return empty;
   const rows = await db.identifier.findMany({
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },

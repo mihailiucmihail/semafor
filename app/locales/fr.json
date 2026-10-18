@@ -920,7 +920,18 @@
   "dom.wizDone": "Tout est ajouté ? Cliquez sur « Vérifier maintenant ». La publication peut prendre de quelques minutes à quelques heures.",
   "dom.wizIntro": "Saisissez le domaine de votre boutique — nous vous montrons exactement quels enregistrements ajouter et où.",
   "plan.basic.6": "Pop-up de bienvenue avec réduction|Propose aux nouveaux visiteurs une réduction de bienvenue contre leur e-mail, puis redemande une fois au moment du paiement. Le code arrive par e-mail et s'applique tout seul au panier. 5 designs (classique + un par saison), en 5 langues.",
-  "plan.pro.6": "Les ventes récupérées en chiffres, depuis votre adresse|Voyez combien d'e-mails sont partis, combien de clients sont revenus commander et quel chiffre d'affaires les relances ont rapporté. Les e-mails partent de votre propre domaine (ex. info@votreboutique.fr)."
+  "plan.pro.6": "Les ventes récupérées en chiffres, depuis votre adresse|Voyez combien d'e-mails sont partis, combien de clients sont revenus commander et quel chiffre d'affaires les relances ont rapporté. Les e-mails partent de votre propre domaine (ex. info@votreboutique.fr).",
+  "trial.title": "Essai gratuit de Pro : encore {n} jours",
+  "trial.titleLast": "Votre essai gratuit de Pro se termine aujourd'hui",
+  "trial.body": "Toutes les fonctions Pro sont actives : blocage au paiement, règles par couleur, relances automatiques par e-mail et pop-up de bienvenue. À la fin de l'essai, votre boutique passe au plan Free — choisissez un plan pour les garder. Rien n'est facturé tant que vous ne l'avez pas fait.",
+  "trial.stats": "commandes vérifiées : {checked} · à risque : {risky} · arrêtées au paiement : {blocked} · relances envoyées : {sent}",
+  "trial.soFar": "Jusqu'ici — {stats}.",
+  "trial.cta": "Choisir un plan",
+  "trial.endedTitle": "Votre essai gratuit de Pro est terminé",
+  "trial.endedBody": "Votre boutique est maintenant sur le plan Free : les commandes sont toujours vérifiées (50 par mois), mais le blocage au paiement, les relances et le pop-up sont désactivés. Choisissez un plan pour les réactiver — vos réglages sont conservés.",
+  "trial.endedStats": "Pendant l'essai — {stats}.",
+  "trial.badge": "gratuit · encore {n} jours",
+  "trial.afterTrial": "Après l'essai"
  },
  "server": [
   "Aucun identifiant valide (e-mail, téléphone, nom + adresse).",

@@ -12,10 +12,39 @@ export function isOwnerShop(domain: string | null | undefined) {
   return OWNER_SHOPS.includes(String(domain || "").toLowerCase());
 }
 
-export function planOf(shop: { plan?: string | null; domain?: string | null } | null | undefined): Plan {
+type PlanShop = { plan?: string | null; domain?: string | null; trialEndsAt?: Date | string | null };
+
+/** The free Pro trial of a store on Free: active, whole days left (rounded up), end date. */
+export function trialOf(shop: PlanShop | null | undefined) {
+  const end = shop?.trialEndsAt ? new Date(shop.trialEndsAt) : null;
+  const paid = normPlan(shop?.plan) !== "free" || isOwnerShop(shop?.domain);
+  const active = !!end && !paid && end.getTime() > Date.now();
+  const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86_400_000)) : 0;
+  return { active, daysLeft, endsAt: end, ended: !!end && !paid && !active };
+}
+
+export function planOf(shop: PlanShop | null | undefined): Plan {
   if (!shop) return "free";
   if (isOwnerShop(shop.domain)) return "pro";
-  return normPlan(shop.plan);
+  const p = normPlan(shop.plan);
+  if (p === "free" && trialOf(shop).active) return "pro";
+  return p;
+}
+
+/** After a plan change (subscription webhook, end of the trial): re-writes what the storefront and checkout read,
+ *  so features of a plan the store no longer has stop working right away. */
+export async function applyPlanChange(domain: string) {
+  try {
+    const { unauthenticated } = await import("../shopify.server");
+    const { getShop } = await import("./shop.server");
+    const { pushCheckoutMetafield } = await import("./entries.server");
+    const { pushPopupConfig } = await import("./popup.server");
+    const shop = await getShop(domain);
+    if (!shop || shop.uninstalledAt) return;
+    const { admin } = await unauthenticated.admin(domain);
+    await pushCheckoutMetafield(admin as any, shop.id).catch((e: any) => console.error("[semafor] plan change checkout", domain, e?.message || e));
+    await pushPopupConfig(admin as any, shop as any).catch((e: any) => console.error("[semafor] plan change popup", domain, e?.message || e));
+  } catch (e: any) { console.error("[semafor] applyPlanChange", domain, e?.message || e); }
 }
 
 /** Read the active subscription from Shopify and store it on the Shop row. */
@@ -41,7 +70,7 @@ export async function refreshPlan(admin: Admin, shop: { id: string; domain: stri
 
 /** Use in loaders/actions of paid pages: sends the merchant to the plans page when the feature is locked. */
 /** `go` = the `redirect` helper returned by authenticate.admin (keeps the embedded-app params). */
-export function requireFeature(shop: { plan?: string | null; domain?: string | null }, f: Feature, go: (url: string) => any) {
+export function requireFeature(shop: PlanShop, f: Feature, go: (url: string) => any) {
   if (!can(planOf(shop), f)) throw go(`/app/plan?need=${f}`);
 }
 
@@ -53,7 +82,27 @@ export async function checksThisMonth(shopId: string) {
 }
 
 /** true when a new order may be checked under the shop's plan. */
-export async function withinQuota(shop: { id: string; plan?: string | null; domain?: string | null }) {
+export async function withinQuota(shop: { id: string; plan?: string | null; domain?: string | null; trialEndsAt?: Date | string | null }) {
   if (can(planOf(shop), "unlimited_checks")) return true;
   return (await checksThisMonth(shop.id)) < FREE_MONTHLY_CHECKS;
+}
+
+/** Banner data for the free Pro trial (overview + plans page): null when the store has no trial to talk about. */
+export async function trialBanner(shop: { id: string; country: string; plan?: string | null; domain?: string | null; trialEndsAt?: Date | null; installedAt?: Date | null }) {
+  const t = trialOf(shop);
+  if (!t.endsAt || isOwnerShop(shop.domain)) return null;
+  if (!t.active && !t.ended) return null;
+  // the "trial ended" note stays for 14 days, then the normal Free screens are enough
+  if (t.ended && Date.now() - t.endsAt.getTime() > 14 * 86_400_000) return null;
+  const since = shop.installedAt ?? new Date(t.endsAt.getTime() - 14 * 86_400_000);
+  const until = t.ended ? t.endsAt : new Date();
+  const range = { gte: since, lte: until };
+  const { blockedSummary } = await import("./blocked.server");
+  const [checked, risky, sent, blocked] = await Promise.all([
+    db.orderCheck.count({ where: { shopId: shop.id, checkedAt: range } }),
+    db.orderCheck.count({ where: { shopId: shop.id, checkedAt: range, OR: [{ level: { not: "green" } }, { networkLevel: { not: "green" } }] } }),
+    db.emailSend.count({ where: { shopId: shop.id, status: "sent", createdAt: range } }),
+    blockedSummary(shop, since).then((b) => b.stopped).catch(() => 0),
+  ]);
+  return { active: t.active, daysLeft: t.daysLeft, endsAt: t.endsAt.toISOString(), checked, risky, sent, blocked };
 }

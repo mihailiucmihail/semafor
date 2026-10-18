@@ -1,15 +1,20 @@
 import db from "../db.server";
 import { settingsOf, type ShopSettings } from "../../core/settings";
+import { TRIAL_DAYS } from "../../core/plans";
 
 export const SECRET = process.env.SEMAFOR_HASH_SECRET || "dev-secret-change-me";
 
 /** Ensure a Shop row exists for this session's shop; returns it with parsed settings. */
 export async function ensureShop(domain: string, accessToken: string) {
-  const shop = await db.shop.upsert({
+  let shop = await db.shop.upsert({
     where: { domain },
-    create: { domain, accessToken, country: "RO" },
+    create: { domain, accessToken, country: "RO", trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000) },
     update: { accessToken, uninstalledAt: null },
   });
+  // stores installed shortly before the trial existed get the rest of their 14 days (once; a reinstall never renews it)
+  if (!shop.trialEndsAt && shop.installedAt.getTime() > Date.now() - TRIAL_DAYS * 86_400_000) {
+    shop = await db.shop.update({ where: { id: shop.id }, data: { trialEndsAt: new Date(shop.installedAt.getTime() + TRIAL_DAYS * 86_400_000) } });
+  }
   return { ...shop, settings: settingsOf(shop.settings) as ShopSettings };
 }
 

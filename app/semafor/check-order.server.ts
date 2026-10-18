@@ -29,7 +29,7 @@ export async function checkOrder(opts: {
   recheck?: boolean;
 }): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
   const { db, secret, shopId, order, admin } = opts;
-  const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true } }));
+  const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, trialEndsAt: true } }));
   const settings = effectiveSettings(opts.settings, plan);
   const ids = extractIdentifiers(order, opts.country);
   const isIphone = /iPhone/i.test(order.client_details?.user_agent ?? '');

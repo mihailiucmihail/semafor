@@ -25,7 +25,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try { b = JSON.parse(await request.text()); } catch { return new Response("bad json", { status: 400, headers: CORS }); }
   const domain = cut(b.shop, 120); const event = cut(b.event, 20); const deviceId = cut(b.deviceId, 64);
   if (!domain || !event || !EVENTS.has(event) || !deviceId) return new Response("missing", { status: 400, headers: CORS });
-  const shop = await db.shop.findUnique({ where: { domain }, select: { id: true, uninstalledAt: true, domain: true, plan: true, country: true } });
+  const shop = await db.shop.findUnique({ where: { domain }, select: { id: true, uninstalledAt: true, domain: true, plan: true, country: true, trialEndsAt: true } });
   if (!shop || shop.uninstalledAt) return new Response("unknown shop", { status: 404, headers: CORS });
 
   const items = Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), variantId: cut(String(i?.variantId ?? ""), 80), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined;

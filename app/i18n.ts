@@ -991,6 +991,17 @@ const D = {
   "dom.wizIntro": { en: "Enter your shop's domain — we'll show you exactly which records to add and where.", ro: "Scrie domeniul magazinului — îți arătăm exact ce înregistrări adaugi și unde." },
   "plan.basic.6": { en: "Welcome pop-up with a discount|Offers new visitors a welcome discount in exchange for their e-mail, and asks once more when they go to checkout. The code arrives by e-mail and applies itself in the cart. 5 designs (classic + one per season), in 5 languages.", ro: "Pop-up de bun venit cu reducere|Le oferă vizitatorilor noi o reducere de bun venit în schimbul e-mailului și îi mai întreabă o dată când trec la finalizarea comenzii. Codul vine pe e-mail și se aplică singur în coș. 5 modele (clasic + câte unul pentru fiecare anotimp), în 5 limbi." },
   "plan.pro.6": { en: "Recovered sales in numbers, from your own address|See how many e-mails went out, how many customers came back and ordered, and how much revenue the reminders brought in. E-mails are sent from your own domain (e.g. info@yourstore.com).", ro: "Vânzări recuperate în cifre, de pe adresa ta|Vezi câte e-mailuri au plecat, câți clienți au revenit și au comandat și câți bani au adus reamintirile. E-mailurile pleacă de pe domeniul tău (de ex. info@magazinultau.ro)." },
+  "trial.title": { en: "Pro free trial: {n} days left", ro: "Pro gratuit: mai ai {n} zile" },
+  "trial.titleLast": { en: "Your free Pro trial ends today", ro: "Perioada gratuită Pro se încheie azi" },
+  "trial.body": { en: "Every Pro feature is on: blocking at checkout, rules per colour, automatic reminder e-mails and the welcome pop-up. When the trial ends your store moves to Free — choose a plan to keep them. Nothing is charged until you do.", ro: "Toate funcțiile Pro sunt active: blocarea la finalizarea comenzii, regulile pe culori, e-mailurile automate de reamintire și pop-up-ul de bun venit. La final, magazinul trece pe planul Gratuit — alege un plan ca să le păstrezi. Nu se plătește nimic până nu alegi." },
+  "trial.stats": { en: "orders checked: {checked} · risky: {risky} · stopped at checkout: {blocked} · reminder e-mails sent: {sent}", ro: "comenzi verificate: {checked} · riscante: {risky} · oprite la finalizare: {blocked} · e-mailuri de reamintire trimise: {sent}" },
+  "trial.soFar": { en: "So far — {stats}.", ro: "Până acum — {stats}." },
+  "trial.cta": { en: "Choose a plan", ro: "Alege un plan" },
+  "trial.endedTitle": { en: "Your free Pro trial has ended", ro: "Perioada gratuită Pro s-a încheiat" },
+  "trial.endedBody": { en: "Your store is now on Free: orders are still checked (50 a month), but blocking at checkout, the reminder e-mails and the pop-up are off. Choose a plan to switch them back on — your settings are saved.", ro: "Magazinul tău e acum pe planul Gratuit: comenzile sunt verificate în continuare (50 pe lună), dar blocarea la finalizarea comenzii, e-mailurile de reamintire și pop-up-ul sunt oprite. Alege un plan ca să le pornești din nou — setările tale sunt păstrate." },
+  "trial.endedStats": { en: "During the trial — {stats}.", ro: "În perioada gratuită — {stats}." },
+  "trial.badge": { en: "free · {n} days left", ro: "gratuit · încă {n} zile" },
+  "trial.afterTrial": { en: "After the trial", ro: "După perioada gratuită" },
 } satisfies Record<string, Entry>;
 
 export type TKey = keyof typeof D;
