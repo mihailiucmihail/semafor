@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import db from "../db.server";
+import { linkDeviceAttempt } from "../semafor/device-block.server";
 
 /**
  * Receives checkout steps (and the cart before checkout, event "cart") from the Semafor pixel (Shopify Customer events).
@@ -24,7 +25,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try { b = JSON.parse(await request.text()); } catch { return new Response("bad json", { status: 400, headers: CORS }); }
   const domain = cut(b.shop, 120); const event = cut(b.event, 20); const deviceId = cut(b.deviceId, 64);
   if (!domain || !event || !EVENTS.has(event) || !deviceId) return new Response("missing", { status: 400, headers: CORS });
-  const shop = await db.shop.findUnique({ where: { domain }, select: { id: true, uninstalledAt: true } });
+  const shop = await db.shop.findUnique({ where: { domain }, select: { id: true, uninstalledAt: true, domain: true, plan: true, country: true } });
   if (!shop || shop.uninstalledAt) return new Response("unknown shop", { status: 404, headers: CORS });
 
   const items = Array.isArray(b.items) ? b.items.slice(0, 10).map((i: any) => ({ title: cut(i?.title, 120) || "", qty: Number(i?.qty) || 1, image: cut(i?.image, 500), variant: cut(i?.variant, 120), variantId: cut(String(i?.variantId ?? ""), 80), price: Number.isFinite(Number(i?.price)) && Number(i?.price) > 0 ? Number(i.price) : null })) : undefined;
@@ -69,6 +70,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       acceptsMarketing: typeof b.acceptsMarketing === "boolean" ? b.acceptsMarketing : null,
     },
   });
+  // blacklisted buyer (or browser) → link this browser and whatever was typed to the entry, refresh the blocklist
+  if (event !== "completed") void linkDeviceAttempt(shop, deviceId, { email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80), address1: cut(b.address1), city: cut(b.city, 80), country: cut(b.country, 4)?.toUpperCase() ?? null });
   // retention: checkout events are kept 120 days (privacy policy)
   if (Math.random() < 0.01) db.checkoutAttempt.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 120 * 86_400_000) } } }).catch(() => {});
   return new Response("ok", { headers: CORS });

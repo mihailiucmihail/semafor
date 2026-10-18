@@ -1,7 +1,8 @@
 {%- comment -%}
   Semafor pop-up — app embed. Everything visible is rendered by assets/popup.js.
   Settings are written by the Semafor admin (Pop-up page) into the app-data metafield semafor.popup (JSON).
-  Nothing is output when the pop-up is off, inside the checkout or on the password page.
+  The pop-up is output only when it is on (not on the password page). The small device script below always runs:
+  it puts the browser id on the cart for the checkout payment check.
 {%- endcomment -%}
 {%- liquid
   assign cfg = app.metafields.semafor.popup.value
@@ -13,6 +14,31 @@
     assign show = false
   endif
 -%}
+{%- unless request.page_type == 'password' or request.page_type == 'captcha' -%}
+<script>
+  /* Semafor: puts this browser's id on the cart (attribute _dev) so the checkout payment check can recognise
+     a blacklisted buyer's device even when they type another e-mail. Same id as the Semafor pixel. */
+  (function () {
+    try {
+      var W = window, D = document, K = '_smf_dev', id = null;
+      try { id = W.localStorage.getItem(K); } catch (e) {}
+      if (!id) { var m = D.cookie.match(/(?:^|;\s*)_smf_dev=([^;]+)/); if (m) id = decodeURIComponent(m[1]); }
+      if (!id) {
+        var a = new Uint8Array(16); (W.crypto || W.msCrypto).getRandomValues(a);
+        id = Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      }
+      try { W.localStorage.setItem(K, id); } catch (e) {}
+      D.cookie = '_smf_dev=' + id + '; max-age=31536000; path=/; samesite=lax';
+      var c = D.cookie.match(/(?:^|;\s*)cart=([^;]+)/), mark = id + '|' + (c ? c[1] : ''), MK = '_smf_dev_cart';
+      try { if (W.sessionStorage.getItem(MK) === mark) return; } catch (e) {}
+      var root = (W.Shopify && W.Shopify.routes && W.Shopify.routes.root) || '/';
+      fetch(root + 'cart/update.js', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attributes: { _dev: id } }) })
+        .then(function (r) { if (r.ok) { var c2 = D.cookie.match(/(?:^|;\s*)cart=([^;]+)/); try { W.sessionStorage.setItem(MK, id + '|' + (c2 ? c2[1] : '')); } catch (e) {} } })
+        .catch(function () {});
+    } catch (e) {}
+  })();
+</script>
+{%- endunless -%}
 {%- if show -%}
 <script>
   window.SemaforPopup = {
