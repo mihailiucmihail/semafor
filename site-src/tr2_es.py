@@ -298,5 +298,19 @@ ES = {
 "Shopify App Store": "Shopify App Store",
 "€89.00": "89,00 €",
 "€75.65": "75,65 €",
-"€4,859": "4.859 €"
+"€4,859": "4.859 €",
+"Prepaid orders aren't held back by another parcel on its way": "Los pedidos prepagados no se frenan por otro paquete en camino",
+"Semafor tags the order with the reason. For buyers flagged by the store network, you can also set a checkout rule — for example, no cash on delivery.": "Semafor etiqueta el pedido con el motivo. Para los compradores señalados por la red de tiendas, también puedes fijar una regla en el checkout: por ejemplo, sin contra reembolso.",
+"Matched by e-mail, phone, name + address or device": "Detectado por e-mail, teléfono, nombre + dirección o dispositivo",
+"New name. Same device.": "Otro nombre. El mismo dispositivo.",
+"Refusers come back with a husband's e-mail, a sister's phone or a new address. Semafor recognises the device and browser they order from and links every identity into one person.": "Quienes rechazan paquetes vuelven con el e-mail del marido, el teléfono de una hermana o una dirección nueva. Semafor reconoce el dispositivo y el navegador desde el que piden y une todas sus identidades en una sola persona.",
+"Installed with the app": "Se instala con la app",
+"No code. For full matching at checkout, switch on the Semafor app embed in your theme editor — one click.": "Sin código. Para la detección completa en el checkout, activa la extensión de Semafor en el editor del tema: un solo clic.",
+"No. Install Semafor and it starts checking orders right away. Checkout blocking switches on automatically. Turn on the Semafor app embed in your theme editor once — it powers device recognition and the pop-up. No code.": "No. Instalas Semafor y empieza a revisar pedidos al momento. El bloqueo en el checkout se activa solo. Activa una vez la extensión de Semafor en el editor del tema: con ella funcionan el reconocimiento de dispositivos y el pop-up. Sin código.",
+"Risk tag on every checked order": "Etiqueta de riesgo en cada pedido verificado",
+"Switch it on once. It stops the moment they order, never reminds about a sold-out product and even reaches pop-up subscribers who left before typing their e-mail. By default it writes only to customers who agreed to receive marketing e-mails.": "Actívalo una vez. Se detiene en cuanto el cliente compra, nunca recuerda un producto agotado y llega incluso a los suscriptores del pop-up que se fueron antes de escribir su e-mail. Por defecto solo escribe a clientes que aceptaron recibir e-mails de marketing.",
+"The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically.": "La red de tiendas solo intercambia huellas anónimas, nunca nombres ni direcciones. Cada e-mail incluye la baja con un clic y las solicitudes de borrado de datos de Shopify se aplican automáticamente.",
+"The app speaks English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up reach customers in English, Romanian, German, Polish or Spanish.": "La app está en inglés, rumano, español, francés, polaco y ruso. Los e-mails y el pop-up llegan a los clientes en inglés, rumano, alemán, polaco o español.",
+"Example · one store using Semafor · last 30 days": "Ejemplo · una tienda que usa Semafor · últimos 30 días",
+"An order counts when it came within 90 days of a pop-up sign-up or 14 days of a reminder.": "Un pedido cuenta si llegó en los 90 días siguientes a la suscripción en el pop-up o en los 14 días tras un recordatorio."
 }

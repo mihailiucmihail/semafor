@@ -305,9 +305,26 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .mail .code{margin:18px auto 0;display:inline-block;border:1px solid var(--ink-3);padding:10px 18px;letter-spacing:.2em;font-size:13px}
 .mail .cta{margin:18px auto 0;display:block;width:70%;padding:13px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600}
 .mail .fine{font-size:11.5px;color:var(--ink-3);margin-top:16px}
+.mcap{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px 4px}
+.mail .mh{align-items:center}.mfrom{display:flex;gap:10px;align-items:center}.mfrom .av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--serif);font-size:17px}
+.mfrom b{display:block;color:var(--ink);font-size:14px}.mfrom small{color:var(--ink-3);font-size:12px}
+.msubj{padding:14px 20px;border-bottom:1px solid #ECE5D8;font-weight:600;color:var(--ink);font-size:15px;text-align:left}
+.mail .hi{margin-top:14px;color:var(--ink-2);font-size:14.5px}.mail h4{margin-top:6px}
+.mail .item{display:flex;gap:16px;align-items:center;text-align:left;margin:20px auto 0;max-width:340px;border:1px solid #ECE5D8;border-radius:14px;padding:12px}
+.mail .item .prod{margin:0;width:88px;flex:none}.mail .item .it b{display:block;font-size:15px;color:var(--ink)}.mail .item .it small{display:block;color:var(--ink-3);font-size:12.5px}.mail .item .it span{display:block;margin-top:6px;font-size:14.5px;color:var(--ink)}.mail .item .it s{color:var(--ink-3);margin-right:6px}
+.mail .disc{margin:16px auto 0;max-width:340px;border-top:1px solid #E6D9C8;border-bottom:1px solid #E6D9C8;padding:10px 0;display:flex;gap:12px;align-items:center;justify-content:center}.mail .disc b{font-family:var(--serif);font-weight:400;font-size:34px;color:#8a4a2a}.mail .disc span{font-size:13px;color:var(--ink-2);text-align:left}
 
 .attr{margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .attr .c3{text-align:left}
+.sells{margin-top:80px;border-radius:28px;background:var(--night);color:var(--cream);padding:56px 56px 48px;position:relative;overflow:hidden}
+.sells::before{content:"";position:absolute;inset:auto -10% -60% 40%;height:120%;background:radial-gradient(closest-side,rgba(39,184,116,.22),transparent);pointer-events:none}
+.sells .eyebrow{color:var(--mute)}.sells h3{font-size:clamp(34px,4.4vw,56px);line-height:1.02;margin-top:16px;max-width:760px}.sells .sh p{color:var(--soft);font-size:17.5px;max-width:640px;margin-top:18px}
+.sells .sn{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;position:relative}
+.sells .sn div{border:1px solid var(--edge);border-radius:20px;padding:24px 24px 22px;background:rgba(255,255,255,.02)}
+.sells .sn b{display:block;font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,72px);line-height:1;color:#fff}.sells .sn span{display:block;color:var(--soft);font-size:15px;margin-top:10px}
+.sells .sb{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;color:var(--soft);font-size:14.5px;position:relative}.sells .sfoot{position:relative;color:var(--mute);font-size:13px;margin-top:14px}
+.sells .sb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+@media (max-width:760px){.sells{padding:36px 22px}.sells .sn{grid-template-columns:1fr}}
 .src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
 
 /* all features */
@@ -438,12 +455,12 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div>
       <a class="pill reveal" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener"><b>NOWOŚĆ</b>Już dostępny w Shopify App Store</a>
       <h1 class="serif reveal">Każde zamówienie dostaje <em>sygnał</em>.</h1>
-      <p class="lead reveal">Semafor w kilka sekund sprawdza każde zamówienie w Shopify, dyskretnie zatrzymuje kupujących, którzy nie odbierają paczek za pobraniem — nawet pod nowym nazwiskiem — i przywraca klientów, którzy porzucili koszyk.</p>
+      <p class="lead reveal">Semafor w kilka sekund sprawdza każde zamówienie w Shopify, dyskretnie zatrzymuje kupujących, którzy nie odbierają paczek za pobraniem — nawet pod nowym nazwiskiem — i odzyskuje klientów, którzy porzucili koszyk.</p>
       <div class="cta reveal">
         <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Zacznij od 14 dni planu Pro — za darmo</a>
         <a class="btn btn-line" href="#signal">Zobacz, jak działa</a>
       </div>
-      <div class="note reveal"><span>Bez karty</span><span>Bez konfiguracji</span><span>Działa w kilka sekund</span></div>
+      <div class="note reveal"><span>Instalacja za darmo</span><span>Rozliczenie przez Shopify</span><span>Działa w kilka sekund</span></div>
     </div>
     <div class="stage" aria-hidden="true">
       <div class="halo" id="halo"></div>
@@ -464,8 +481,8 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 
 <div class="strip" aria-hidden="true">
   <div class="marq">
-    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia odzyskane przez Semafor</span><span>6 języków</span>
-    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia odzyskane przez Semafor</span><span>6 języków</span>
+    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających paczek</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia zdobyte dzięki Semafor</span><span>6 języków</span>
+    <span>Sygnalizacja przy każdym zamówieniu</span><span>Ukryta płatność dla nieodbierających paczek</span><span>To samo urządzenie, nowe nazwisko — namierzony</span><span>Wspólna sieć sklepów</span><span>Kartoteka klienta</span><span>Pop-up powitalny w 5 wzorach</span><span>Automatyczne e-maile przypominające</span><span>Zamówienia zdobyte dzięki Semafor</span><span>6 języków</span>
   </div>
 </div>
 
@@ -482,9 +499,9 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
         <button class="tab r" data-k="r" role="tab"><i></i>Czerwone</button>
       </div>
       <div class="explain reveal">
-        <div data-k="g" class="on"><h3>Zaufany kupujący.</h3><p>Nic się nie zmienia. Wszystkie metody płatności pozostają dostępne, a finalizacja zamówienia przebiega płynnie jak zawsze.</p><ul><li>Zamówienia opłacone z góry są zawsze zielone</li><li>Zero utrudnień dla Twoich dobrych klientów</li></ul></div>
-        <div data-k="y"><h3>Warto przyjrzeć się bliżej.</h3><p>Semafor oznacza zamówienie tagiem z powodem, a Ty wybierasz regułę dla żółtego — na przykład brak płatności za pobraniem.</p><ul><li>Zamówienie za pobraniem jest już w drodze</li><li>Kilka niewysłanych zamówień — połącz je w jedną paczkę</li><li>To samo urządzenie zamówiło pod innym nazwiskiem</li><li>Sprawdzane ponownie co 15 minut — samo zmienia się na zielone</li></ul></div>
-        <div data-k="r"><h3>Znany nieodbierający.</h3><p>Płatność po cichu znika. Kupujący po prostu nie może dokończyć zamówienia — i nigdy nie dowie się, że został zablokowany.</p><ul><li>Rozpoznawany po e-mailu, telefonie, nazwisku, adresie lub urządzeniu</li><li>Brak jakiejkolwiek płatności albo tylko brak płatności za pobraniem — Twoja reguła</li><li>Opcjonalne automatyczne anulowanie</li></ul></div>
+        <div data-k="g" class="on"><h3>Zaufany kupujący.</h3><p>Nic się nie zmienia. Wszystkie metody płatności pozostają dostępne, a finalizacja zamówienia przebiega płynnie jak zawsze.</p><ul><li>Zamówienia opłacone z góry nie są wstrzymywane przez inną paczkę w drodze</li><li>Zero utrudnień dla Twoich dobrych klientów</li></ul></div>
+        <div data-k="y"><h3>Warto przyjrzeć się bliżej.</h3><p>Semafor oznacza zamówienie z podaniem powodu. Dla klientów zgłoszonych przez sieć sklepów możesz też ustawić regułę w kasie — na przykład bez płatności za pobraniem.</p><ul><li>Zamówienie za pobraniem jest już w drodze</li><li>Kilka niewysłanych zamówień — połącz je w jedną paczkę</li><li>Z tego samego urządzenia zamówiono pod innym nazwiskiem</li><li>Sprawdzane ponownie co 15 minut — samo zmienia się na zielone</li></ul></div>
+        <div data-k="r"><h3>Znany z nieodbierania paczek.</h3><p>Płatność po cichu znika. Kupujący po prostu nie może dokończyć zamówienia — i nigdy nie dowie się, że został zablokowany.</p><ul><li>Rozpoznawany po e-mailu, telefonie, imieniu i adresie lub urządzeniu</li><li>Brak jakiejkolwiek płatności albo tylko brak płatności za pobraniem — Twoja reguła</li><li>Opcjonalne automatyczne anulowanie</li></ul></div>
       </div>
     </div>
     <div class="reveal">
@@ -525,12 +542,12 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     </div>
     <div>
       <div class="eyebrow reveal">02 · Rozpoznawanie urządzeń</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Nowe nazwisko. Ten sam telefon. <em class="it">Namierzony.</em></h2>
-      <p class="lead reveal">Nieodbierający wracają z e-mailem męża, telefonem siostry albo nowym adresem. Semafor rozpoznaje urządzenie, z którego zamawiają, i łączy każdą tożsamość w jedną osobę.</p>
+      <h2 class="big serif reveal" style="margin-top:18px">Nowe nazwisko. To samo urządzenie. <em class="it">Namierzony.</em></h2>
+      <p class="lead reveal">Osoby, które nie odbierają paczek, wracają z e-mailem męża, telefonem siostry albo nowym adresem. Semafor rozpoznaje urządzenie i przeglądarkę, z których zamawiają, i łączy wszystkie tożsamości w jedną osobę.</p>
       <ul class="checks reveal">
         <li style="--c:var(--red)"><span><b>Blokada także przy kasie</b>Nowy e-mail lub telefon wpisany w przeglądarce z czarnej listy zostaje zatrzymany, zanim zamówienie w ogóle powstanie.</span></li>
-        <li style="--c:var(--amber)"><span><b>Powiązane i policzone</b>Zamówienia z jednej przeglądarki pod różnymi nazwiskami z 90 dni pojawiają się razem, wszędzie z ich liczbą.</span></li>
-        <li><span><b>Wbudowane, nic do wklejania</b>Rozpoznawanie urządzeń instaluje się razem z aplikacją. Bez kodu, bez własnego piksela, bez edycji motywu.</span></li>
+        <li style="--c:var(--amber)"><span><b>Powiązane i policzone</b>Zamówienia z jednej przeglądarki z ostatnich 90 dni, złożone pod różnymi nazwiskami, widzisz razem — wszędzie z ich liczbą.</span></li>
+        <li><span><b>Instaluje się razem z aplikacją</b>Bez kodu. Aby w pełni rozpoznawać klientów w kasie, włącz rozszerzenie Semafor w edytorze motywu — jedno kliknięcie.</span></li>
       </ul>
     </div>
   </div>
@@ -540,14 +557,14 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <section class="light-sec">
   <div class="wrap dos">
     <div>
-      <div class="eyebrow reveal">03 · Czarna lista na nowo</div>
+      <div class="eyebrow reveal">03 · Czarna lista w nowym wydaniu</div>
       <h2 class="big serif reveal" style="margin-top:18px">Kartoteka, nie lista.</h2>
       <p class="lead reveal">Otwórz dowolnego klienta i zobacz całą historię: każdy e-mail, telefon, nazwisko, adres i urządzenie, dlaczego i kiedy został dodany, jego zamówienia w Shopify, próby finalizacji zamówienia i każde sprawdzenie przez Semafor — na jednej osi czasu.</p>
       <div class="feat-list reveal">
         <div><h5>Dodawaj z dowolnego zamówienia</h5><p>Jednym kliknięciem ze strony zamówienia albo hurtowo z listy zamówień.</p></div>
         <div><h5>Bez duplikatów</h5><p>Semafor ostrzeże Cię, gdy dana osoba jest już na Twojej liście.</p></div>
         <div><h5>Jasne powody</h5><p>Nieodebrana paczka za pobraniem, częste zwroty bez uzasadnionego powodu, chargeback, oszustwo przy zwrocie, groźby, inne.</p></div>
-        <div><h5>Przenieś swoją starą listę</h5><p>Zaimportuj wszystko z pliku CSV za jednym razem — i w każdej chwili edytuj pojedynczy szczegół.</p></div>
+        <div><h5>Przenieś swoją starą listę</h5><p>Zaimportuj wszystko z pliku CSV za jednym razem — a potem w każdej chwili popraw dowolny szczegół.</p></div>
       </div>
     </div>
     <div class="dcard reveal" aria-hidden="true">
@@ -558,10 +575,10 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="dbody">
         <div class="chips"><span class="chip red">Nieodebrana paczka za pobraniem</span><span class="chip">ana.p@example.com</span><span class="chip">mihai.p@example.com</span><span class="chip">+40 7•• ••• 214</span><span class="chip">2 adresy</span><span class="chip amb">1 urządzenie</span></div>
         <ul class="tlist">
-          <li style="--c:var(--red)"><b>Kasa zablokowana</b> — nowy e-mail, to samo urządzenie<small>Dziś, 10:42</small></li>
+          <li style="--c:var(--red)"><b>Zablokowano przy kasie</b> — nowy e-mail, to samo urządzenie<small>Dziś, 10:42</small></li>
           <li style="--c:var(--amber)"><b>Zamówienie #2290</b> pod innym nazwiskiem — powiązane przez urządzenie<small>3 października</small></li>
-          <li style="--c:var(--red)"><b>Paczka nieodebrana</b> — zamówienie #1983<small>12 września · dodany do czarnej listy</small></li>
-          <li><b>Zgłoszony przez 2 inne sklepy</b> w sieci Semafor<small>Sieć</small></li>
+          <li style="--c:var(--red)"><b>Paczka nieodebrana</b> — zamówienie #1983<small>12 września · dodano do czarnej listy</small></li>
+          <li><b>Zgłoszenia z 2 innych sklepów</b> w sieci Semafor<small>Sieć</small></li>
         </ul>
       </div>
     </div>
@@ -573,21 +590,21 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   <div class="wrap net">
     <div>
       <div class="eyebrow reveal">04 · Sieć sklepów</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Odmowa w jednym sklepie to ostrzeżenie we wszystkich.</h2>
-      <p class="lead reveal">Sklepy korzystające z Semafor dzielą się informacją o tym, kto nie odebrał paczki lub zakwestionował płatność — w postaci anonimowych odcisków, nigdy surowych danych osobowych. Ostrzeżenie widzisz, zanim wyślesz paczkę.</p>
+      <h2 class="big serif reveal" style="margin-top:18px">Nieodebrana paczka w jednym sklepie to ostrzeżenie dla wszystkich.</h2>
+      <p class="lead reveal">Sklepy korzystające z Semafor dzielą się informacją o tym, kto nie odebrał paczki lub zakwestionował płatność — w postaci anonimowych odcisków cyfrowych, nigdy jawnych danych osobowych. Ostrzeżenie widzisz, zanim wyślesz paczkę.</p>
       <ul class="bul reveal">
         <li><span><b>Twoje progi.</b> Żółte od 1 innego sklepu, czerwone od 3 — albo dowolne liczby, które wybierzesz.</span></li>
         <li><span><b>Twoje powody.</b> Zdecyduj, które zgłoszenia liczą się w Twoim sklepie.</span></li>
-        <li><span><b>Uczciwe z założenia.</b> Liczą się tylko zgłoszenia innych sklepów, nieodebrana paczka jest udostępniana dopiero za drugim razem, a wszystko, co usuniesz, zostaje wycofane.</span></li>
+        <li><span><b>Uczciwe z założenia.</b> Liczą się tylko zgłoszenia innych sklepów, nieodebrana paczka trafia do sieci dopiero przy drugim przypadku, a wszystko, co usuniesz, zostaje z niej wycofane.</span></li>
       </ul>
     </div>
     <div class="panel reveal" aria-hidden="true">
       <div class="ph"><b>Sieć sklepów</b><span>Ustawienia</span></div>
-      <div class="row"><span class="l"><i style="background:var(--amber)"></i>Żółte, gdy zgłosiło sklepów</span><span class="stepper"><span>−</span><b>1</b><span>+</span></span></div>
-      <div class="row"><span class="l"><i style="background:var(--red)"></i>Czerwone, gdy zgłosiło sklepów</span><span class="stepper"><span>−</span><b>3</b><span>+</span></span></div>
+      <div class="row"><span class="l"><i style="background:var(--amber)"></i>Żółte: liczba zgłaszających sklepów</span><span class="stepper"><span>−</span><b>1</b><span>+</span></span></div>
+      <div class="row"><span class="l"><i style="background:var(--red)"></i>Czerwone: liczba zgłaszających sklepów</span><span class="stepper"><span>−</span><b>3</b><span>+</span></span></div>
       <div class="chips"><span class="chip">Nieodebrana paczka za pobraniem</span><span class="chip">Zwroty bez uzasadnionego powodu</span><span class="chip">Chargeback</span><span class="chip">Oszustwo przy zwrocie</span><span class="chip">Groźby</span><span class="chip alt">Inne</span></div>
       <div class="row"><span>Ukryj płatność dla kupujących zgłoszonych przez sieć</span><span class="tog"></span></div>
-      <div class="row"><span>Udostępniaj moje zgłoszenia sieci</span><span class="tog on"></span></div>
+      <div class="row"><span>Udostępniaj moje zgłoszenia w sieci</span><span class="tog on"></span></div>
     </div>
   </div>
 </section>
@@ -596,7 +613,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <section class="light-sec">
   <div class="wrap">
     <div class="eyebrow reveal">05 · Działa wewnątrz Shopify</div>
-    <h2 class="big serif reveal" style="margin-top:18px;max-width:15ch">Decyduj w mgnieniu oka, prosto w zamówieniach.</h2>
+    <h2 class="big serif reveal" style="margin-top:18px;max-width:15ch">Decyduj w mgnieniu oka, bezpośrednio w zamówieniach.</h2>
     <p class="lead reveal">Żadnego nowego panelu do pilnowania. Światło, powód i akcja są dokładnie tam, gdzie już pracujesz.</p>
     <div class="admin reveal" style="margin-top:48px" aria-hidden="true">
       <div class="chrome"><i></i><i></i><i></i><span>admin.shopify.com · Orders</span></div>
@@ -613,7 +630,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
         <div>
           <div class="ablock">
             <div class="t">Semafor · #2483<span class="mtl h" style="padding:5px;gap:4px;border-radius:9px"><i class="on" style="--c:var(--red);width:10px;height:10px"></i><i style="width:10px;height:10px"></i><i style="width:10px;height:10px"></i></span></div>
-            <div class="why"><span>Telefon z Twojej czarnej listy — nieodebrana paczka za pobraniem</span><span>To samo urządzenie co zamówienie #1983</span><span>Zgłoszony przez 2 inne sklepy</span></div>
+            <div class="why"><span>Telefon z Twojej czarnej listy — nieodebrana paczka za pobraniem</span><span>To samo urządzenie co zamówienie #1983</span><span>Zgłoszenia z 2 innych sklepów</span></div>
             <div class="act"><span class="d">Dodaj do czarnej listy</span><span>Otwórz kartotekę</span></div>
           </div>
           <div class="ablock">
@@ -626,7 +643,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="cards3">
       <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></div><h5>Zablokowane próby na żywo</h5><p>Zobacz, kto próbował kupić, będąc na Twojej czarnej liście — odświeżane co 30 sekund.</p></div>
       <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h5>Analityka, która opowiada historię</h5><p>Próby finalizacji zamówienia według osoby, kto przeszedł, kto ciągle zmieniał dane, podejrzane urządzenia.</p></div>
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Stworzone na telefon</h5><p>Na telefonie każda strona zamienia się w przejrzyste karty. Sprawdź zamówienie z dowolnego miejsca.</p></div>
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Stworzone z myślą o telefonie</h5><p>Na telefonie każda strona zamienia się w przejrzyste karty. Sprawdź zamówienie z dowolnego miejsca.</p></div>
     </div>
   </div>
 </section>
@@ -637,7 +654,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="rec">
       <div>
         <div class="eyebrow reveal">06 · Odzyskiwanie</div>
-        <h2 class="big serif reveal" style="margin-top:18px">Ochrona, która też <em class="it">sprzedaje</em>.</h2>
+        <h2 class="big serif reveal" style="margin-top:18px">Ochrona, która również <em class="it">sprzedaje</em>.</h2>
         <p class="lead reveal">Pop-up powitalny zamienia nowych odwiedzających w subskrybentów. Pyta raz przy pierwszej wizycie i jeszcze raz w drodze do kasy — a kod rabatowy już czeka w koszyku.</p>
         <div class="seasons reveal" id="seasons">
           <button class="on" data-s="classic">Klasyczny</button><button data-s="winter">Zima</button><button data-s="spring">Wiosna</button><button data-s="summer">Lato</button><button data-s="autumn">Jesień</button>
@@ -646,7 +663,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="storefront reveal" id="sf" data-s="classic" aria-hidden="true">
         <div class="sf-top"><i></i><i></i><i></i></div>
         <div class="sf-grid"><div></div><div></div><div></div></div>
-        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">na pierwsze zamówienie</div><div class="fld">your@email.com</div><div class="go">Odbierz kod</div></div></div>
+        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">na pierwsze zamówienie</div><div class="fld">twoj@email.pl</div><div class="go">Odbierz kod</div></div></div>
       </div>
     </div>
 
@@ -658,26 +675,45 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
           <li><span class="num">2</span><div><div class="when">Następnego ranka, w strefie czasowej klienta</div><h5>Delikatna zachęta z rabatem</h5><p>Domyślnie 15% — albo przypomnienie o rabacie, który już jest w koszyku.</p></div></li>
           <li class="last"><span class="num">3</span><div><div class="when">Dzień 3</div><h5>Ostatnia szansa</h5><p>Większy rabat, ważny tylko tego dnia. Każdy termin i procent ustalasz Ty.</p></div></li>
         </ol>
-        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Wysyłka zatrzymuje się w chwili złożenia zamówienia, pomija wyprzedane produkty i dociera nawet do subskrybentów pop-upu, którzy wyszli, zanim wpisali e-mail.</p>
+        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Włączasz raz. Przestaje, gdy tylko klient złoży zamówienie, nigdy nie przypomina o wyprzedanym produkcie i dociera nawet do subskrybentów pop-upu, którzy wyszli przed wpisaniem e-maila. Domyślnie pisze tylko do klientów, którzy zgodzili się na e-maile marketingowe.</p>
       </div>
-      <div class="mail reveal" aria-hidden="true">
-        <div class="mh"><span><b>Twój sklep</b> &lt;hello@yourstore.com&gt;</span><span>10:00</span></div>
-        <div class="mb">
-          <div class="brandm">Twój sklep</div>
-          <h4>Wciąż na Ciebie czeka.</h4>
-          <div class="prod"></div>
-          <div class="price"><s>189,00 €</s><b>160,65 €</b></div>
-          <div class="code">COMEBACK15</div>
-          <span class="cta">Wróć do koszyka</span>
-          <div class="fine">Wypisz się jednym kliknięciem</div>
+      <div class="mailwrap reveal" aria-hidden="true">
+        <div class="mcap">Co otrzymuje Twój klient · e-mail 2 z 3</div>
+        <div class="mail">
+          <div class="mh"><div class="mfrom"><span class="av">A</span><div><b>Aurora</b><small>do: Maria</small></div></div><span>Dziś, 10:00</span></div>
+          <div class="msubj">Mario, Twoje sneakersy wciąż czekają w koszyku</div>
+          <div class="mb">
+            <div class="brandm">Aurora</div>
+            <p class="hi">Cześć Mario,</p>
+            <h4>Coś pięknego zostało w Twoim koszyku.</h4>
+            <div class="item"><div class="prod"></div><div class="it"><b>Lniane sneakersy</b><small>Piaskowy · rozmiar 38</small><span><s>89,00 €</s> 75,65 €</span></div></div>
+            <div class="disc"><b>−15%</b><span>Twój osobisty kod, ważny do jutra</span></div>
+            <span class="cta">Dokończ zamówienie</span>
+            <div class="fine">Twoje zamówienie w sklepie Aurora czeka na dokończenie. · Wypisz się</div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="attr">
-      <div class="c3 reveal"><span class="src">● Wysłane przez Semafor</span><h5>Bez zakładania konta w serwisie mailingowym</h5><p>E-maile są wysyłane w ramach Twojego planu — albo z Twojej własnej domeny, z prowadzoną konfiguracją u Twojego dostawcy DNS.</p></div>
+      <div class="c3 reveal"><span class="src">● Wysłane przez Semafor</span><h5>Bez zakładania konta w serwisie mailingowym</h5><p>E-maile są wysyłane w ramach Twojego planu — albo z Twojej własnej domeny, z konfiguracją krok po kroku dla Twojego dostawcy DNS.</p></div>
       <div class="c3 reveal"><span class="src">● 3 wzory</span><h5>Premium w standardzie</h5><p>Elegant, Minimal i Modern — ze zdjęciem i ceną produktu, w języku klienta.</p></div>
-      <div class="c3 reveal"><span class="src">● Oznaczone w zamówieniu</span><h5>Zamówienia odzyskane przez Semafor</h5><p>Każde zamówienie pokazuje, czy przyniósł je pop-up, koszyk czy przypomnienie — z odzyskanym przychodem w liczbach.</p></div>
+      <div class="c3 reveal"><span class="src">● Oznaczone w zamówieniu</span><h5>Zamówienia zdobyte dzięki Semafor</h5><p>Każde zamówienie pokazuje, czy przyniósł je pop-up, koszyk czy przypomnienie — z odzyskanym przychodem w liczbach.</p></div>
+    </div>
+
+    <div class="sells reveal">
+      <div class="sh">
+        <div class="eyebrow">Przykład · jeden sklep korzystający z Semafor · ostatnie 30 dni</div>
+        <h3 class="serif">Zdziwisz się, jak dobrze Semafor <em class="it">sprzedaje</em>.</h3>
+        <p>Semafor nie tylko chroni pieniądze, które tracisz na nieodebranych paczkach i zwrotach bez powodu. Przynosi też nowe zamówienia — i oznacza każde z nich, więc dokładnie widzisz, ile zarobił.</p>
+      </div>
+      <div class="sn">
+        <div><b>76</b><span>zamówień zdobytych dzięki Semafor</span></div>
+        <div><b>18%</b><span>wszystkich zamówień sklepu</span></div>
+        <div><b>4859 €</b><span>sprzedaży wygenerowanej przez Semafor</span></div>
+      </div>
+      <div class="sb"><span><i style="background:var(--green)"></i>Pop-up powitalny · 43</span><span><i style="background:var(--amber)"></i>Pop-up przy kasie · 29</span><span><i style="background:var(--red)"></i>E-maile przypominające · 4</span></div>
+      <p class="sfoot">Zamówienie się liczy, jeśli wpłynęło w ciągu 90 dni od zapisu przez pop-up lub 14 dni od przypomnienia.</p>
     </div>
   </div>
 </section>
@@ -686,18 +722,18 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <section class="grain" style="background:var(--night-2)">
   <div class="wrap">
     <div class="eyebrow reveal">Wszystko w Semafor</div>
-    <h2 class="big serif reveal" style="margin:18px 0 52px;max-width:14ch">Jedna aplikacja. Cała robota.</h2>
+    <h2 class="big serif reveal" style="margin:18px 0 52px;max-width:14ch">Jedna aplikacja. Wszystko załatwione.</h2>
     <div class="all">
       <div class="reveal"><h5>Sygnalizacja przy każdym zamówieniu</h5><p>Zielone, żółte lub czerwone w kilka sekund — jako tag i sygnał ryzyka w Shopify.</p></div>
       <div class="reveal"><h5>Twoja czarna lista + import CSV</h5><p>Po e-mailu, telefonie, nazwisku lub adresie, z inteligentnym dopasowaniem adresów.</p></div>
-      <div class="reveal"><h5>Sieć sklepów</h5><p>Zobacz, kto nie odebrał paczek w innych sklepach, zanim wyślesz.</p></div>
+      <div class="reveal"><h5>Sieć sklepów</h5><p>Zobacz, kto nie odebrał paczek w innych sklepach, zanim wyślesz swoją.</p></div>
       <div class="reveal"><h5>Blokada przy kasie<span class="badge">Basic</span></h5><p>Ukryj płatność za pobraniem lub wszystkie metody płatności — osobno dla żółtego i czerwonego.</p></div>
       <div class="reveal"><h5>To samo urządzenie, nowe nazwisko<span class="badge">Basic</span></h5><p>Każda tożsamość użyta na jednym telefonie lub komputerze — powiązana i zablokowana.</p></div>
       <div class="reveal"><h5>Automatyczne anulowanie<span class="badge">Basic</span></h5><p>Czerwone zamówienie, które mimo wszystko się prześlizgnie, zostaje anulowane automatycznie.</p></div>
       <div class="reveal"><h5>Inteligentne żółte</h5><p>Paczka za pobraniem już w drodze, paczki do połączenia — sprawdzane ponownie co 15 minut.</p></div>
-      <div class="reveal"><h5>Pop-up powitalny<span class="badge">Basic</span></h5><p>5 wzorów, 5 języków, kod naliczany w koszyku, e-mail powitalny w zestawie.</p></div>
+      <div class="reveal"><h5>Pop-up powitalny<span class="badge">Basic</span></h5><p>5 wzorów, 5 języków, kod automatycznie dodawany w koszyku, e-mail powitalny w zestawie.</p></div>
       <div class="reveal"><h5>Zablokowane próby na żywo<span class="badge">Basic</span></h5><p>Kto próbował kupić, będąc na czarnej liście — co 30 sekund.</p></div>
-      <div class="reveal"><h5>Analityka etapów kasy<span class="badge pro">Pro</span></h5><p>Gdzie zatrzymał się każdy klient i co dokładnie miał w koszyku.</p></div>
+      <div class="reveal"><h5>Analityka etapów finalizacji zamówienia<span class="badge pro">Pro</span></h5><p>Gdzie zatrzymał się każdy klient i co dokładnie miał w koszyku.</p></div>
       <div class="reveal"><h5>E-maile przypominające<span class="badge pro">Pro</span></h5><p>Do 3, automatycznie lub jednym kliknięciem, z jednorazowymi kodami rabatowymi.</p></div>
       <div class="reveal"><h5>Odzyskana sprzedaż w liczbach<span class="badge pro">Pro</span></h5><p>Wysłane e-maile, powracający klienci, wygenerowany przychód.</p></div>
     </div>
@@ -717,7 +753,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="plan reveal">
         <div class="top"><h4>Darmowy</h4></div><div class="tag">Na start</div>
         <div class="price">0 $</div><div class="yr">Bez limitu czasu</div>
-        <ul><li>Sygnalizacja dla 50 zamówień miesięcznie</li><li>Twoja własna czarna lista + import CSV</li><li>Sieć sklepów</li><li>Tag ryzyka przy każdym zamówieniu</li></ul>
+        <ul><li>Sygnalizacja dla 50 zamówień miesięcznie</li><li>Twoja własna czarna lista + import CSV</li><li>Sieć sklepów</li><li>Etykieta ryzyka na każdym sprawdzonym zamówieniu</li></ul>
       </div>
       <div class="plan reveal">
         <div class="top"><h4>Basic</h4></div><div class="tag">Pełna ochrona płatności za pobraniem</div>
@@ -725,9 +761,9 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
         <ul><li>Bez limitu zamówień</li><li>Blokada przy kasie, reguły dla żółtego i czerwonego</li><li>Automatyczne anulowanie czerwonych zamówień</li><li>To samo urządzenie, nowe nazwisko</li><li>Pop-up powitalny z rabatem</li></ul>
       </div>
       <div class="plan feat reveal">
-        <div class="top"><h4>Pro</h4><span class="pill2">Najbardziej kompletny</span></div><div class="tag">Ochrona + odzyskana sprzedaż</div>
+        <div class="top"><h4>Pro</h4><span class="pill2">Najpełniejszy</span></div><div class="tag">Ochrona + odzyskana sprzedaż</div>
         <div class="price">24,99 $ <small>/ mies.</small></div><div class="yr">lub 19,99 $ / mies. przy płatności rocznej</div>
-        <ul><li>Wszystko z planu Basic</li><li>Analityka etapów kasy</li><li>Automatyczne e-maile przypominające, do 3</li><li>Przypomnienia nawet bez e-maila w kasie</li><li>Odzyskana sprzedaż w liczbach, z Twojej własnej domeny</li></ul>
+        <ul><li>Wszystko z planu Basic</li><li>Analityka etapów finalizacji zamówienia</li><li>Do 3 automatycznych e-maili przypominających</li><li>Przypomnienia, nawet gdy klient nie wpisał e-maila w kasie</li><li>Odzyskana sprzedaż w liczbach, wysyłka z Twojej domeny</li></ul>
       </div>
     </div>
     <p class="fineprint">Rozliczane przez Shopify. Zmień lub anuluj w dowolnym momencie.</p>
@@ -740,11 +776,11 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="eyebrow reveal" style="text-align:center">Pytania</div>
     <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Dobrze wiedzieć.</h2>
     <div class="faq">
-      <details class="reveal"><summary>Czy muszę coś konfigurować?</summary><p>Nie. Zainstaluj Semafor, a od razu zacznie sprawdzać zamówienia. Blokada przy kasie, rozpoznawanie urządzeń i pop-up włączają się automatycznie — bez kodu, bez edycji motywu.</p></details>
+      <details class="reveal"><summary>Czy muszę coś konfigurować?</summary><p>Nie. Instalujesz Semafor i od razu zaczyna sprawdzać zamówienia. Blokada w kasie włącza się automatycznie. Raz włącz rozszerzenie Semafor w edytorze motywu — dzięki niemu działa rozpoznawanie urządzeń i pop-up. Bez kodu.</p></details>
       <details class="reveal"><summary>Czy zablokowany klient się zorientuje?</summary><p>Nie. Po prostu nie zobaczy żadnej metody płatności (lub płatności za pobraniem), zależnie od wybranej przez Ciebie reguły. Nie pojawia się żaden komunikat o blokadzie.</p></details>
-      <details class="reveal"><summary>A co z prywatnością?</summary><p>Sieć sklepów wymienia wyłącznie anonimowe odciski, nigdy nazwiska ani adresy. Każdy e-mail ma link do wypisania się jednym kliknięciem, a żądania dostępu do danych i ich usunięcia z Shopify są obsługiwane automatycznie.</p></details>
-      <details class="reveal"><summary>Czy potrzebuję serwisu do e-maili?</summary><p>Nie. E-maile przypominające i powitalne wysyła Semafor w ramach Twojego planu. Jeśli wolisz, podłącz własną domenę dzięki przewodnikowi krok po kroku.</p></details>
-      <details class="reveal"><summary>W jakich językach mówi Semafor?</summary><p>Aplikacja jest dostępna po angielsku, rumuńsku, hiszpańsku, francusku, polsku i rosyjsku. E-maile i pop-up dopasowują się do języka Twojego klienta.</p></details>
+      <details class="reveal"><summary>A co z prywatnością?</summary><p>Sieć sklepów wymienia tylko anonimowe odciski cyfrowe, nigdy nazwiska ani adresy. Każdy e-mail ma wypisanie jednym kliknięciem, a prośby Shopify o usunięcie danych są realizowane automatycznie.</p></details>
+      <details class="reveal"><summary>Czy potrzebuję usługi do wysyłki e-maili?</summary><p>Nie. E-maile przypominające i powitalne wysyła Semafor w ramach Twojego planu. Jeśli wolisz, podłącz własną domenę dzięki przewodnikowi krok po kroku.</p></details>
+      <details class="reveal"><summary>W jakich językach mówi Semafor?</summary><p>Aplikacja mówi po angielsku, rumuńsku, hiszpańsku, francusku, polsku i rosyjsku. E-maile i pop-up docierają do klientów po angielsku, rumuńsku, niemiecku, polsku lub hiszpańsku.</p></details>
       <details class="reveal"><summary>Co się dzieje po okresie próbnym?</summary><p>Twój sklep przechodzi na plan Darmowy i nadal sprawdza 50 zamówień miesięcznie. Twoje ustawienia zostają zapisane — wybierz plan w dowolnym momencie, aby znów wszystko włączyć.</p></details>
     </div>
   </div>
@@ -753,7 +789,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <section class="final grain">
   <div class="wrap">
     <div class="mtl reveal" aria-hidden="true" id="finalTL"><i style="--c:var(--red)"></i><i style="--c:var(--amber)"></i><i class="on" style="--c:var(--green)"></i></div>
-    <h2 class="serif reveal">Wysyłaj tylko paczki, które wracają opłacone.</h2>
+    <h2 class="serif reveal">Wysyłaj tylko te paczki, za które wrócą pieniądze.</h2>
     <p class="reveal">Zainstaluj Semafor i korzystaj przez 14 dni ze wszystkich funkcji Pro — za darmo.</p>
     <div class="cta reveal">
       <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Dodaj Semafor do Shopify</a>
@@ -764,7 +800,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Semafor by <a href="/pl/" data-home>Kastel Labs</a></span>
+    <span>© 2026 Semafor od <a href="/pl/" data-home>Kastel Labs</a></span>
     <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Polityka prywatności</a><a href="https://apps.shopify.com/semafor?locale=pl" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>

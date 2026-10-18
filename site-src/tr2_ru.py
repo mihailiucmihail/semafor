@@ -304,5 +304,19 @@ RU = {
 ".": ".",
 "9:41": "9:41",
 "−15%": "−15%",
-"18%": "18%"
+"18%": "18%",
+"Prepaid orders aren't held back by another parcel on its way": "Предоплаченные заказы не задерживаются из-за другой посылки в пути",
+"Semafor tags the order with the reason. For buyers flagged by the store network, you can also set a checkout rule — for example, no cash on delivery.": "Semafor помечает заказ с указанием причины. Для покупателей, отмеченных сетью магазинов, можно задать и правило при оформлении — например, без наложенного платежа.",
+"Matched by e-mail, phone, name + address or device": "Узнаётся по e-mail, телефону, имени с адресом или устройству",
+"New name. Same device.": "Новое имя. То же устройство.",
+"Refusers come back with a husband's e-mail, a sister's phone or a new address. Semafor recognises the device and browser they order from and links every identity into one person.": "Те, кто отказывается от посылок, возвращаются с e-mail мужа, телефоном сестры или новым адресом. Semafor узнаёт устройство и браузер, с которых они заказывают, и сводит все профили к одному человеку.",
+"Installed with the app": "Устанавливается вместе с приложением",
+"No code. For full matching at checkout, switch on the Semafor app embed in your theme editor — one click.": "Без кода. Для полного распознавания при оформлении включите расширение Semafor в редакторе темы — один клик.",
+"No. Install Semafor and it starts checking orders right away. Checkout blocking switches on automatically. Turn on the Semafor app embed in your theme editor once — it powers device recognition and the pop-up. No code.": "Нет. Установите Semafor — и он сразу начнёт проверять заказы. Блокировка при оформлении включается сама. Один раз включите расширение Semafor в редакторе темы — на нём работают распознавание устройств и pop-up. Без кода.",
+"Risk tag on every checked order": "Метка риска на каждом проверенном заказе",
+"Switch it on once. It stops the moment they order, never reminds about a sold-out product and even reaches pop-up subscribers who left before typing their e-mail. By default it writes only to customers who agreed to receive marketing e-mails.": "Включается один раз. Останавливается, как только покупатель оформил заказ, никогда не напоминает о товаре, которого нет в наличии, и доходит даже до подписчиков pop-up, ушедших до ввода e-mail. По умолчанию пишет только тем, кто согласился получать маркетинговые письма.",
+"The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically.": "Сеть магазинов обменивается только анонимными отпечатками — никогда именами или адресами. В каждом письме есть отписка в один клик, а запросы Shopify на удаление данных выполняются автоматически.",
+"The app speaks English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up reach customers in English, Romanian, German, Polish or Spanish.": "Приложение работает на английском, румынском, испанском, французском, польском и русском. Письма и pop-up покупатели получают на английском, румынском, немецком, польском или испанском.",
+"Example · one store using Semafor · last 30 days": "Пример · один магазин с Semafor · последние 30 дней",
+"An order counts when it came within 90 days of a pop-up sign-up or 14 days of a reminder.": "Заказ засчитывается, если он пришёл в течение 90 дней после подписки через pop-up или 14 дней после напоминания."
 }

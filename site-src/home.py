@@ -24,9 +24,9 @@ T = {
   o1='Prepaid · trusted buyer', o2='COD already on the way', o3='Refused 2 parcels · COD hidden',
   why_eyebrow='How we build', why_h='Made for the way you sell.',
   w1h='Built for cash on delivery', w1p='Every feature starts from one question: will this parcel come back paid?',
-  w2h='Works from the first minute', w2p='Install it and it runs. No setup marathon, no third-party accounts.',
+  w2h='Works from the first minute', w2p='Install it and it runs. No setup marathon, no third-party accounts, no code.',
   w3h='Private by design', w3p='Stores share anonymous fingerprints, never names or addresses. Your customers’ data stays yours.',
-  w4h='Six languages', w4p='English, Romanian, Spanish, French, Polish and Russian — in the app and in every e-mail it sends.',
+  w4h='Six languages', w4p='The app speaks English, Romanian, Spanish, French, Polish and Russian. Customers get e-mails and the pop-up in English, Romanian, German, Polish or Spanish.',
   c_eyebrow='Contact', c_h='Questions? A real person answers.', c_p='Write to us about Semafor, a feature you need or a problem in your store.', c_btn='Write to us',
   foot_privacy='Privacy policy', foot_store='Shopify App Store', lang='Language'),
  'ro': dict(
@@ -46,7 +46,7 @@ T = {
   w1h='Gândite pentru ramburs', w1p='Fiecare funcție pornește de la o singură întrebare: se întoarce coletul plătit?',
   w2h='Funcționează din primul minut', w2p='O instalezi și pornește. Fără configurări lungi, fără conturi la terți.',
   w3h='Confidențialitate din construcție', w3p='Magazinele partajează doar amprente anonime, niciodată nume sau adrese. Datele clienților tăi rămân ale tale.',
-  w4h='Șase limbi', w4p='Engleză, română, spaniolă, franceză, poloneză și rusă — în aplicație și în fiecare e-mail trimis.',
+  w4h='Șase limbi', w4p='Aplicația vorbește engleză, română, spaniolă, franceză, poloneză și rusă. Clienții primesc e-mailurile și pop-up-ul în engleză, română, germană, poloneză sau spaniolă.',
   c_eyebrow='Contact', c_h='Întrebări? Îți răspunde un om.', c_p='Scrie-ne despre Semafor, despre o funcție de care ai nevoie sau despre o problemă din magazin.', c_btn='Scrie-ne',
   foot_privacy='Politica de confidențialitate', foot_store='Shopify App Store', lang='Limba'),
  'es': dict(
@@ -66,7 +66,7 @@ T = {
   w1h='Pensadas para el contra reembolso', w1p='Cada función parte de una pregunta: ¿volverá este paquete pagado?',
   w2h='Funciona desde el primer minuto', w2p='La instalas y funciona. Sin configuraciones eternas ni cuentas de terceros.',
   w3h='Privacidad desde el diseño', w3p='Las tiendas comparten huellas anónimas, nunca nombres ni direcciones. Los datos de tus clientes siguen siendo tuyos.',
-  w4h='Seis idiomas', w4p='Inglés, rumano, español, francés, polaco y ruso: en la app y en cada e-mail que envía.',
+  w4h='Seis idiomas', w4p='La app está en inglés, rumano, español, francés, polaco y ruso. Los clientes reciben los e-mails y el pop-up en inglés, rumano, alemán, polaco o español.',
   c_eyebrow='Contacto', c_h='¿Preguntas? Te responde una persona.', c_p='Escríbenos sobre Semafor, una función que necesitas o un problema en tu tienda.', c_btn='Escríbenos',
   foot_privacy='Política de privacidad', foot_store='Shopify App Store', lang='Idioma'),
  'fr': dict(
@@ -86,7 +86,7 @@ T = {
   w1h='Conçues pour le paiement à la livraison', w1p='Chaque fonction part d’une question : ce colis reviendra-t-il payé ?',
   w2h='Opérationnelle dès la première minute', w2p='Installez-la, elle fonctionne. Pas de longue configuration, pas de compte tiers.',
   w3h='Confidentielle par conception', w3p='Les boutiques partagent des empreintes anonymes, jamais de noms ni d’adresses. Les données de vos clients restent les vôtres.',
-  w4h='Six langues', w4p='Anglais, roumain, espagnol, français, polonais et russe — dans l’app et dans chaque e-mail envoyé.',
+  w4h='Six langues', w4p='L’app parle anglais, roumain, espagnol, français, polonais et russe. Les clients reçoivent les e-mails et le pop-up en anglais, roumain, allemand, polonais ou espagnol.',
   c_eyebrow='Contact', c_h='Des questions ? Une vraie personne vous répond.', c_p='Écrivez-nous au sujet de Semafor, d’une fonction dont vous avez besoin ou d’un problème dans votre boutique.', c_btn='Nous écrire',
   foot_privacy='Politique de confidentialité', foot_store='Shopify App Store', lang='Langue'),
  'pl': dict(
@@ -106,7 +106,7 @@ T = {
   w1h='Zaprojektowane pod pobranie', w1p='Każda funkcja zaczyna się od pytania: czy ta paczka wróci opłacona?',
   w2h='Działa od pierwszej minuty', w2p='Instalujesz i działa. Bez długiej konfiguracji i kont u innych dostawców.',
   w3h='Prywatność w standardzie', w3p='Sklepy wymieniają się anonimowymi odciskami, nigdy nazwiskami ani adresami. Dane Twoich klientów zostają u Ciebie.',
-  w4h='Sześć języków', w4p='Angielski, rumuński, hiszpański, francuski, polski i rosyjski — w aplikacji i w każdym wysyłanym e-mailu.',
+  w4h='Sześć języków', w4p='Aplikacja mówi po angielsku, rumuńsku, hiszpańsku, francusku, polsku i rosyjsku. Klienci dostają e-maile i pop-up po angielsku, rumuńsku, niemiecku, polsku lub hiszpańsku.',
   c_eyebrow='Kontakt', c_h='Pytania? Odpowiada prawdziwy człowiek.', c_p='Napisz do nas o Semaforze, o funkcji, której potrzebujesz, albo o problemie w sklepie.', c_btn='Napisz do nas',
   foot_privacy='Polityka prywatności', foot_store='Shopify App Store', lang='Język'),
  'ru': dict(
@@ -126,7 +126,7 @@ T = {
   w1h='Создано для наложенного платежа', w1p='Каждая функция начинается с одного вопроса: вернётся ли посылка оплаченной?',
   w2h='Работает с первой минуты', w2p='Установили — и работает. Без долгой настройки и сторонних аккаунтов.',
   w3h='Конфиденциально по устройству', w3p='Магазины обмениваются анонимными отпечатками, никогда — именами и адресами. Данные ваших покупателей остаются у вас.',
-  w4h='Шесть языков', w4p='Английский, румынский, испанский, французский, польский и русский — в приложении и в каждом письме.',
+  w4h='Шесть языков', w4p='Приложение работает на английском, румынском, испанском, французском, польском и русском. Письма и pop-up покупатели получают на английском, румынском, немецком, польском или испанском.',
   c_eyebrow='Контакты', c_h='Есть вопросы? Ответит живой человек.', c_p='Напишите нам о Semafor, о нужной функции или о проблеме в вашем магазине.', c_btn='Написать нам',
   foot_privacy='Политика конфиденциальности', foot_store='Shopify App Store', lang='Язык'),
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Semafor — protecție împotriva fraudei ramburs și recuperarea coșurilor pentru Shopify</title>
+<title>Semafor — protecție anti-fraudă pentru ramburs și recuperarea comenzilor abandonate pentru Shopify</title>
 <meta name="description" content="Semafor dă fiecărei comenzi Shopify lumină verde, galbenă sau roșie în câteva secunde, oprește discret cumpărătorii care refuză coletele ramburs — chiar și sub un nume nou — și recuperează comenzile abandonate.">
 <meta property="og:title" content="Semafor — fiecare comandă primește un semnal">
 <meta property="og:description" content="Protecție anti-fraudă pentru ramburs, o rețea comună de magazine și recuperarea automată a comenzilor abandonate pentru Shopify. 14 zile de Pro gratuit.">
@@ -305,9 +305,26 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .mail .code{margin:18px auto 0;display:inline-block;border:1px solid var(--ink-3);padding:10px 18px;letter-spacing:.2em;font-size:13px}
 .mail .cta{margin:18px auto 0;display:block;width:70%;padding:13px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:14px;font-weight:600}
 .mail .fine{font-size:11.5px;color:var(--ink-3);margin-top:16px}
+.mcap{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px 4px}
+.mail .mh{align-items:center}.mfrom{display:flex;gap:10px;align-items:center}.mfrom .av{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--serif);font-size:17px}
+.mfrom b{display:block;color:var(--ink);font-size:14px}.mfrom small{color:var(--ink-3);font-size:12px}
+.msubj{padding:14px 20px;border-bottom:1px solid #ECE5D8;font-weight:600;color:var(--ink);font-size:15px;text-align:left}
+.mail .hi{margin-top:14px;color:var(--ink-2);font-size:14.5px}.mail h4{margin-top:6px}
+.mail .item{display:flex;gap:16px;align-items:center;text-align:left;margin:20px auto 0;max-width:340px;border:1px solid #ECE5D8;border-radius:14px;padding:12px}
+.mail .item .prod{margin:0;width:88px;flex:none}.mail .item .it b{display:block;font-size:15px;color:var(--ink)}.mail .item .it small{display:block;color:var(--ink-3);font-size:12.5px}.mail .item .it span{display:block;margin-top:6px;font-size:14.5px;color:var(--ink)}.mail .item .it s{color:var(--ink-3);margin-right:6px}
+.mail .disc{margin:16px auto 0;max-width:340px;border-top:1px solid #E6D9C8;border-bottom:1px solid #E6D9C8;padding:10px 0;display:flex;gap:12px;align-items:center;justify-content:center}.mail .disc b{font-family:var(--serif);font-weight:400;font-size:34px;color:#8a4a2a}.mail .disc span{font-size:13px;color:var(--ink-2);text-align:left}
 
 .attr{margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .attr .c3{text-align:left}
+.sells{margin-top:80px;border-radius:28px;background:var(--night);color:var(--cream);padding:56px 56px 48px;position:relative;overflow:hidden}
+.sells::before{content:"";position:absolute;inset:auto -10% -60% 40%;height:120%;background:radial-gradient(closest-side,rgba(39,184,116,.22),transparent);pointer-events:none}
+.sells .eyebrow{color:var(--mute)}.sells h3{font-size:clamp(34px,4.4vw,56px);line-height:1.02;margin-top:16px;max-width:760px}.sells .sh p{color:var(--soft);font-size:17.5px;max-width:640px;margin-top:18px}
+.sells .sn{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;position:relative}
+.sells .sn div{border:1px solid var(--edge);border-radius:20px;padding:24px 24px 22px;background:rgba(255,255,255,.02)}
+.sells .sn b{display:block;font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,72px);line-height:1;color:#fff}.sells .sn span{display:block;color:var(--soft);font-size:15px;margin-top:10px}
+.sells .sb{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;color:var(--soft);font-size:14.5px;position:relative}.sells .sfoot{position:relative;color:var(--mute);font-size:13px;margin-top:14px}
+.sells .sb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+@media (max-width:760px){.sells{padding:36px 22px}.sells .sn{grid-template-columns:1fr}}
 .src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
 
 /* all features */
@@ -443,7 +460,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
         <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Începe cu 14 zile de Pro — gratuit</a>
         <a class="btn btn-line" href="#signal">Vezi-l în acțiune</a>
       </div>
-      <div class="note reveal"><span>Fără card</span><span>Fără configurare</span><span>Gata în câteva secunde</span></div>
+      <div class="note reveal"><span>Instalare gratuită</span><span>Facturare prin Shopify</span><span>Gata în câteva secunde</span></div>
     </div>
     <div class="stage" aria-hidden="true">
       <div class="halo" id="halo"></div>
@@ -464,8 +481,8 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 
 <div class="strip" aria-hidden="true">
   <div class="marq">
-    <span>Semafor pe fiecare comandă</span><span>Plată ascunsă pentru cei care refuză</span><span>Același dispozitiv, alt nume — prins</span><span>Rețeaua de magazine</span><span>Dosarul clientului</span><span>Pop-up de bun venit în 5 designuri</span><span>E-mailuri automate de reamintire</span><span>Comenzi aduse de Semafor</span><span>6 limbi</span>
-    <span>Semafor pe fiecare comandă</span><span>Plată ascunsă pentru cei care refuză</span><span>Același dispozitiv, alt nume — prins</span><span>Rețeaua de magazine</span><span>Dosarul clientului</span><span>Pop-up de bun venit în 5 designuri</span><span>E-mailuri automate de reamintire</span><span>Comenzi aduse de Semafor</span><span>6 limbi</span>
+    <span>Semafor pe fiecare comandă</span><span>Plata ascunsă pentru cei care refuză coletele</span><span>Același dispozitiv, alt nume — prins</span><span>Rețeaua comună de magazine</span><span>Dosarul clientului</span><span>Pop-up de bun venit în 5 designuri</span><span>E-mailuri automate de reamintire</span><span>Comenzi aduse de Semafor</span><span>6 limbi</span>
+    <span>Semafor pe fiecare comandă</span><span>Plata ascunsă pentru cei care refuză coletele</span><span>Același dispozitiv, alt nume — prins</span><span>Rețeaua comună de magazine</span><span>Dosarul clientului</span><span>Pop-up de bun venit în 5 designuri</span><span>E-mailuri automate de reamintire</span><span>Comenzi aduse de Semafor</span><span>6 limbi</span>
   </div>
 </div>
 
@@ -474,29 +491,29 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   <div class="wrap sig">
     <div>
       <div class="eyebrow reveal">01 · Semnalul</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Checkout-ul se schimbă după culoare.</h2>
-      <p class="lead reveal">Fiecare comandă nouă este verificată în lista ta neagră și în rețeaua de magazine Semafor. Apoi culoarea decide ce poate face cumpărătorul la finalizarea comenzii — fără ca el să afle vreodată de ce.</p>
+      <h2 class="big serif reveal" style="margin-top:18px">Finalizarea comenzii se schimbă după culoare.</h2>
+      <p class="lead reveal">Fiecare comandă nouă este comparată cu lista ta neagră și cu rețeaua de magazine Semafor. Apoi culoarea decide ce poate face cumpărătorul la finalizarea comenzii — iar el nu află niciodată de ce.</p>
       <div class="tabs reveal" role="tablist">
         <button class="tab g on" data-k="g" role="tab"><i></i>Verde</button>
         <button class="tab y" data-k="y" role="tab"><i></i>Galben</button>
         <button class="tab r" data-k="r" role="tab"><i></i>Roșu</button>
       </div>
       <div class="explain reveal">
-        <div data-k="g" class="on"><h3>Un client de încredere.</h3><p>Nimic nu se schimbă. Toate metodele de plată rămân disponibile, iar finalizarea comenzii merge la fel de lin ca întotdeauna.</p><ul><li>Comenzile plătite online rămân mereu verzi</li><li>Zero fricțiuni pentru clienții tăi buni</li></ul></div>
-        <div data-k="y"><h3>Merită o a doua privire.</h3><p>Semafor etichetează comanda cu motivul, iar tu alegi regula pentru galben — de exemplu, fără plata ramburs.</p><ul><li>O comandă ramburs este deja pe drum</li><li>Mai multe comenzi neexpediate — unește-le într-un singur colet</li><li>Același dispozitiv a comandat sub alt nume</li><li>Reverificată la fiecare 15 minute — devine verde de la sine</li></ul></div>
-        <div data-k="r"><h3>Un client care refuză coletele.</h3><p>Plata dispare discret. Cumpărătorul pur și simplu nu poate finaliza comanda — și nu află niciodată că a fost blocat.</p><ul><li>Recunoscut după e-mail, telefon, nume, adresă sau dispozitiv</li><li>Fără nicio plată sau doar fără ramburs — regula ta</li><li>Anulare automată opțională</li></ul></div>
+        <div data-k="g" class="on"><h3>Un client de încredere.</h3><p>Nimic nu se schimbă. Toate metodele de plată rămân disponibile, iar finalizarea comenzii merge la fel de lin ca întotdeauna.</p><ul><li>Comenzile plătite online nu sunt oprite din cauza altui colet aflat pe drum</li><li>Zero fricțiuni pentru clienții tăi buni</li></ul></div>
+        <div data-k="y"><h3>Merită o a doua privire.</h3><p>Semafor marchează comanda cu motivul. Pentru clienții semnalați de rețeaua de magazine poți seta și o regulă la finalizarea comenzii — de exemplu, fără plată ramburs.</p><ul><li>O comandă ramburs este deja pe drum</li><li>Mai multe comenzi neexpediate — unește-le într-un singur colet</li><li>Același dispozitiv a comandat sub alt nume</li><li>Reverificată la fiecare 15 minute — trece singură pe verde</li></ul></div>
+        <div data-k="r"><h3>Un client cunoscut pentru colete refuzate.</h3><p>Plata dispare discret. Cumpărătorul pur și simplu nu poate finaliza comanda — și nu află niciodată că a fost blocat.</p><ul><li>Recunoscut după e-mail, telefon, nume + adresă sau dispozitiv</li><li>Nicio metodă de plată sau doar fără plata ramburs — tu alegi regula</li><li>Anulare automată opțională</li></ul></div>
       </div>
     </div>
     <div class="reveal">
       <div class="phone" aria-hidden="true">
         <div class="screen" id="screen">
-          <div class="bar"><span>9:41</span><span>checkout</span></div>
+          <div class="bar"><span>9:41</span><span>finalizare comandă</span></div>
           <h4>Plată</h4>
           <div class="sub">Toate tranzacțiile sunt securizate și criptate.</div>
           <div class="sumline"><div><span class="ph"></span><span>1 produs</span></div><b>189,00 €</b></div>
           <div class="paylbl">Alege metoda de plată</div>
           <div class="pm sel" data-m="card"><span class="rad"></span>Card<small>Visa · Mastercard</small></div>
-          <div class="pm" data-m="cod"><span class="rad"></span>Plata ramburs<small>Plătești curierului</small></div>
+          <div class="pm" data-m="cod"><span class="rad"></span>Plata ramburs<small>Plătești la curier</small></div>
           <div class="nopay" id="nopay">Nu există metode de plată disponibile pentru această comandă.</div>
           <div class="paybtn" id="paybtn">Plătește acum</div>
           <div class="tagline">Ce vede clientul tău</div>
@@ -520,17 +537,17 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="idc id1"><b>Ana Popa</b><span>ana.p@example.com</span><br><span class="o">Comanda #1983 · refuzată</span></div>
       <div class="idc id2"><b>A. Popescu</b><span>+40 7•• ••• 214</span><br><span class="o">Comanda #2107</span></div>
       <div class="idc id3"><b>Mihai Popa</b><span>mihai.p@example.com</span><br><span class="o">Comanda #2290</span></div>
-      <div class="idc id4"><b>Ana P.</b><span>adresă nouă</span><br><span class="o">Checkout · blocat</span></div>
+      <div class="idc id4"><b>Ana P.</b><span>adresă nouă</span><br><span class="o">Finalizare comandă · blocată</span></div>
       <div class="devcore"><div><svg viewBox="0 0 24 24" fill="none" stroke="#F0A69C" stroke-width="1.5"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg><b>1 dispozitiv</b><small>4 identități</small></div></div>
     </div>
     <div>
       <div class="eyebrow reveal">02 · Recunoașterea dispozitivului</div>
-      <h2 class="big serif reveal" style="margin-top:18px">Nume nou. Același telefon. <em class="it">Prins.</em></h2>
-      <p class="lead reveal">Cei care refuză coletele revin cu e-mailul soțului, telefonul surorii sau o adresă nouă. Semafor recunoaște dispozitivul de pe care comandă și leagă toate identitățile de o singură persoană.</p>
+      <h2 class="big serif reveal" style="margin-top:18px">Alt nume. Același dispozitiv. <em class="it">Prins.</em></h2>
+      <p class="lead reveal">Cei care refuză coletele revin cu e-mailul soțului, telefonul surorii sau o adresă nouă. Semafor recunoaște dispozitivul și browserul de pe care comandă și leagă toate identitățile într-o singură persoană.</p>
       <ul class="checks reveal">
-        <li style="--c:var(--red)"><span><b>Blocat și la checkout</b>Un e-mail sau un telefon nou introdus într-un browser aflat pe lista neagră este oprit înainte ca comanda să existe.</span></li>
+        <li style="--c:var(--red)"><span><b>Blocat chiar la finalizarea comenzii</b>Un e-mail sau un număr de telefon nou, introdus într-un browser aflat pe lista neagră, este oprit înainte ca comanda să existe.</span></li>
         <li style="--c:var(--amber)"><span><b>Legate și numărate</b>Comenzile din același browser, sub nume diferite, din ultimele 90 de zile apar împreună, cu numărul lor, peste tot.</span></li>
-        <li><span><b>Integrat, nimic de lipit</b>Recunoașterea dispozitivului se instalează odată cu aplicația. Fără cod, fără pixel personalizat, fără modificări în temă.</span></li>
+        <li><span><b>Se instalează odată cu aplicația</b>Fără cod. Pentru potrivirea completă la finalizarea comenzii, pornește extensia Semafor în editorul temei — un singur clic.</span></li>
       </ul>
     </div>
   </div>
@@ -542,12 +559,12 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div>
       <div class="eyebrow reveal">03 · Lista neagră, regândită</div>
       <h2 class="big serif reveal" style="margin-top:18px">Un dosar, nu o listă.</h2>
-      <p class="lead reveal">Deschide orice client și vezi toată povestea: fiecare e-mail, telefon, nume, adresă și dispozitiv, de ce și când a fost adăugat, comenzile Shopify, încercările de checkout și fiecare verificare Semafor — pe o singură cronologie.</p>
+      <p class="lead reveal">Deschide orice client și vezi toată povestea: fiecare e-mail, telefon, nume, adresă și dispozitiv, de ce și când a fost adăugat, comenzile Shopify, încercările de finalizare a comenzii și fiecare verificare Semafor — pe o singură cronologie.</p>
       <div class="feat-list reveal">
         <div><h5>Adaugă din orice comandă</h5><p>Un clic din pagina comenzii sau mai mulți clienți deodată din lista de comenzi.</p></div>
         <div><h5>Fără dubluri</h5><p>Semafor te avertizează dacă persoana e deja pe lista ta.</p></div>
-        <div><h5>Motive clare</h5><p>Colet ramburs refuzat, retururi frecvente fără motiv întemeiat, chargeback, fraudă la retur, amenințări, altele.</p></div>
-        <div><h5>Adu-ți lista veche</h5><p>Importă totul dintr-un fișier CSV, dintr-odată — și editează oricând un singur detaliu.</p></div>
+        <div><h5>Motive clare</h5><p>Colet ramburs refuzat, retururi frecvente fără motiv întemeiat, plată contestată (chargeback), fraudă la retur, amenințări, altele.</p></div>
+        <div><h5>Adu-ți lista veche</h5><p>Importă totul dintr-un fișier CSV, dintr-o singură mișcare — și modifică oricând un singur detaliu.</p></div>
       </div>
     </div>
     <div class="dcard reveal" aria-hidden="true">
@@ -558,7 +575,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="dbody">
         <div class="chips"><span class="chip red">Colet ramburs refuzat</span><span class="chip">ana.p@example.com</span><span class="chip">mihai.p@example.com</span><span class="chip">+40 7•• ••• 214</span><span class="chip">2 adrese</span><span class="chip amb">1 dispozitiv</span></div>
         <ul class="tlist">
-          <li style="--c:var(--red)"><b>Checkout blocat</b> — e-mail nou, același dispozitiv<small>Azi, 10:42</small></li>
+          <li style="--c:var(--red)"><b>Blocat la finalizarea comenzii</b> — e-mail nou, același dispozitiv<small>Azi, 10:42</small></li>
           <li style="--c:var(--amber)"><b>Comanda #2290</b> sub alt nume — legată prin dispozitiv<small>3 octombrie</small></li>
           <li style="--c:var(--red)"><b>Colet refuzat</b> — comanda #1983<small>12 septembrie · adăugat pe lista neagră</small></li>
           <li><b>Raportat de alte 2 magazine</b> din rețeaua Semafor<small>Rețea</small></li>
@@ -577,8 +594,8 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <p class="lead reveal">Magazinele care folosesc Semafor împărtășesc cine a refuzat colete sau a contestat plăți — sub formă de amprente anonime, niciodată date personale brute. Vezi avertismentul înainte să expediezi.</p>
       <ul class="bul reveal">
         <li><span><b>Pragurile tale.</b> Galben de la 1 alt magazin, roșu de la 3 — sau orice cifre alegi tu.</span></li>
-        <li><span><b>Motivele tale.</b> Decide ce rapoarte contează pentru magazinul tău.</span></li>
-        <li><span><b>Corect prin design.</b> Contează doar rapoartele altor magazine, un refuz se împărtășește abia de la a doua oară, iar orice elimini este retras.</span></li>
+        <li><span><b>Motivele tale.</b> Tu decizi ce rapoarte contează pentru magazinul tău.</span></li>
+        <li><span><b>Corect din principiu.</b> Contează doar rapoartele altor magazine, un colet refuzat se transmite în rețea abia de la al doilea caz, iar tot ce elimini se retrage.</span></li>
       </ul>
     </div>
     <div class="panel reveal" aria-hidden="true">
@@ -617,16 +634,16 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
             <div class="act"><span class="d">Adaugă pe lista neagră</span><span>Deschide dosarul</span></div>
           </div>
           <div class="ablock">
-            <div class="t">Încercări blocate · live</div>
-            <div class="kpi"><div><small>Oprite la checkout</small><b>7</b></div><div><small>Comenzi recuperate</small><b>12</b></div></div>
+            <div class="t">Încercări blocate · în timp real</div>
+            <div class="kpi"><div><small>Oprite la finalizarea comenzii</small><b>7</b></div><div><small>Comenzi recuperate</small><b>12</b></div></div>
           </div>
         </div>
       </div>
     </div>
     <div class="cards3">
       <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></div><h5>Încercări blocate, în timp real</h5><p>Vezi cine a încercat să cumpere fiind pe lista ta neagră, actualizat la fiecare 30 de secunde.</p></div>
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h5>Statistici care spun o poveste</h5><p>Încercări de checkout pe persoană, cine a trecut, cine își tot schimba datele, dispozitive suspecte.</p></div>
-      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Gândit pentru telefon</h5><p>Fiecare pagină devine carduri clare pe mobil. Verifici o comandă de oriunde.</p></div>
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></div><h5>Statistici care spun o poveste</h5><p>Încercările de finalizare a comenzii pe persoană, cine a trecut, cine și-a tot schimbat datele, dispozitivele suspecte.</p></div>
+      <div class="c3 reveal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></div><h5>Gândit pentru telefon</h5><p>Pe mobil, fiecare pagină se transformă în carduri clare. Verifici o comandă de oriunde.</p></div>
     </div>
   </div>
 </section>
@@ -638,7 +655,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div>
         <div class="eyebrow reveal">06 · Recuperare</div>
         <h2 class="big serif reveal" style="margin-top:18px">Protecție care și <em class="it">vinde</em>.</h2>
-        <p class="lead reveal">Un pop-up de bun venit transformă vizitatorii noi în abonați. Apare o dată la prima vizită și încă o dată în drum spre checkout — iar codul de reducere e deja în coș.</p>
+        <p class="lead reveal">Un pop-up de bun venit transformă vizitatorii noi în abonați. Apare o dată la prima vizită și încă o dată înainte de finalizarea comenzii — iar codul de reducere e deja aplicat în coș.</p>
         <div class="seasons reveal" id="seasons">
           <button class="on" data-s="classic">Clasic</button><button data-s="winter">Iarnă</button><button data-s="spring">Primăvară</button><button data-s="summer">Vară</button><button data-s="autumn">Toamnă</button>
         </div>
@@ -646,38 +663,57 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="storefront reveal" id="sf" data-s="classic" aria-hidden="true">
         <div class="sf-top"><i></i><i></i><i></i></div>
         <div class="sf-grid"><div></div><div></div><div></div></div>
-        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">la prima comandă</div><div class="fld">your@email.com</div><div class="go">Vreau codul</div></div></div>
+        <div class="pop"><div class="art"></div><div class="in"><div class="pc">−15%</div><div class="pt">la prima comandă</div><div class="fld">emailul@tau.ro</div><div class="go">Vreau codul</div></div></div>
       </div>
     </div>
 
     <div class="seq">
       <div>
-        <h3 class="serif reveal" style="font-size:clamp(32px,4vw,48px);line-height:1.05">A părăsit checkout-ul? Semafor scrie în locul tău.</h3>
+        <h3 class="serif reveal" style="font-size:clamp(32px,4vw,48px);line-height:1.05">A plecat de la finalizarea comenzii? Semafor îi scrie în locul tău.</h3>
         <ol class="steps reveal" style="margin-top:28px">
-          <li><span class="num">1</span><div><div class="when">Cam o oră mai târziu</div><h5>O reamintire prietenoasă</h5><p>Elegantă, cu produsele din coșul lor.</p></div></li>
-          <li><span class="num">2</span><div><div class="when">A doua zi dimineață, în fusul lor orar</div><h5>Un mic impuls, cu reducere</h5><p>15% implicit — sau o reamintire a reducerii aflate deja în coș.</p></div></li>
+          <li><span class="num">1</span><div><div class="when">Cam la o oră după</div><h5>O reamintire prietenoasă</h5><p>Elegantă, cu produsele din coșul clientului.</p></div></li>
+          <li><span class="num">2</span><div><div class="when">A doua zi dimineață, în fusul lor orar</div><h5>O invitație blândă, cu reducere</h5><p>15% implicit — sau o reamintire a reducerii aflate deja în coș.</p></div></li>
           <li class="last"><span class="num">3</span><div><div class="when">Ziua 3</div><h5>O ultimă șansă</h5><p>O reducere mai mare, valabilă doar în ziua aceea. Tu stabilești fiecare oră și fiecare procent.</p></div></li>
         </ol>
-        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Se oprește în clipa în care clientul comandă, sare peste produsele epuizate și ajunge chiar și la abonații pop-up-ului care au plecat înainte să-și introducă e-mailul.</p>
+        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">O pornești o singură dată. Se oprește imediat ce clientul comandă, nu amintește niciodată de un produs epuizat și ajunge chiar și la abonații din pop-up care au plecat înainte să-și scrie e-mailul. Implicit scrie doar clienților care au acceptat e-mailuri de marketing.</p>
       </div>
-      <div class="mail reveal" aria-hidden="true">
-        <div class="mh"><span><b>Magazinul tău</b> &lt;hello@yourstore.com&gt;</span><span>10:00</span></div>
-        <div class="mb">
-          <div class="brandm">Magazinul tău</div>
-          <h4>Încă te așteaptă.</h4>
-          <div class="prod"></div>
-          <div class="price"><s>189,00 €</s><b>160,65 €</b></div>
-          <div class="code">COMEBACK15</div>
-          <span class="cta">Înapoi la coșul meu</span>
-          <div class="fine">Dezabonare cu un clic</div>
+      <div class="mailwrap reveal" aria-hidden="true">
+        <div class="mcap">Ce primește clientul tău · e-mailul 2 din 3</div>
+        <div class="mail">
+          <div class="mh"><div class="mfrom"><span class="av">A</span><div><b>Aurora</b><small>către Maria</small></div></div><span>Azi, 10:00</span></div>
+          <div class="msubj">Maria, tenișii tăi te așteaptă în coș</div>
+          <div class="mb">
+            <div class="brandm">Aurora</div>
+            <p class="hi">Bună, Maria,</p>
+            <h4>Ai lăsat în urmă ceva frumos.</h4>
+            <div class="item"><div class="prod"></div><div class="it"><b>Teniși din in</b><small>Nisip · mărimea 38</small><span><s>89,00 €</s> 75,65 €</span></div></div>
+            <div class="disc"><b>−15%</b><span>codul tău personal, valabil până mâine</span></div>
+            <span class="cta">Finalizează comanda</span>
+            <div class="fine">Ai început o comandă la Aurora. · Dezabonare</div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="attr">
-      <div class="c3 reveal"><span class="src">● Trimis de Semafor</span><h5>Fără serviciu de e-mail la care să te abonezi</h5><p>E-mailurile pleacă incluse în planul tău — sau de pe propriul domeniu, cu o configurare ghidată pentru furnizorul tău DNS.</p></div>
+      <div class="c3 reveal"><span class="src">● Trimise de Semafor</span><h5>Fără niciun serviciu de e-mail separat</h5><p>E-mailurile sunt trimise de Semafor, incluse în planul tău — sau de pe propriul tău domeniu, cu o configurare ghidată pentru furnizorul tău de DNS.</p></div>
       <div class="c3 reveal"><span class="src">● 3 designuri</span><h5>Premium din start</h5><p>Elegant, Minimal și Modern — cu fotografia și prețul produsului, în limba clientului.</p></div>
-      <div class="c3 reveal"><span class="src">● Etichetat pe comandă</span><h5>Comenzi aduse de Semafor</h5><p>Fiecare comandă arată dacă a adus-o pop-up-ul, coșul sau o reamintire — cu veniturile recuperate în cifre.</p></div>
+      <div class="c3 reveal"><span class="src">● Marcat pe comandă</span><h5>Comenzi aduse de Semafor</h5><p>Fiecare comandă arată dacă a adus-o pop-up-ul, coșul sau o reamintire — cu veniturile recuperate în cifre.</p></div>
+    </div>
+
+    <div class="sells reveal">
+      <div class="sh">
+        <div class="eyebrow">Exemplu · un magazin care folosește Semafor · ultimele 30 de zile</div>
+        <h3 class="serif">O să te surprindă cât de bine <em class="it">vinde</em>.</h3>
+        <p>Semafor nu doar salvează banii pierduți pe colete refuzate și pe retururi fără motiv. Aduce și comenzi — și o marchează pe fiecare, ca să vezi exact cât a câștigat.</p>
+      </div>
+      <div class="sn">
+        <div><b>76</b><span>comenzi aduse de Semafor</span></div>
+        <div><b>18%</b><span>din toate comenzile magazinului</span></div>
+        <div><b>4.859 €</b><span>vânzări aduse de Semafor</span></div>
+      </div>
+      <div class="sb"><span><i style="background:var(--green)"></i>Pop-up de bun venit · 43</span><span><i style="background:var(--amber)"></i>Pop-up la finalizarea comenzii · 29</span><span><i style="background:var(--red)"></i>E-mailuri de reamintire · 4</span></div>
+      <p class="sfoot">O comandă se numără dacă a venit în 90 de zile de la abonarea prin pop-up sau în 14 zile de la o reamintire.</p>
     </div>
   </div>
 </section>
@@ -691,13 +727,13 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="reveal"><h5>Semafor pe fiecare comandă</h5><p>Verde, galben sau roșu în câteva secunde, ca etichetă și ca semnal de risc Shopify.</p></div>
       <div class="reveal"><h5>Lista ta neagră + import CSV</h5><p>După e-mail, telefon, nume sau adresă, cu potrivire inteligentă a adreselor.</p></div>
       <div class="reveal"><h5>Rețeaua de magazine</h5><p>Vezi cine a refuzat colete la alte magazine înainte să expediezi.</p></div>
-      <div class="reveal"><h5>Blocare la checkout<span class="badge">Basic</span></h5><p>Ascunde plata ramburs sau toate metodele de plată, separat pentru galben și roșu.</p></div>
-      <div class="reveal"><h5>Același dispozitiv, alt nume<span class="badge">Basic</span></h5><p>Toate identitățile folosite pe un telefon sau calculator, legate și blocate.</p></div>
+      <div class="reveal"><h5>Blocare la finalizarea comenzii<span class="badge">Basic</span></h5><p>Ascunde plata ramburs sau toate metodele de plată, separat pentru galben și roșu.</p></div>
+      <div class="reveal"><h5>Același dispozitiv, alt nume<span class="badge">Basic</span></h5><p>Toate identitățile folosite pe același telefon sau calculator, legate și blocate.</p></div>
       <div class="reveal"><h5>Anulare automată<span class="badge">Basic</span></h5><p>O comandă roșie care totuși scapă este anulată automat.</p></div>
       <div class="reveal"><h5>Galben inteligent</h5><p>Ramburs deja pe drum, colete de unit — reverificare la fiecare 15 minute.</p></div>
       <div class="reveal"><h5>Pop-up de bun venit<span class="badge">Basic</span></h5><p>5 designuri, 5 limbi, cod aplicat în coș, e-mail de bun venit inclus.</p></div>
       <div class="reveal"><h5>Încercări blocate, în timp real<span class="badge">Basic</span></h5><p>Cine a încercat să cumpere fiind pe lista neagră, la fiecare 30 de secunde.</p></div>
-      <div class="reveal"><h5>Statistici pe pașii checkout-ului<span class="badge pro">Pro</span></h5><p>Unde s-a oprit fiecare client și ce avea exact în coș.</p></div>
+      <div class="reveal"><h5>Statistici pe pașii finalizării comenzii<span class="badge pro">Pro</span></h5><p>Unde s-a oprit fiecare client și ce avea exact în coș.</p></div>
       <div class="reveal"><h5>E-mailuri de reamintire<span class="badge pro">Pro</span></h5><p>Până la 3, automat sau cu un clic, cu coduri de reducere de unică folosință.</p></div>
       <div class="reveal"><h5>Vânzări recuperate în cifre<span class="badge pro">Pro</span></h5><p>E-mailuri trimise, clienți care au revenit, venituri aduse.</p></div>
     </div>
@@ -717,17 +753,17 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       <div class="plan reveal">
         <div class="top"><h4>Gratuit</h4></div><div class="tag">Pentru început</div>
         <div class="price">0 $</div><div class="yr">Fără limită de timp</div>
-        <ul><li>Semafor pe 50 de comenzi pe lună</li><li>Propria listă neagră + import CSV</li><li>Rețeaua de magazine</li><li>Etichetă de risc pe fiecare comandă</li></ul>
+        <ul><li>Semafor pe 50 de comenzi pe lună</li><li>Propria listă neagră + import CSV</li><li>Rețeaua de magazine</li><li>Etichetă de risc pe fiecare comandă verificată</li></ul>
       </div>
       <div class="plan reveal">
         <div class="top"><h4>Basic</h4></div><div class="tag">Protecție completă pentru ramburs</div>
         <div class="price">9,99 $ <small>/ lună</small></div><div class="yr">sau 7,99 $ / lună cu plata anuală</div>
-        <ul><li>Comenzi nelimitate</li><li>Blocare la checkout, reguli pentru galben și roșu</li><li>Anularea automată a comenzilor roșii</li><li>Același dispozitiv, alt nume</li><li>Pop-up de bun venit cu reducere</li></ul>
+        <ul><li>Comenzi nelimitate</li><li>Blocare la finalizarea comenzii, reguli pentru galben și roșu</li><li>Anularea automată a comenzilor roșii</li><li>Același dispozitiv, alt nume</li><li>Pop-up de bun venit cu reducere</li></ul>
       </div>
       <div class="plan feat reveal">
         <div class="top"><h4>Pro</h4><span class="pill2">Cel mai complet</span></div><div class="tag">Protecție + vânzări recuperate</div>
         <div class="price">24,99 $ <small>/ lună</small></div><div class="yr">sau 19,99 $ / lună cu plata anuală</div>
-        <ul><li>Tot ce include Basic</li><li>Statistici pe pașii checkout-ului</li><li>E-mailuri automate de reamintire, până la 3</li><li>Reamintiri chiar și fără e-mail la checkout</li><li>Vânzări recuperate în cifre, de pe propriul domeniu</li></ul>
+        <ul><li>Tot ce include Basic</li><li>Statistici pe pașii finalizării comenzii</li><li>E-mailuri automate de reamintire, până la 3</li><li>Reamintiri chiar și fără e-mail la finalizarea comenzii</li><li>Vânzări recuperate în cifre, e-mailuri de pe propriul domeniu</li></ul>
       </div>
     </div>
     <p class="fineprint">Facturare prin Shopify. Schimbi sau anulezi oricând.</p>
@@ -740,11 +776,11 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     <div class="eyebrow reveal" style="text-align:center">Întrebări</div>
     <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Bine de știut.</h2>
     <div class="faq">
-      <details class="reveal"><summary>Trebuie să configurez ceva?</summary><p>Nu. Instalezi Semafor și începe imediat să verifice comenzile. Blocarea la checkout, recunoașterea dispozitivului și pop-up-ul se activează automat — fără cod, fără modificări în temă.</p></details>
+      <details class="reveal"><summary>Trebuie să configurez ceva?</summary><p>Nu. Instalezi Semafor și începe imediat să verifice comenzile. Blocarea la finalizarea comenzii pornește automat. Pornește o singură dată extensia Semafor în editorul temei — de ea depind recunoașterea dispozitivului și pop-up-ul. Fără cod.</p></details>
       <details class="reveal"><summary>Clientul blocat va afla?</summary><p>Nu. Pur și simplu nu vede nicio metodă de plată (sau nu vede plata ramburs), în funcție de regula aleasă. Nu apare niciun mesaj că a fost blocat.</p></details>
-      <details class="reveal"><summary>Cum rămâne cu confidențialitatea?</summary><p>Rețeaua de magazine schimbă doar amprente anonime, niciodată nume sau adrese. Fiecare e-mail are dezabonare cu un clic, iar cererile și ștergerile de date din Shopify sunt gestionate automat.</p></details>
+      <details class="reveal"><summary>Cum rămâne cu confidențialitatea?</summary><p>Rețeaua de magazine schimbă doar amprente anonime, niciodată nume sau adrese. Fiecare e-mail are dezabonare dintr-un clic, iar cererile Shopify de ștergere a datelor se aplică automat.</p></details>
       <details class="reveal"><summary>Am nevoie de un serviciu de e-mail?</summary><p>Nu. E-mailurile de reamintire și de bun venit sunt trimise de Semafor și incluse în planul tău. Dacă preferi, îți conectezi propriul domeniu cu un ghid pas cu pas.</p></details>
-      <details class="reveal"><summary>Ce limbi vorbește Semafor?</summary><p>Aplicația este disponibilă în engleză, română, spaniolă, franceză, poloneză și rusă. E-mailurile și pop-up-ul urmează limba clientului.</p></details>
+      <details class="reveal"><summary>Ce limbi vorbește Semafor?</summary><p>Aplicația vorbește engleză, română, spaniolă, franceză, poloneză și rusă. E-mailurile și pop-up-ul ajung la clienți în engleză, română, germană, poloneză sau spaniolă.</p></details>
       <details class="reveal"><summary>Ce se întâmplă după perioada de probă gratuită?</summary><p>Magazinul tău trece pe planul Gratuit și continuă să verifice 50 de comenzi pe lună. Setările rămân salvate — alege oricând un plan ca să reactivezi totul.</p></details>
     </div>
   </div>
@@ -764,7 +800,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Semafor by <a href="/ro/" data-home>Kastel Labs</a></span>
+    <span>© 2026 Semafor de la <a href="/ro/" data-home>Kastel Labs</a></span>
     <span class="links"><a href="mailto:mihailiuc.co@gmail.com">mihailiuc.co@gmail.com</a><a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Politica de confidențialitate</a><a href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Shopify App Store</a></span>
   </div>
 </footer>

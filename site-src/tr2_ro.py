@@ -295,5 +295,22 @@ RO = {
 "Reminder e-mails · 4": "E-mailuri de reamintire · 4",
 "No. Install Semafor and it starts checking orders right away. Checkout blocking and device recognition switch on automatically — no code, no theme edits. The pop-up is one switch in your theme editor.": "Nu. Instalezi Semafor și începe imediat să verifice comenzile. Blocarea la finalizarea comenzii și recunoașterea dispozitivului se activează automat — fără cod, fără modificări în temă. Pop-up-ul se pornește dintr-un singur comutator în editorul temei.",
 "© 2026 Semafor by": "© 2026 Semafor de la",
-"Shopify App Store": "Shopify App Store"
+"Shopify App Store": "Shopify App Store",
+"Prepaid orders aren't held back by another parcel on its way": "Comenzile plătite online nu sunt oprite din cauza altui colet aflat pe drum",
+"Semafor tags the order with the reason. For buyers flagged by the store network, you can also set a checkout rule — for example, no cash on delivery.": "Semafor marchează comanda cu motivul. Pentru clienții semnalați de rețeaua de magazine poți seta și o regulă la finalizarea comenzii — de exemplu, fără plată ramburs.",
+"Matched by e-mail, phone, name + address or device": "Recunoscut după e-mail, telefon, nume + adresă sau dispozitiv",
+"New name. Same device.": "Alt nume. Același dispozitiv.",
+"Refusers come back with a husband's e-mail, a sister's phone or a new address. Semafor recognises the device and browser they order from and links every identity into one person.": "Cei care refuză coletele revin cu e-mailul soțului, telefonul surorii sau o adresă nouă. Semafor recunoaște dispozitivul și browserul de pe care comandă și leagă toate identitățile într-o singură persoană.",
+"Installed with the app": "Se instalează odată cu aplicația",
+"No code. For full matching at checkout, switch on the Semafor app embed in your theme editor — one click.": "Fără cod. Pentru potrivirea completă la finalizarea comenzii, pornește extensia Semafor în editorul temei — un singur clic.",
+"No. Install Semafor and it starts checking orders right away. Checkout blocking switches on automatically. Turn on the Semafor app embed in your theme editor once — it powers device recognition and the pop-up. No code.": "Nu. Instalezi Semafor și începe imediat să verifice comenzile. Blocarea la finalizarea comenzii pornește automat. Pornește o singură dată extensia Semafor în editorul temei — de ea depind recunoașterea dispozitivului și pop-up-ul. Fără cod.",
+"Risk tag on every checked order": "Etichetă de risc pe fiecare comandă verificată",
+"Switch it on once. It stops the moment they order, never reminds about a sold-out product and even reaches pop-up subscribers who left before typing their e-mail. By default it writes only to customers who agreed to receive marketing e-mails.": "O pornești o singură dată. Se oprește imediat ce clientul comandă, nu amintește niciodată de un produs epuizat și ajunge chiar și la abonații din pop-up care au plecat înainte să-și scrie e-mailul. Implicit scrie doar clienților care au acceptat e-mailuri de marketing.",
+"The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically.": "Rețeaua de magazine schimbă doar amprente anonime, niciodată nume sau adrese. Fiecare e-mail are dezabonare dintr-un clic, iar cererile Shopify de ștergere a datelor se aplică automat.",
+"The app speaks English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up reach customers in English, Romanian, German, Polish or Spanish.": "Aplicația vorbește engleză, română, spaniolă, franceză, poloneză și rusă. E-mailurile și pop-up-ul ajung la clienți în engleză, română, germană, poloneză sau spaniolă.",
+"Example · one store using Semafor · last 30 days": "Exemplu · un magazin care folosește Semafor · ultimele 30 de zile",
+"An order counts when it came within 90 days of a pop-up sign-up or 14 days of a reminder.": "O comandă se numără dacă a venit în 90 de zile de la abonarea prin pop-up sau în 14 zile de la o reamintire.",
+"€89.00": "89,00 €",
+"€75.65": "75,65 €",
+"€4,859": "4.859 €"
 }

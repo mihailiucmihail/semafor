@@ -311,7 +311,8 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .sells .sn{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px;position:relative}
 .sells .sn div{border:1px solid var(--edge);border-radius:20px;padding:24px 24px 22px;background:rgba(255,255,255,.02)}
 .sells .sn b{display:block;font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,72px);line-height:1;color:#fff}.sells .sn span{display:block;color:var(--soft);font-size:15px;margin-top:10px}
-.sells .sb{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;color:var(--soft);font-size:14.5px;position:relative}.sells .sb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.sells .sb{display:flex;gap:22px;flex-wrap:wrap;margin-top:22px;color:var(--soft);font-size:14.5px;position:relative}.sells .sfoot{position:relative;color:var(--mute);font-size:13px;margin-top:14px}
+.sells .sb i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
 @media (max-width:760px){.sells{padding:36px 22px}.sells .sn{grid-template-columns:1fr}}
 .src{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 11px;border-radius:999px;background:#E4F3EB;color:#16754A;font-weight:500}
 
@@ -473,9 +474,9 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
         <button class="tab r" data-k="r" role="tab"><i></i>Red</button>
       </div>
       <div class="explain reveal">
-        <div data-k="g" class="on"><h3>A trusted buyer.</h3><p>Nothing changes. Every payment method stays available and checkout is as smooth as ever.</p><ul><li>Prepaid orders always stay green</li><li>Zero friction for your good customers</li></ul></div>
-        <div data-k="y"><h3>Worth a second look.</h3><p>Semafor tags the order with the reason, and you choose the rule for yellow — for example, no cash on delivery.</p><ul><li>A cash-on-delivery order is already on its way</li><li>Several unshipped orders — merge them into one parcel</li><li>The same device ordered under another name</li><li>Re-checked every 15 minutes — turns green on its own</li></ul></div>
-        <div data-k="r"><h3>A known refuser.</h3><p>Payment quietly disappears. The buyer simply can't complete the order — and never learns they were blocked.</p><ul><li>Recognised by e-mail, phone, name, address or device</li><li>No payment at all, or only no cash on delivery — your rule</li><li>Optional automatic cancellation</li></ul></div>
+        <div data-k="g" class="on"><h3>A trusted buyer.</h3><p>Nothing changes. Every payment method stays available and checkout is as smooth as ever.</p><ul><li>Prepaid orders aren't held back by another parcel on its way</li><li>Zero friction for your good customers</li></ul></div>
+        <div data-k="y"><h3>Worth a second look.</h3><p>Semafor tags the order with the reason. For buyers flagged by the store network, you can also set a checkout rule — for example, no cash on delivery.</p><ul><li>A cash-on-delivery order is already on its way</li><li>Several unshipped orders — merge them into one parcel</li><li>The same device ordered under another name</li><li>Re-checked every 15 minutes — turns green on its own</li></ul></div>
+        <div data-k="r"><h3>A known refuser.</h3><p>Payment quietly disappears. The buyer simply can't complete the order — and never learns they were blocked.</p><ul><li>Matched by e-mail, phone, name + address or device</li><li>No payment at all, or only no cash on delivery — your rule</li><li>Optional automatic cancellation</li></ul></div>
       </div>
     </div>
     <div class="reveal">
@@ -516,12 +517,12 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
     </div>
     <div>
       <div class="eyebrow reveal">02 · Device recognition</div>
-      <h2 class="big serif reveal" style="margin-top:18px">New name. Same phone. <em class="it">Caught.</em></h2>
-      <p class="lead reveal">Refusers come back with a husband's e-mail, a sister's phone or a new address. Semafor recognises the device they order from and links every identity into one person.</p>
+      <h2 class="big serif reveal" style="margin-top:18px">New name. Same device. <em class="it">Caught.</em></h2>
+      <p class="lead reveal">Refusers come back with a husband's e-mail, a sister's phone or a new address. Semafor recognises the device and browser they order from and links every identity into one person.</p>
       <ul class="checks reveal">
         <li style="--c:var(--red)"><span><b>Blocked at checkout too</b>A new e-mail or phone typed on a blacklisted browser is stopped before the order exists.</span></li>
         <li style="--c:var(--amber)"><span><b>Linked and counted</b>Orders from one browser under different names over 90 days show up together, with their count, everywhere.</span></li>
-        <li><span><b>Built in, nothing to paste</b>Device recognition installs with the app. No code, no custom pixel, no theme edits.</span></li>
+        <li><span><b>Installed with the app</b>No code. For full matching at checkout, switch on the Semafor app embed in your theme editor — one click.</span></li>
       </ul>
     </div>
   </div>
@@ -649,7 +650,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
           <li><span class="num">2</span><div><div class="when">Next morning, their time zone</div><h5>A gentle nudge with a discount</h5><p>15% by default — or a reminder of the discount already in the cart.</p></div></li>
           <li class="last"><span class="num">3</span><div><div class="when">Day 3</div><h5>A last chance</h5><p>A bigger discount, valid that day only. You set every time and percentage.</p></div></li>
         </ol>
-        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">It stops the moment they order, skips sold-out products, and even reaches pop-up subscribers who left before typing their e-mail.</p>
+        <p class="reveal" style="color:var(--ink-2);margin-top:20px;font-size:15px">Switch it on once. It stops the moment they order, never reminds about a sold-out product and even reaches pop-up subscribers who left before typing their e-mail. By default it writes only to customers who agreed to receive marketing e-mails.</p>
       </div>
       <div class="mailwrap reveal" aria-hidden="true">
         <div class="mcap">What your customer receives · e-mail 2 of 3</div>
@@ -677,7 +678,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
 
     <div class="sells reveal">
       <div class="sh">
-        <div class="eyebrow">Real numbers · one store using Semafor · last 30 days</div>
+        <div class="eyebrow">Example · one store using Semafor · last 30 days</div>
         <h3 class="serif">You'll be surprised how well it <em class="it">sells</em>.</h3>
         <p>Semafor doesn't only save the money lost on refused parcels and returns without a reason. It brings in orders — and marks every one of them, so you see exactly what it earned.</p>
       </div>
@@ -687,6 +688,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
         <div><b>€4,859</b><span>in sales Semafor brought in</span></div>
       </div>
       <div class="sb"><span><i style="background:var(--green)"></i>Welcome pop-up · 43</span><span><i style="background:var(--amber)"></i>Pop-up at checkout · 29</span><span><i style="background:var(--red)"></i>Reminder e-mails · 4</span></div>
+      <p class="sfoot">An order counts when it came within 90 days of a pop-up sign-up or 14 days of a reminder.</p>
     </div>
   </div>
 </section>
@@ -726,7 +728,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
       <div class="plan reveal">
         <div class="top"><h4>Free</h4></div><div class="tag">To get started</div>
         <div class="price">$0</div><div class="yr">No time limit</div>
-        <ul><li>Traffic light on 50 orders a month</li><li>Your own blacklist + CSV import</li><li>Store network</li><li>Risk tag on every order</li></ul>
+        <ul><li>Traffic light on 50 orders a month</li><li>Your own blacklist + CSV import</li><li>Store network</li><li>Risk tag on every checked order</li></ul>
       </div>
       <div class="plan reveal">
         <div class="top"><h4>Basic</h4></div><div class="tag">Full cash-on-delivery protection</div>
@@ -749,11 +751,11 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}
     <div class="eyebrow reveal" style="text-align:center">Questions</div>
     <h2 class="big serif reveal" style="text-align:center;margin-top:18px">Good to know.</h2>
     <div class="faq">
-      <details class="reveal"><summary>Do I need to set anything up?</summary><p>No. Install Semafor and it starts checking orders right away. Checkout blocking and device recognition switch on automatically — no code, no theme edits. The pop-up is one switch in your theme editor.</p></details>
+      <details class="reveal"><summary>Do I need to set anything up?</summary><p>No. Install Semafor and it starts checking orders right away. Checkout blocking switches on automatically. Turn on the Semafor app embed in your theme editor once — it powers device recognition and the pop-up. No code.</p></details>
       <details class="reveal"><summary>Will a blocked customer know?</summary><p>No. They simply see no payment method (or no cash on delivery), depending on the rule you chose. There is no message saying they were blocked.</p></details>
-      <details class="reveal"><summary>What about privacy?</summary><p>The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data requests and deletions are handled automatically.</p></details>
+      <details class="reveal"><summary>What about privacy?</summary><p>The store network only exchanges anonymous fingerprints, never names or addresses. Every e-mail has a one-click unsubscribe, and Shopify's data-deletion requests are applied automatically.</p></details>
       <details class="reveal"><summary>Do I need an e-mail service?</summary><p>No. Reminder and welcome e-mails are sent by Semafor and included in your plan. If you prefer, connect your own domain with a step-by-step guide.</p></details>
-      <details class="reveal"><summary>Which languages does Semafor speak?</summary><p>The app is available in English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up follow your customer's language.</p></details>
+      <details class="reveal"><summary>Which languages does Semafor speak?</summary><p>The app speaks English, Romanian, Spanish, French, Polish and Russian. E-mails and the pop-up reach customers in English, Romanian, German, Polish or Spanish.</p></details>
       <details class="reveal"><summary>What happens after the free trial?</summary><p>Your store moves to the Free plan and keeps checking 50 orders a month. Your settings are saved — choose a plan any time to switch everything back on.</p></details>
     </div>
   </div>
