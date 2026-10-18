@@ -1,11 +1,29 @@
 // Merchant-facing UI texts (admin pages). English is the default; Romanian is the original wording.
+// More languages (es, fr, pl, ru) live in app/locales/<lang>.json, keyed like D; a missing key falls back to English.
 import { createContext, createElement, useCallback, useContext, type ReactNode } from "react";
+import es from "./locales/es.json";
+import fr from "./locales/fr.json";
+import pl from "./locales/pl.json";
+import ru from "./locales/ru.json";
 
-export type Lang = "en" | "ro";
-export const LANGS: Lang[] = ["en", "ro"];
-export const isLang = (v: unknown): v is Lang => v === "en" || v === "ro";
+export type Lang = "en" | "ro" | "es" | "fr" | "pl" | "ru";
+export const LANGS: Lang[] = ["en", "ro", "es", "fr", "pl", "ru"];
+export const isLang = (v: unknown): v is Lang => (LANGS as unknown[]).includes(v);
+/** Language names for the Settings selector, each in its own language. */
+export const LANG_NAMES: Record<Lang, string> = { en: "English", ro: "Română", es: "Español", fr: "Français", pl: "Polski", ru: "Русский" };
 
 type Entry = { en: string; ro: string };
+type ExtraLang = Exclude<Lang, "en" | "ro">;
+export type LocaleFile = {
+  dict: Record<string, string>;
+  server: string[];
+  skip: string[];
+  srcNote: { popup_site: string; popup_cart: string; email: string; code: string };
+  guide: unknown;
+  helpIntro: { h: string; p: string[]; other: string };
+};
+export const EXTRA: Record<ExtraLang, LocaleFile> = { es, fr, pl, ru } as unknown as Record<ExtraLang, LocaleFile>;
+const extra = (lang: Lang): LocaleFile | null => (lang === "en" || lang === "ro" ? null : EXTRA[lang]);
 
 const D = {
   // ── navigation ──
@@ -753,13 +771,15 @@ export type Vars = Record<string, string | number | null | undefined>;
 
 export function t(lang: Lang, key: TKey, vars?: Vars): string {
   const e: Entry | undefined = (D as Record<string, Entry>)[key];
-  let s = e ? e[lang] ?? e.en : String(key);
+  const x = extra(lang)?.dict[key];
+  let s = x || (e ? (lang === "ro" ? e.ro : e.en) : String(key));
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars && vars[k] != null ? String(vars[k]) : m));
   return s;
 }
 
 /** Locale for dates and numbers in the admin pages. */
-export const dateLocale = (lang: Lang) => (lang === "ro" ? "ro-RO" : "en-US");
+const DATE_LOCALE: Record<Lang, string> = { en: "en-US", ro: "ro-RO", es: "es-ES", fr: "fr-FR", pl: "pl-PL", ru: "ru-RU" };
+export const dateLocale = (lang: Lang) => DATE_LOCALE[lang] ?? "en-US";
 
 /**
  * Romanian messages produced by server modules (thrown errors, stored EmailSend.error, OrderCheck.matched texts…).
@@ -800,9 +820,16 @@ const SKIP_MSG: Array<[RegExp, { en: string; ro: string }]> = [
 /** Translates a known Romanian server message for display; unknown messages are returned unchanged. */
 export function trMsg(lang: Lang, msg: string | null | undefined): string {
   const s = String(msg ?? "");
-  for (const [re, m] of SKIP_MSG) if (re.test(s)) return s.replace(re, m[lang]);
+  const x = extra(lang);
+  for (let i = 0; i < SKIP_MSG.length; i++) {
+    const [re, m] = SKIP_MSG[i];
+    if (re.test(s)) return s.replace(re, x?.skip[i] || (lang === "ro" ? m.ro : m.en));
+  }
   if (lang === "ro" || !s) return s;
-  for (const [re, en] of SERVER_MSG) if (re.test(s)) return s.replace(re, en);
+  for (let i = 0; i < SERVER_MSG.length; i++) {
+    const [re, en] = SERVER_MSG[i];
+    if (re.test(s)) return s.replace(re, x?.server[i] || en);
+  }
   return s;
 }
 

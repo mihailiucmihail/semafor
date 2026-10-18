@@ -12,6 +12,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { decideAttribution, ATTR_TAG, ALL_ATTR_TAGS, EMAIL_WINDOW_DAYS, POPUP_WINDOW_DAYS, type Attribution, type AttrSource } from "../../core/attribution";
 import type { ShopSettings } from "../../core/settings";
 import { shopLang } from "../i18n.server";
+import { EXTRA, dateLocale, type Lang } from "../i18n";
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 const DAY = 86_400_000;
@@ -62,11 +63,14 @@ const SRC_NOTE: Record<"ro" | "en", Record<AttrSource, string>> = {
 };
 
 /** Line for the order's note attributes: "Semafor: pop-up în coș · 11 oct 14:05 · cod BUNVENIT15". */
-export function attributionNote(a: Attribution, lang: "ro" | "en", tz: string) {
+export function attributionNote(a: Attribution, lang: Lang, tz: string) {
   if (!a.primary || !a.at) return "";
   let when = "";
-  try { when = new Date(a.at).toLocaleString(lang === "ro" ? "ro-RO" : "en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }); } catch { when = a.at; }
-  return [SRC_NOTE[lang][a.primary], when, a.usedCode ? `${lang === "ro" ? "cod" : "code"} ${a.usedCode}` : ""].filter(Boolean).join(" · ");
+  const x = lang === "en" || lang === "ro" ? null : EXTRA[lang].srcNote;
+  try { when = new Date(a.at).toLocaleString(lang === "en" ? "en-GB" : dateLocale(lang), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }); } catch { when = a.at; }
+  const src = x ? x[a.primary] : SRC_NOTE[lang === "ro" ? "ro" : "en"][a.primary];
+  const code = x ? x.code : lang === "ro" ? "cod" : "code";
+  return [src, when, a.usedCode ? `${code} ${a.usedCode}` : ""].filter(Boolean).join(" · ");
 }
 
 /** Computes, stores and (when attributed) writes tag / note attribute / metafield on the order. Never throws. */
@@ -79,12 +83,14 @@ export async function attributeOrder(db: PrismaClient, admin: Admin, shop: { id:
       data: { attribution: a as any, total, currency: o.currency || null, orderedAt: o.created_at ? new Date(o.created_at) : new Date() },
     });
     if (!a.primary) return a;
-    const lang = shopLang(shop) === "ro" ? "ro" : "en";
+    const lang = shopLang(shop);
+    // order tags stay Romanian or English (they are filters other tools rely on); the note follows the admin language
+    const tagLang = lang === "ro" ? "ro" : "en";
     const d = await gql(admin, `query($id:ID!){ order(id:$id){ tags customAttributes{ key value } } shop{ ianaTimezone } }`, { id: o.admin_graphql_api_id });
     const tags: string[] = d?.order?.tags ?? [];
     const input: any = { id: o.admin_graphql_api_id, metafields: [{ namespace: "semafor", key: "attribution", type: "json", value: JSON.stringify(a) }] };
     if (shop.settings.tagAttributed !== false) {
-      const tag = ATTR_TAG[lang][a.primary];
+      const tag = ATTR_TAG[tagLang][a.primary];
       const stale = tags.filter((t) => t !== tag && ALL_ATTR_TAGS.includes(t));
       if (stale.length) await gql(admin, `mutation($id:ID!,$tags:[String!]!){ tagsRemove(id:$id,tags:$tags){ userErrors{ message } } }`, { id: o.admin_graphql_api_id, tags: stale });
       if (!tags.includes(tag)) await gql(admin, `mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: o.admin_graphql_api_id, tags: [tag] });

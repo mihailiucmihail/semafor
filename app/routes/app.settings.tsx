@@ -11,7 +11,7 @@ import { pushCheckoutMetafield, buildCheckoutPayload, syncPaymentBlock } from ".
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 import { planOf } from "../semafor/plan.server";
 import { can } from "../../core/plans";
-import { useT, useLang, trMsg, type TKey } from "../i18n";
+import { useT, useLang, trMsg, isLang, LANGS, LANG_NAMES, type Lang, type TKey } from "../i18n";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -34,7 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     tagAttributed: fd.get("tagAttributed") !== "false",
     thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
     // language is sent only when the merchant picked one; otherwise the stored choice (or automatic) stays
-    uiLang: fd.get("uiLang") === "en" || fd.get("uiLang") === "ro" ? (String(fd.get("uiLang")) as "en" | "ro") : shop.settings.uiLang ?? null,
+    uiLang: isLang(fd.get("uiLang")) ? (fd.get("uiLang") as Lang) : shop.settings.uiLang ?? null,
   }, (session as any).email || session.shop);
   await pushCheckoutMetafield(admin, shop.id);
   return { ok: true };
@@ -131,8 +131,8 @@ export default function Settings() {
 
           <Layout.AnnotatedSection title={tr("settings.langHeading")} description={tr("settings.langHelp")}>
             <Card>
-              <Select label={tr("settings.langLabel")} value={s.uiLang || lang} onChange={(v) => setS({ ...s, uiLang: v as "en" | "ro" })}
-                options={[{ label: "English", value: "en" }, { label: "Română", value: "ro" }]} />
+              <Select label={tr("settings.langLabel")} value={s.uiLang || lang} onChange={(v) => setS({ ...s, uiLang: v as Lang })}
+                options={LANGS.map((l) => ({ label: LANG_NAMES[l], value: l }))} />
             </Card>
           </Layout.AnnotatedSection>
         </Layout>

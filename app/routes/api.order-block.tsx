@@ -9,7 +9,7 @@ import { REASONS, type Reason } from "../../core/reasons";
 import { trMsg, type Lang } from "../i18n";
 
 /** The admin extensions send their UI language ("en" / "ro"); without it the texts stay as stored (Romanian). */
-const langOf = (v: unknown): Lang => (v === "en" ? "en" : "ro");
+const langOf = (v: unknown): Lang => (isLang(v) ? v : "ro");
 const localized = (r: any, lang: Lang) => ({ ...r, matches: Array.isArray(r.matches) ? r.matches.map((m: any) => ({ ...m, normalized: m.kind === "device" || m.kind === "order" ? trMsg(lang, m.normalized) : m.normalized, reason: trMsg(lang, m.reason) })) : r.matches });
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });

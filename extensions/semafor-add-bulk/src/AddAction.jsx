@@ -4,7 +4,7 @@ import { REASONS, api, tr, lang } from "./shared.js";
 
 export default async () => { render(<Action />, document.body); };
 
-const fmtDate = (d) => { try { return new Date(d).toLocaleDateString(lang() === "ro" ? "ro-RO" : "en-GB"); } catch { return ""; } };
+const fmtDate = (d) => { try { return new Date(d).toLocaleDateString(({ ro: "ro-RO", es: "es-ES", fr: "fr-FR", pl: "pl-PL", ru: "ru-RU" })[lang()] || "en-GB"); } catch { return ""; } };
 
 /** One line per earlier entry: "12.10.2026 · #4021 · Refused COD parcel — matches: phone, e-mail". */
 function ExistingLine({ e }) {

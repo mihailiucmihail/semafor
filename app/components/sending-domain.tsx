@@ -54,7 +54,7 @@ export function SendingDomainCard({ domain, suggest, fromEmail, onSuggestFrom, h
   }, [f.state, f.data]); // eslint-disable-line react-hooks/exhaustive-deps
   // verified and no own address yet → suggest info@<domain> (never overwrites what the merchant typed)
   useEffect(() => { if (verified && d && !fromEmail) onSuggestFrom(`info@${d.name}`); }, [verified, d?.name]); // eslint-disable-line react-hooks/exhaustive-deps
-  const g = DOMAIN_GUIDE[lang === "ro" ? "ro" : "en"];
+  const g = DOMAIN_GUIDE[lang] ?? DOMAIN_GUIDE.en;
   const sk = d ? statusKey(d.status) : "not_started";
 
   return (

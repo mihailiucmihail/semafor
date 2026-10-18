@@ -12,7 +12,7 @@ export interface ShopSettings {
   /** Abandoned-checkout recovery e-mails (sent by Semafor through Resend). */
   recovery: RecoverySettings;
   /** Language of the admin pages; null = automatic (see app/i18n.server.ts). */
-  uiLang?: 'en' | 'ro' | null;
+  uiLang?: 'en' | 'ro' | 'es' | 'fr' | 'pl' | 'ru' | null;
   /** Last Shopify admin locale seen in the embedded-app URL (automatic language only). */
   adminLocale?: string | null;
   /** Shop country from Shopify (billing address), used only for the automatic language. */

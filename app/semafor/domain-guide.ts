@@ -1,8 +1,10 @@
 // Shared (admin card + public page /help/sending-domain): how to add Semafor's DNS records, per provider. en + ro.
-export type GuideLang = "en" | "ro";
+import { EXTRA, type Lang } from "../i18n";
+
+export type GuideLang = Lang;
 export type Guide = { title: string; intro: string; providers: Array<{ name: string; steps: string[] }>; faqTitle: string; faq: Array<{ q: string; a: string }> };
 
-export const DOMAIN_GUIDE: Record<GuideLang, Guide> = {
+const BASE: Record<"en" | "ro", Guide> = {
   ro: {
     title: "Cum adaug înregistrările DNS?",
     intro: "Deschide locul unde ai cumpărat domeniul (sau unde sunt administrate DNS-urile lui) și adaugă, una câte una, înregistrările din tabel: același Tip, Nume și Valoare (și Prioritatea, la MX). TTL: lasă valoarea implicită („Auto” / 3600). Apoi revino aici și apasă „Verifică acum”.",
@@ -43,4 +45,13 @@ export const DOMAIN_GUIDE: Record<GuideLang, Guide> = {
       { q: "Does anything stop until it's verified?", a: "No. Until then e-mails go from the Semafor address on behalf of your store. Once verified they switch to your address automatically." },
     ],
   },
+};
+
+/** en + ro are written here; es / fr / pl / ru come from app/locales/<lang>.json. */
+export const DOMAIN_GUIDE: Record<GuideLang, Guide> = {
+  ...BASE,
+  es: EXTRA.es.guide as Guide,
+  fr: EXTRA.fr.guide as Guide,
+  pl: EXTRA.pl.guide as Guide,
+  ru: EXTRA.ru.guide as Guide,
 };
