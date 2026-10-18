@@ -1,0 +1,20 @@
+{
+  "lang": "fr",
+  "checking": "Vérification",
+  "title": {
+    "green": "Vert — le client n'est pas dans la liste noire",
+    "yellow": "Jaune — prudence, vérifiez avant d'expédier",
+    "red": "Rouge — client sur liste noire"
+  },
+  "kind": {
+    "email": "e-mail",
+    "phone": "téléphone",
+    "name": "nom",
+    "address": "adresse",
+    "name_address": "nom + adresse",
+    "device": "appareil"
+  },
+  "network": "Signalé par {{n}} boutique(s) du réseau",
+  "inList": "Ce client est dans la liste noire.",
+  "howToAdd": "Pour l'ajouter à la liste noire : « Plus d'actions » → « Semafor : ajouter à la liste noire »."
+}

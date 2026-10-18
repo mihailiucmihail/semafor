@@ -1,0 +1,38 @@
+{
+  "name": "Semafor: agregar a la lista negra",
+  "lang": "es",
+  "heading": "Semafor: agregar a la lista negra",
+  "addedOne": "Cliente agregado. El pedido ahora está marcado en rojo.",
+  "addedMany": "{{n}} clientes agregados.",
+  "selected": "{{n}} pedidos seleccionados. ",
+  "info": "Se guardan el correo, el teléfono, el nombre y la dirección del pedido. El cliente no recibe ningún aviso.",
+  "reason": "Motivo",
+  "note": "Nota (opcional)",
+  "done": "Listo",
+  "adding": "Agregando…",
+  "add": "Agregar a la lista negra",
+  "cancel": "Cancelar",
+  "reasons": {
+    "refuz_colet": "Rechazó paquete contra entrega",
+    "chargeback": "Contracargo",
+    "return_fraud": "Fraude en devoluciones",
+    "abuse": "Abuso / amenazas",
+    "other": "Otro"
+  },
+  "checking": "Comprobando si este cliente ya está en la lista negra…",
+  "sameOrderTitle": "Este pedido ya está en la lista negra",
+  "existsTitle": "Este cliente ya está en la lista negra ({{n}}×)",
+  "existsHint": "Aun así puedes agregar este pedido como un incidente nuevo — cuenta como un rechazo repetido.",
+  "matches": "coincide: {{kinds}}",
+  "addAgain": "Agregar como incidente nuevo",
+  "repeatDone": "{{n}} de ellos ya estaban en la lista (incidente repetido).",
+  "alreadyDone": "{{n}} ya en la lista por el mismo pedido — omitidos.",
+  "kinds": {
+    "email": "correo",
+    "phone": "teléfono",
+    "name": "nombre",
+    "address": "dirección",
+    "name_address": "nombre + dirección",
+    "device": "dispositivo"
+  }
+}

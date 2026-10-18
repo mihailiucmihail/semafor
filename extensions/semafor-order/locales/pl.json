@@ -1,0 +1,20 @@
+{
+  "lang": "pl",
+  "checking": "Sprawdzanie",
+  "title": {
+    "green": "Zielony — klienta nie ma na czarnej liście",
+    "yellow": "Żółty — uwaga, sprawdź przed wysyłką",
+    "red": "Czerwony — klient z czarnej listy"
+  },
+  "kind": {
+    "email": "e-mail",
+    "phone": "telefon",
+    "name": "imię i nazwisko",
+    "address": "adres",
+    "name_address": "imię i nazwisko + adres",
+    "device": "urządzenie"
+  },
+  "network": "Zgłoszony przez sklepy w sieci: {{n}}",
+  "inList": "Ten klient jest na czarnej liście.",
+  "howToAdd": "Aby dodać go do czarnej listy: „Więcej czynności” → „Semafor: dodaj do czarnej listy”."
+}

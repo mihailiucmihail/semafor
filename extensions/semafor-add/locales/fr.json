@@ -1,0 +1,38 @@
+{
+  "name": "Semafor : ajouter à la liste noire",
+  "lang": "fr",
+  "heading": "Semafor : ajouter à la liste noire",
+  "addedOne": "Client ajouté. La commande est désormais signalée en rouge.",
+  "addedMany": "{{n}} clients ajoutés.",
+  "selected": "{{n}} commandes sélectionnées. ",
+  "info": "L'e-mail, le téléphone, le nom et l'adresse de la commande sont enregistrés. Le client n'est pas averti.",
+  "reason": "Motif",
+  "note": "Note (facultatif)",
+  "done": "Terminé",
+  "adding": "Ajout…",
+  "add": "Ajouter à la liste noire",
+  "cancel": "Annuler",
+  "reasons": {
+    "refuz_colet": "Colis refusé à la livraison",
+    "chargeback": "Rétrofacturation",
+    "return_fraud": "Fraude au retour",
+    "abuse": "Insultes / menaces",
+    "other": "Autre"
+  },
+  "checking": "Vérification : ce client est-il déjà dans la liste noire…",
+  "sameOrderTitle": "Cette commande est déjà dans la liste noire",
+  "existsTitle": "Ce client est déjà dans la liste noire ({{n}}×)",
+  "existsHint": "Vous pouvez quand même ajouter cette commande comme nouvel incident — elle compte comme un refus répété.",
+  "matches": "correspondances : {{kinds}}",
+  "addAgain": "Ajouter comme nouvel incident",
+  "repeatDone": "{{n}} y figuraient déjà (incident répété).",
+  "alreadyDone": "{{n}} déjà dans la liste pour la même commande — ignoré(s).",
+  "kinds": {
+    "email": "e-mail",
+    "phone": "téléphone",
+    "name": "nom",
+    "address": "adresse",
+    "name_address": "nom + adresse",
+    "device": "appareil"
+  }
+}

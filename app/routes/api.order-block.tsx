@@ -6,7 +6,7 @@ import { checkOrder } from "../semafor/check-order.server";
 import { fetchOrder } from "../semafor/backfill.server";
 import { createEntry, findExisting, pushCheckoutMetafield, type EntryInput } from "../semafor/entries.server";
 import { REASONS, type Reason } from "../../core/reasons";
-import { trMsg, type Lang } from "../i18n";
+import { trMsg, isLang, type Lang } from "../i18n";
 
 /** The admin extensions send their UI language ("en" / "ro"); without it the texts stay as stored (Romanian). */
 const langOf = (v: unknown): Lang => (isLang(v) ? v : "ro");

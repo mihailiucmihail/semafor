@@ -1,10 +1,10 @@
 // Merchant-facing UI texts (admin pages). English is the default; Romanian is the original wording.
 // More languages (es, fr, pl, ru) live in app/locales/<lang>.json, keyed like D; a missing key falls back to English.
 import { createContext, createElement, useCallback, useContext, type ReactNode } from "react";
-import es from "./locales/es.json";
-import fr from "./locales/fr.json";
-import pl from "./locales/pl.json";
-import ru from "./locales/ru.json";
+import es from "./locales/es.json" with { type: "json" };
+import fr from "./locales/fr.json" with { type: "json" };
+import pl from "./locales/pl.json" with { type: "json" };
+import ru from "./locales/ru.json" with { type: "json" };
 
 export type Lang = "en" | "ro" | "es" | "fr" | "pl" | "ru";
 export const LANGS: Lang[] = ["en", "ro", "es", "fr", "pl", "ru"];

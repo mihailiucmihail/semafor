@@ -1,0 +1,38 @@
+{
+  "name": "Semafor: dodaj do czarnej listy",
+  "lang": "pl",
+  "heading": "Semafor: dodaj do czarnej listy",
+  "addedOne": "Klient dodany. Zamówienie jest teraz oznaczone na czerwono.",
+  "addedMany": "Dodani klienci: {{n}}.",
+  "selected": "Wybrane zamówienia: {{n}}. ",
+  "info": "Zapisywane są e-mail, telefon, imię i nazwisko oraz adres z zamówienia. Klient nie jest powiadamiany.",
+  "reason": "Powód",
+  "note": "Notatka (opcjonalnie)",
+  "done": "Gotowe",
+  "adding": "Dodawanie…",
+  "add": "Dodaj do czarnej listy",
+  "cancel": "Anuluj",
+  "reasons": {
+    "refuz_colet": "Nieodebrana paczka za pobraniem",
+    "chargeback": "Chargeback",
+    "return_fraud": "Oszustwo przy zwrocie",
+    "abuse": "Obelgi / groźby",
+    "other": "Inne"
+  },
+  "checking": "Sprawdzanie, czy ten klient jest już na czarnej liście…",
+  "sameOrderTitle": "To zamówienie jest już na czarnej liście",
+  "existsTitle": "Ten klient jest już na czarnej liście ({{n}}×)",
+  "existsHint": "Nadal możesz dodać to zamówienie jako nowy incydent — liczy się jako kolejna odmowa.",
+  "matches": "dopasowania: {{kinds}}",
+  "addAgain": "Dodaj jako nowy incydent",
+  "repeatDone": "Już na liście (kolejny incydent): {{n}}.",
+  "alreadyDone": "Już na liście z tego samego zamówienia — pominięto: {{n}}.",
+  "kinds": {
+    "email": "e-mail",
+    "phone": "telefon",
+    "name": "imię i nazwisko",
+    "address": "adres",
+    "name_address": "imię i nazwisko + adres",
+    "device": "urządzenie"
+  }
+}
