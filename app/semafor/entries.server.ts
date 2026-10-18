@@ -43,6 +43,31 @@ export function buildIdentifiers(i: EntryInput, country = "RO", opts?: { keepWea
   return out;
 }
 
+/** Strong identifiers (e-mail, phone, name + address) of a shared entry → the network (24 months). */
+export async function shareToNetwork(shopDomain: string, country: string, reason: string, ids: Array<{ kind: string; hash: string }>) {
+  const ref = shopRef(SECRET, shopDomain);
+  const expiresAt = new Date(Date.now() + 730 * 86400e3);
+  for (const x of ids.filter((i) => ["email", "phone", "name_address"].includes(i.kind))) {
+    await db.networkReport.upsert({
+      where: { hash_shopRef: { hash: x.hash, shopRef: ref } },
+      create: { hash: x.hash, kind: x.kind as IdKind, reason: reason as any, country, shopRef: ref, expiresAt },
+      update: { reason: reason as any, expiresAt },
+    });
+  }
+}
+
+/** Takes this shop's network reports of some identifiers back (e.g. data removed from an entry). */
+export async function unshareFromNetwork(shopDomain: string, hashes: string[]) {
+  if (!hashes.length) return;
+  await db.networkReport.deleteMany({ where: { shopRef: shopRef(SECRET, shopDomain), hash: { in: hashes } } });
+}
+
+/** New identifiers on an entry that is already in the network go to the network too. */
+export async function shareAddedIfShared(entryId: string, ids: Array<{ kind: string; hash: string }>) {
+  const e = await db.blockEntry.findUnique({ where: { id: entryId }, select: { shared: true, reason: true, shop: { select: { domain: true, country: true } } } });
+  if (e?.shared) await shareToNetwork(e.shop.domain, e.shop.country, e.reason, ids);
+}
+
 /** Display-only key of an address that normAddress cannot use for matching. */
 export const weakAddressKey = (raw: string) => "~" + raw.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 200);
 export const isWeakAddress = (normalized: string) => normalized.startsWith("~");
@@ -55,6 +80,7 @@ export async function addToEntry(shopId: string, entryId: string, input: Omit<En
   if (!add.length) return 0;
   await db.identifier.createMany({ data: add.map((x) => ({ entryId, shopId, kind: x.kind, raw: x.raw, normalized: x.normalized, hash: x.hash, normVersion: NORM_VERSION })) });
   await db.auditLog.create({ data: { shopId, actor, action: "entry.add_data", entryId, payload: { added: add.map((x) => ({ kind: x.kind, raw: x.raw })) } as any } });
+  await shareAddedIfShared(entryId, add);
   return add.length;
 }
 
@@ -115,18 +141,7 @@ export async function createEntry(opts: { shopId: string; shopDomain: string; co
     include: { identifiers: true },
   });
 
-  if (share) {
-    const ref = shopRef(SECRET, opts.shopDomain);
-    const expiresAt = new Date(Date.now() + 730 * 86400e3);
-    const strong = (entry.identifiers as any[]).filter((x) => ["email", "phone", "name_address"].includes(x.kind));
-    for (const x of strong) {
-      await db.networkReport.upsert({
-        where: { hash_shopRef: { hash: x.hash, shopRef: ref } },
-        create: { hash: x.hash, kind: x.kind, reason: input.reason, country: opts.country, shopRef: ref, expiresAt },
-        update: { reason: input.reason, expiresAt },
-      });
-    }
-  }
+  if (share) await shareToNetwork(opts.shopDomain, opts.country, input.reason, entry.identifiers as any[]);
   await db.auditLog.create({ data: { shopId, actor: opts.actor, action: "entry.create", entryId: entry.id, payload: { reason: input.reason, kinds: ids.map((x) => x.kind), shared: share } } });
   return entry;
 }

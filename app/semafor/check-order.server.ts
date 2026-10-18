@@ -3,7 +3,7 @@
 // 5) write OrderCheck  6) act in Shopify: tag + risk assessment (+ optional cancel)
 import type { PrismaClient } from '@prisma/client';
 import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type Level } from '../../core/score';
-import { hmacId } from '../../core/hash';
+import { hmacId, shopRef } from '../../core/hash';
 import type { IdKind } from '../../core/normalize';
 
 import { type ShopSettings } from '../../core/settings';
@@ -50,10 +50,12 @@ export async function checkOrder(opts: {
   // Network: only when the shop shares; only strong kinds.
   let netMap = new Map<string, { kind: IdKind; shops: number; reasons: string[] }>();
   if (settings.shareNetwork) {
+    const ownRef = shopRef(secret, opts.shopDomain);
     const strong = hashes.filter((h) => ['email', 'phone', 'name_address'].includes(h.kind));
     const reports = await db.networkReport.findMany({ where: { hash: { in: strong.map((h) => h.hash) }, expiresAt: { gt: now } }, select: { hash: true, kind: true, reason: true, shopRef: true } });
     for (const h of strong) {
-      const mine = (reports as any[]).filter((r) => r.hash === h.hash);
+      // the network = OTHER shops: this shop's own reports are already in its own list
+      const mine = (reports as any[]).filter((r) => r.hash === h.hash && r.shopRef !== ownRef);
       if (!mine.length) continue;
       netMap.set(`${h.kind}:${h.normalized}`, { kind: h.kind, shops: new Set(mine.map((r) => r.shopRef)).size, reasons: [...new Set(mine.map((r) => r.reason as string))] });
     }

@@ -10,7 +10,7 @@ import { IdLine, SectionHead, Lamp, worst, type Level } from "../components/sema
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
-import { addToEntry, pushCheckoutMetafield, isWeakAddress } from "../semafor/entries.server";
+import { addToEntry, pushCheckoutMetafield, isWeakAddress, unshareFromNetwork } from "../semafor/entries.server";
 import { shopLang } from "../i18n.server";
 import { planOf } from "../semafor/plan.server";
 import { can } from "../../core/plans";
@@ -145,7 +145,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const actor = (session as any).email || session.shop;
   if (fd.get("intent") === "remove") {
     const kind = String(fd.get("kind") || ""), value = String(fd.get("value") || "");
-    const all = await db.identifier.findMany({ where: { entryId: entry.id }, select: { id: true, kind: true, raw: true, normalized: true } });
+    const all = await db.identifier.findMany({ where: { entryId: entry.id }, select: { id: true, kind: true, raw: true, normalized: true, hash: true } });
     const gone = all.filter((i) => i.kind === kind && (i.raw === value || i.normalized === value));
     if (!gone.length) return { ok: true, removed: 0 };
     if (gone.length >= all.filter((i) => i.kind !== "name_address").length) {
@@ -153,6 +153,8 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
       return { ok: false, error: t(lang, "cust.lastIdentifier") };
     }
     await db.identifier.deleteMany({ where: { id: { in: gone.map((i) => i.id) } } });
+    // removed data leaves the network too (only this shop's reports)
+    await unshareFromNetwork(shop.domain, gone.map((i) => i.hash)).catch(() => {});
     await db.auditLog.create({ data: { shopId: shop.id, actor, action: "entry.remove_data", entryId: entry.id, payload: { removed: gone.map((i) => ({ kind: i.kind, raw: i.raw })) } as any } });
     await pushCheckoutMetafield(admin as any, shop.id);
     return { ok: true, removed: gone.length };

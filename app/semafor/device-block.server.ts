@@ -10,7 +10,7 @@
 import db from "../db.server";
 import { unauthenticated } from "../shopify.server";
 import { SECRET } from "./shop.server";
-import { buildIdentifiers, pushCheckoutMetafield } from "./entries.server";
+import { buildIdentifiers, pushCheckoutMetafield, shareAddedIfShared } from "./entries.server";
 import { planOf } from "./plan.server";
 import { can } from "../../core/plans";
 import { hmacId } from "../../core/hash";
@@ -54,6 +54,7 @@ export async function linkDeviceAttempt(
     await db.auditLog.create({
       data: { shopId: shop.id, actor: "semafor:device", action: "entry.link_device", entryId: hit.entryId, payload: { added: add.map((i) => ({ kind: i.kind, raw: i.raw })) } as any },
     }).catch(() => {});
+    await shareAddedIfShared(hit.entryId, add).catch(() => {});
 
     // push the new blocklist to Shopify (one push at a time per shop; a push already running is awaited first)
     const prev = pushing.get(shop.id) ?? Promise.resolve();
@@ -119,6 +120,7 @@ export async function backfillDeviceLinks(shop: { id: string; domain: string; pl
     if (!fresh.length) continue;
     await db.identifier.createMany({ data: fresh.map((x) => ({ entryId, shopId: shop.id, kind: x.kind, raw: x.raw, normalized: x.normalized, hash: x.hash, normVersion: NORM_VERSION })) });
     await db.auditLog.create({ data: { shopId: shop.id, actor: "semafor:device", action: "entry.link_device", entryId, payload: { added: fresh.map((x) => ({ kind: x.kind, raw: x.raw })) } as any } }).catch(() => {});
+    await shareAddedIfShared(entryId, fresh).catch(() => {});
     total += fresh.length;
   }
   if (total) await pushCheckoutMetafield(admin as any, shop.id);
