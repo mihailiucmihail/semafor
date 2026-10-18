@@ -147,7 +147,8 @@ export async function dnsHostOf(name: string): Promise<{ host: DnsHost; ns: stri
   }
   const all = ns.map((x) => x.toLowerCase()).join(" ");
   const host: DnsHost =
-    /shopify/.test(all) ? "shopify"
+    // domains bought through Shopify use Google Cloud DNS (ns-cloud-xN.googledomains.com)
+    /shopify|ns-cloud-[a-e]\d+\.googledomains\.com/.test(all) ? "shopify"
     : /cloudflare\.com/.test(all) ? "cloudflare"
     : /domaincontrol\.com/.test(all) ? "godaddy"
     : /registrar-servers\.com|namecheaphosting/.test(all) ? "namecheap"
