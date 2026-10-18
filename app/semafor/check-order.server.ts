@@ -145,7 +145,7 @@ export async function checkOrder(opts: {
   await db.orderCheck.upsert({
     where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } },
     create: { shopId, orderId: order.admin_graphql_api_id, orderName: order.name, personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, networkReasons: (result.networkShops ? result.networkByReason : undefined) as any, matched: result.matches as any, actionTaken: action },
-    update: { personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, networkReasons: (result.networkShops ? result.networkByReason : undefined) as any, matched: result.matches as any, actionTaken: action, checkedAt: now },
+    update: { personHashes: personHashes(secret, order, opts.country), score: result.score, level: result.level, networkShops: result.networkShops, networkLevel: result.networkLevel, networkReasons: (result.networkShops ? result.networkByReason : undefined) as any, matched: result.matches as any, actionTaken: action, ...(opts.recheck ? {} : { checkedAt: now }) },
   });
 
   // Was it brought by Semafor (pop-up / reminder e-mail)? Only for new orders (webhook), not for re-checks / backfill.
