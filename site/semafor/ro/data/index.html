@@ -16,6 +16,8 @@ try{if(localStorage.getItem('kl_consent')==='granted')gtag('consent','update',{a
 gtag('js',new Date());gtag('config','G-0GVM380XSK');
 </script>
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0GVM380XSK"></script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
 <link rel="canonical" href="https://www.kastellabs.com/semafor/ro/data/">
 <link rel="alternate" hreflang="en" href="https://www.kastellabs.com/semafor/data/">
 <link rel="alternate" hreflang="ro" href="https://www.kastellabs.com/semafor/ro/data/">
@@ -611,7 +613,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
       p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}}
+    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
