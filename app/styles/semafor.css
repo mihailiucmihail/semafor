@@ -255,3 +255,8 @@
   .sf-ov-hero { grid-template-columns: auto minmax(0, 1fr); }
   .sf-ov-status { grid-column: 1 / -1; min-width: 0; }
 }
+
+/* ── customer page (app.blacklist_.$id) ── */
+.sf-cust-link { color: var(--p-color-text-link); text-decoration: none; }
+.sf-cust-link:hover { text-decoration: underline; }
+.sf-cust-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-300); padding: var(--p-space-300) var(--p-space-400); }

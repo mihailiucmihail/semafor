@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import {
   Page, Layout, Card, BlockStack, InlineStack, Text, TextField, Select, Button, Badge, Avatar,
   IndexTable, EmptyState, Banner, Box, Modal, FormLayout, Icon,
@@ -178,7 +178,7 @@ export default function Index() {
                           <InlineStack gap="300" wrap={false} blockAlign="start">
                             <Avatar size="md" initials={initials(e.title)} name={e.title} />
                             <BlockStack gap="050">
-                              <Text as="span" fontWeight="semibold"><span className="sf-break">{e.title}</span></Text>
+                              <Link to={`/app/blacklist/${e.id}`} className="sf-cust-link"><Text as="span" fontWeight="semibold"><span className="sf-break">{e.title}</span></Text></Link>
                               {e.addresses.map((a: string, k: number) => <IdLine key={k} icon={LocationIcon} label={tr("kind.address")}>{a}</IdLine>)}
                               {e.names.length > 1 && <Text as="span" variant="bodySm" tone="subdued">{e.names.slice(1).join(", ")}</Text>}
                             </BlockStack>
