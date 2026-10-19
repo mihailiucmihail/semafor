@@ -863,11 +863,13 @@ export function startRecoveryScheduler() {
             await recheckTransient(admin as any, { id: sh.id, domain: sh.domain, country: sh.country, settings: settingsOf(sh.settings) });
           }
         } catch (e: any) { console.error("[semafor] recheck", sh.domain, e?.message || e); }
-        // network blocking on: other shops' reports change without this shop doing anything → refresh its blocklist every 30 min
+        // network blocking on: other shops' reports change without this shop doing anything → refresh its blocklist every 30 min.
+        // Also once per process start for every shop, so a new payload format (e.g. v3 fast hashes) reaches the Function
+        // without waiting for the merchant to open the app.
         try {
           const st = settingsOf(sh.settings);
           const last = (g.__semaforNetPush ??= new Map<string, number>()).get(sh.id) || 0;
-          if (st.shareNetwork && st.network.block !== "off" && Date.now() - last > 30 * 60_000) {
+          if ((!last) || (st.shareNetwork && st.network.block !== "off" && Date.now() - last > 30 * 60_000)) {
             g.__semaforNetPush.set(sh.id, Date.now());
             const { admin } = await unauthenticated.admin(sh.domain);
             await net.pushCheckoutMetafield(admin as any, sh.id);

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { hmacId, shopRef } from "../../core/hash";
+import { fastHash } from "../../core/fasthash";
 import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, NORM_VERSION, type IdKind } from "../../core/normalize";
 import { shouldShareToNetwork, settingsOf, networkOf, payActions, type ShopSettings } from "../../core/settings";
 
@@ -213,8 +214,9 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
     select: { kind: true, normalized: true },
   });
-  const sh = (kind: string, n: string) => createHash("sha256").update(`${kind}:${n}`).digest("hex").slice(0, 16);
-  const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set(), n: new Set(), w: new Set() };
+  // v3: the shop's own list uses fastHash (cheap inside the Function); network entries stay SHA-256 prefixes (fnHash)
+  const sh = (kind: string, n: string) => fastHash(`${kind}:${n}`);
+  const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set(), n: new Set(), w: new Set(), ne: new Set(), np: new Set() };
   const key: Record<string, string> = { email: "e", phone: "p", address: "a", device: "d" };
   for (const r of rows) if (!(r.kind === "address" && isWeakAddress(r.normalized))) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
   // Name-only entries (the merchant blocked a person by name, with no e-mail/phone/address): match the delivery name.
@@ -225,28 +227,40 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // Network blocking (optional, off by default): e-mails / phones reported by enough OTHER shops for a counted reason
   const st = settingsOf(shopRow?.settings);
   const nw = networkOf(st.network);
-  const yb: Record<"e" | "p", Set<string>> = { e: new Set(), p: new Set() };
+  const yb: Record<"e" | "p", Set<string>> = { e: new Set(), p: new Set() };   // yellow, SHA-256 (fallback)
+  const yf: Record<"e" | "p", Set<string>> = { e: new Set(), p: new Set() };   // yellow, fastHash
   if (st.shareNetwork && nw.block !== "off" && shopRow) {
     const min = nw.block === "red" ? nw.red : nw.yellow;
     const own = shopRef(SECRET, shopRow.domain);
     const reps = await db.networkReport.findMany({
       where: { fnHash: { not: null }, kind: { in: ["email", "phone"] }, reason: { in: nw.reasons as any }, expiresAt: { gt: new Date() }, shopRef: { not: own } },
-      select: { fnHash: true, kind: true, shopRef: true }, orderBy: { createdAt: "desc" }, take: 20000,
+      select: { fnHash: true, hash: true, kind: true, shopRef: true }, orderBy: { createdAt: "desc" }, take: 20000,
     });
-    const shops = new Map<string, { kind: string; refs: Set<string> }>();
-    for (const r of reps) { const k = r.fnHash!; const cur = shops.get(k) ?? { kind: r.kind, refs: new Set<string>() }; cur.refs.add(r.shopRef); shops.set(k, cur); }
-    let added = 0;
+    const shops = new Map<string, { kind: string; hash: string; refs: Set<string> }>();
+    for (const r of reps) { const k = r.fnHash!; const cur = shops.get(k) ?? { kind: r.kind, hash: r.hash, refs: new Set<string>() }; cur.refs.add(r.shopRef); shops.set(k, cur); }
+    const picked: { fn: string; kind: string; hash: string; red: boolean }[] = [];
     for (const [h, v] of shops) {
-      if (v.refs.size < min || added >= 1500) continue; // keep the Function input small
+      if (v.refs.size < min || picked.length >= 1500) continue; // keep the Function input small
       // red in the network → red tier; flagged by fewer shops (only when the merchant includes yellow) → yellow tier
-      if (v.refs.size >= nw.red) buckets[v.kind === "email" ? "e" : "p"].add(h);
-      else yb[v.kind === "email" ? "e" : "p"].add(h);
-      added++;
+      picked.push({ fn: h, kind: v.kind, hash: v.hash, red: v.refs.size >= nw.red });
+    }
+    // The Function hashes cheaply with fastHash; it needs the normalized value, which any shop's identifier row with the
+    // same HMAC holds. Entries without one stay SHA-256 (ne/np/y) and cost the Function a SHA-256 per buyer value.
+    const norms = picked.length ? await db.identifier.findMany({ where: { hash: { in: [...new Set(picked.map((p) => p.hash))] } }, select: { hash: true, kind: true, normalized: true }, distinct: ["hash"] }) : [];
+    const normOf = new Map(norms.map((i: any) => [i.hash, i.normalized as string]));
+    for (const p of picked) {
+      const b = p.kind === "email" ? "e" : "p";
+      const n = normOf.get(p.hash);
+      if (n) { if (p.red) buckets[b].add(sh(p.kind, n)); else yf[b].add(sh(p.kind, n)); }
+      else if (p.red) buckets[b === "e" ? "ne" : "np"].add(p.fn);
+      else yb[b].add(p.fn);
     }
   }
   // m: what the checkout does per level (all = no payment method, cod = no cash on delivery, none = nothing)
   const m = payActions(st);
-  return { v: 2, e: [...buckets.e], p: [...buckets.p], a: [...buckets.a], d: [...buckets.d], n: [...buckets.n], w: [...buckets.w], y: { e: [...yb.e], p: [...yb.p] }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
+  // v3 lists are sorted: the Function binary-searches them instead of building Sets (cheaper for long lists)
+  const S = (x: Set<string>) => [...x].sort();
+  return { v: 3, e: S(buckets.e), p: S(buckets.p), a: S(buckets.a), d: S(buckets.d), n: S(buckets.n), w: S(buckets.w), ne: S(buckets.ne), np: S(buckets.np), y: { e: S(yb.e), p: S(yb.p) }, yf: { e: S(yf.e), p: S(yf.p) }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 
 /** Shops whose old shop-level copy of the blocklist (namespace "semafor") was already removed by this process. */
