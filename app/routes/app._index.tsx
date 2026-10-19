@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, useLoaderData, useNavigate, useSearchParams } from "@remix-run/react";
+import { useReviewRequest } from "../components/review-request";
 import { Page, Card, BlockStack, InlineStack, Text, Button, ButtonGroup, Badge, Box } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { Lamp, Dot, worst, type Level } from "../components/semafor-ui";
@@ -11,6 +12,7 @@ import db from "../db.server";
 import { ensureShop } from "../semafor/shop.server";
 import { catchUpOrders } from "../semafor/backfill.server";
 import { planOf, checksThisMonth, trialBanner } from "../semafor/plan.server";
+import { shouldAskReview } from "../semafor/review.server";
 import { TrialBanner } from "../components/trial-banner";
 import { blockedSummary } from "../semafor/blocked.server";
 import { attributionSummary } from "../semafor/attribution.server";
@@ -55,10 +57,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     can(plan, "unlimited_checks") ? null : checksThisMonth(shop.id),
     trialBanner(shop).catch(() => null),
   ]);
+  const askReview = await shouldAskReview(shop as any).catch(() => false);
   const shipCost = typeof s.shipCost === "number" && s.shipCost > 0 ? s.shipCost : null;
 
   return {
-    trial, days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
+    askReview, trial, days, plan, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost,
     attr: attr ? { email: attr.bySource.email.count, popup: attr.bySource.popup_site.count + attr.bySource.popup_cart.count, currency: attr.currency } : null,
     status: {
       network: !!s.shareNetwork,
@@ -78,6 +81,7 @@ export default function Overview() {
   const { days, total, added, shared, verdicts, attention, blocked, emailsSent, leads, usedChecks, shipCost, attr, status, storeHandle } = data;
   const tr = useT();
   const lang = useLang();
+  useReviewRequest(data.askReview);
   const navigate = useNavigate();
   const [, setParams] = useSearchParams();
   const checked = verdicts.green + verdicts.yellow + verdicts.red;

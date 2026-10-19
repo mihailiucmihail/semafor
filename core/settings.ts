@@ -41,6 +41,8 @@ export interface ShopSettings {
   shipCost?: number | null;
   /** 1 once the one-off device catch-up (app/semafor/device-block.server.ts) ran for this shop. */
   deviceBackfill?: number | null;
+  /** Last time Semafor asked Shopify to show its review modal (ms). Never-again = Number.MAX_SAFE_INTEGER (already reviewed / ineligible). */
+  reviewAskedAt?: number | null;
   /** How reports from OTHER shops of the network are read (page Network). */
   network: NetworkSettings;
 }
