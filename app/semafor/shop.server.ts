@@ -1,6 +1,7 @@
 import db from "../db.server";
 import { settingsOf, type ShopSettings } from "../../core/settings";
 import { TRIAL_DAYS } from "../../core/plans";
+import { notifyInstall } from "./install-notify.server";
 
 export const SECRET = process.env.SEMAFOR_HASH_SECRET || "dev-secret-change-me";
 
@@ -14,8 +15,11 @@ export async function ensureShop(domain: string, accessToken: string) {
       create: { domain, accessToken, country: "RO", trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86_400_000) },
       update: { accessToken, uninstalledAt: null },
     });
+    notifyInstall("install", domain, accessToken);
   } else if (shop.accessToken !== accessToken || shop.uninstalledAt) {
+    const back = !!shop.uninstalledAt;
     shop = await db.shop.update({ where: { id: shop.id }, data: { accessToken, uninstalledAt: null } });
+    if (back) notifyInstall("reinstall", domain, accessToken);
   }
   // stores installed shortly before the trial existed get the rest of their 14 days (once; a reinstall never renews it)
   if (!shop.trialEndsAt && shop.installedAt.getTime() > Date.now() - TRIAL_DAYS * 86_400_000) {
