@@ -269,11 +269,6 @@
    ],
    "destination": "/semafor/ru/",
    "permanent": false
-  },
-  {
-   "source": "/__geo-check",
-   "destination": "/",
-   "permanent": false
   }
  ]
 }
