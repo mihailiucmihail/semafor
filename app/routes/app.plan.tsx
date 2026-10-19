@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
 import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, Badge, Button, Banner, ProgressBar, ButtonGroup, Divider, Icon } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
@@ -9,6 +9,7 @@ import { authenticate } from "../shopify.server";
 import { ensureShop } from "../semafor/shop.server";
 import { refreshPlan, checksThisMonth, isOwnerShop, trialBanner } from "../semafor/plan.server";
 import { TrialBanner } from "../components/trial-banner";
+import { launchOfferState, requestLaunchOffer } from "../semafor/launch-offer.server";
 import { FREE_MONTHLY_CHECKS, FEATURE_PLAN, type Feature, type Plan } from "../../core/plans";
 import { useT, type TKey } from "../i18n";
 
@@ -23,15 +24,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const need = new URL(request.url).searchParams.get("need") as Feature | null;
   const store = session.shop.replace(/\.myshopify\.com$/, "");
   const trial = plan === "free" ? await trialBanner({ ...shop, plan }).catch(() => null) : null;
+  const owner = isOwnerShop(session.shop);
+  const launch = await launchOfferState(admin as any, session.shop, owner).catch(() => ({ show: false, requested: false }));
   return {
-    plan, used, owner: isOwnerShop(session.shop), trial,
+    plan, used, owner, trial, launch,
     need: need && need in FEATURE_PLAN ? { feature: need, plan: FEATURE_PLAN[need] } : null,
     pricingUrl: `https://admin.shopify.com/store/${store}/charges/${process.env.SHOPIFY_APP_HANDLE || (process.env.SHOPIFY_API_KEY === "a1d407ad72929fc485d5f9a4ef9a42b1" ? "semafor-app" : "semafor")}/pricing_plans`,
   };
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const form = await request.formData();
+  if (form.get("intent") !== "launch-offer" || isOwnerShop(session.shop)) return { ok: false };
+  return requestLaunchOffer(admin as any, session.shop);
+};
+
 export default function PlanPage() {
-  const { plan, used, owner, need, pricingUrl, trial } = useLoaderData<typeof loader>();
+  const { plan, used, owner, need, pricingUrl, trial, launch } = useLoaderData<typeof loader>();
+  const offer = useFetcher<{ ok: boolean }>();
+  const offerSent = launch.requested || offer.data?.ok === true;
   const rank = { free: 0, basic: 1, pro: 2 } as const;
   const tr = useT();
   const [yearly, setYearly] = useState(false);
@@ -52,6 +64,18 @@ export default function PlanPage() {
             )}
             {owner && <Banner tone="success">{tr("plan.owner")}</Banner>}
             <TrialBanner trial={trial as any} />
+            {launch.show && (
+              <Banner tone="success" title={tr("plan.launch.title")}>
+                <BlockStack gap="300">
+                  <Text as="p">{offerSent ? tr("plan.launch.thanks") : tr("plan.launch.body")}</Text>
+                  {!offerSent && (
+                    <InlineStack>
+                      <Button variant="primary" loading={offer.state !== "idle"} onClick={() => offer.submit({ intent: "launch-offer" }, { method: "post" })}>{tr("plan.launch.cta")}</Button>
+                    </InlineStack>
+                  )}
+                </BlockStack>
+              </Banner>
+            )}
 
             <InlineStack align="space-between" blockAlign="end" gap="400">
               <BlockStack gap="100">

@@ -374,6 +374,12 @@ nav.top .wrap{display:flex;align-items:center;justify-content:space-between;heig
 .plan.feat li::before{background:var(--amber)}
 .plan.feat .btn{background:var(--cream);color:var(--ink)}
 .plan .pill2{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--amber);color:var(--ink);font-weight:500}
+.offer{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;border-radius:22px;padding:26px 28px;margin-bottom:16px;background:#12271D;color:#EEF3EC;border:1px solid #2C4638}
+.offer b{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.1;display:block;margin-bottom:6px}
+.offer span{color:#C9D8CF;font-size:15px;display:block;max-width:640px}
+.offer small{color:#9DB5A7;font-size:13.5px;display:block;margin-top:6px}
+.plan .lz{margin-top:8px;font-size:13.5px;font-weight:600;color:#1F9E62}
+.plan.feat .lz{color:#5FD39A}
 .fineprint{text-align:center;color:var(--ink-3);font-size:14px;margin-top:22px}
 
 /* faq */
@@ -478,7 +484,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
 <header class="hero grain" id="top">
   <div class="wrap">
     <div>
-      <a class="pill reveal" href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener"><b>NOU</b>Acum în Shopify App Store</a>
+      <a class="pill reveal launch" href="#pricing"><b>−50%</b>Ofertă de lansare, pentru totdeauna</a>
       <h1 class="serif reveal">Fiecare comandă primește un <em>semnal</em>.</h1>
       <p class="lead reveal">Semafor verifică fiecare comandă Shopify în câteva secunde, oprește discret cumpărătorii care refuză coletele ramburs — chiar și sub un nume nou — și îi aduce înapoi pe clienții care și-au abandonat coșul.</p>
       <div class="cta reveal">
@@ -770,6 +776,10 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   <div class="wrap">
     <div class="eyebrow reveal">Prețuri</div>
     <h2 class="big serif reveal" style="margin:18px 0 44px">Începe cu tot.</h2>
+    <div class="offer reveal launch">
+      <div><b>Ofertă de lansare: −50% pentru totdeauna.</b><span>Instalează Semafor până pe 31 decembrie și plătești jumătate de preț cât timp folosești aplicația: Basic 4,99 $, Pro 12,49 $ pe lună. Primele 14 zile de Pro sunt gratuite.</span><small>Activezi oferta din aplicație, pe pagina de planuri.</small></div>
+      <a class="btn btn-glow" href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Instalează Semafor</a>
+    </div>
     <div class="trial reveal">
       <div><b>14 zile de Pro, gratuit.</b><span>Toate funcțiile activate din primul minut. Nu plătești nimic până nu alegi un plan.</span></div>
       <a class="btn btn-ink" href="https://apps.shopify.com/semafor?locale=ro" target="_blank" rel="noopener">Instalează Semafor</a>
@@ -782,12 +792,12 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       </div>
       <div class="plan reveal">
         <div class="top"><h4>Basic</h4></div><div class="tag">Protecție completă pentru ramburs</div>
-        <div class="price">9,99 $ <small>/ lună</small></div><div class="yr">sau 7,99 $ / lună cu plata anuală</div>
+        <div class="price">9,99 $ <small>/ lună</small></div><div class="yr">sau 7,99 $ / lună cu plata anuală</div><div class="lz launch">Ofertă de lansare: 4,99 $ / lună</div>
         <ul><li>Comenzi nelimitate</li><li>Blocare la finalizarea comenzii, reguli pentru galben și roșu</li><li>Anularea automată a comenzilor roșii</li><li>Același dispozitiv, alt nume</li><li>Pop-up de bun venit cu reducere</li></ul>
       </div>
       <div class="plan feat reveal">
         <div class="top"><h4>Pro</h4><span class="pill2">Cel mai complet</span></div><div class="tag">Protecție + vânzări recuperate</div>
-        <div class="price">24,99 $ <small>/ lună</small></div><div class="yr">sau 19,99 $ / lună cu plata anuală</div>
+        <div class="price">24,99 $ <small>/ lună</small></div><div class="yr">sau 19,99 $ / lună cu plata anuală</div><div class="lz launch">Ofertă de lansare: 12,49 $ / lună</div>
         <ul><li>Tot ce include Basic</li><li>Statistici pe pașii finalizării comenzii</li><li>E-mailuri automate de reamintire, până la 3</li><li>Reamintiri chiar și fără e-mail la finalizarea comenzii</li><li>Vânzări recuperate în cifre, e-mailuri de pe propriul domeniu</li></ul>
       </div>
     </div>
@@ -902,5 +912,6 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
 </script>
+<script>if(Date.now()>=Date.UTC(2026,11,31,22,0,0))document.querySelectorAll(".launch").forEach(function(e){e.remove()})</script>
 </body>
 </html>

@@ -245,6 +245,10 @@ const D = {
   "plan.yourPlan": { en: "your plan", ro: "planul tău" },
   "plan.upgrade": { en: "Upgrade to {name}", ro: "Treci la {name}" },
   "plan.switch": { en: "Switch to {name}", ro: "Treci la {name}" },
+  "plan.launch.title": { en: "Launch offer: −50% forever", ro: "Ofertă de lansare: −50% pentru totdeauna" },
+  "plan.launch.body": { en: "Press the button and within 24 hours we unlock the half-price plans for you. You will see them here, on the plans page.", ro: "Apasă butonul și în maximum 24 de ore îți activăm planurile la jumătate de preț. Le vei vedea aici, pe pagina de planuri." },
+  "plan.launch.cta": { en: "I want the launch offer", ro: "Vreau oferta de lansare" },
+  "plan.launch.thanks": { en: "Thank you! We will unlock the offer within 24 hours.", ro: "Mulțumim! Îți activăm oferta în cel mult 24 de ore." },
   "plan.billing": { en: "Billing goes through your Shopify invoice. You can change or cancel your plan anytime.", ro: "Plata se face prin factura Shopify. Poți schimba sau anula planul oricând." },
 
   // ── analytics (stats) ──
