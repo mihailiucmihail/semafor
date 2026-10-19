@@ -8,12 +8,27 @@
 // The blacklist arrives as short SHA-256 hashes in the customization's metafield ($app:blocklist):
 //   { v:1, e:[…], p:[…], a:[…], d:[…], n:[full names], w:[single name words] }   each = sha256(`${kind}:${normalized}`).slice(0,16)
 //
-// Shopify caps a Function at 11M instructions and SHA-256 in JS is the expensive part, so:
-// hash only when that bucket has entries, never hash the same value twice, stop at the first hit.
+// Shopify caps a Function at 11M instructions and SHA-256 in QuickJS costs ~1M per call, so:
+// v3 payloads hash the shop's own list with fastHash (cheap); only other shops' network entries (ne/np/y) stay
+// SHA-256, because the server keeps just their SHA-256 prefix. Older payloads (v1/v2) are all SHA-256.
+// Hash only when that bucket has entries, never hash the same value twice, stop at the first hit.
 import { sha256 } from "./sha256.js";
+import { fastHash } from "../../../core/fasthash.ts";
 import { normEmail, normPhone, normAddress, normName } from "../../../core/normalize.ts";
 
 const NONE = { operations: [] };
+
+/** Membership test. v3 lists come sorted from the server → binary search (no Set to build); older lists → Set. */
+function lookup(arr, sorted) {
+  if (!sorted) { const s = new Set(arr); return { has: (x) => s.has(x) }; }
+  return {
+    has(x) {
+      let lo = 0, hi = arr.length - 1;
+      while (lo <= hi) { const mid = (lo + hi) >> 1; const v = arr[mid]; if (v === x) return true; if (v < x) lo = mid + 1; else hi = mid - 1; }
+      return false;
+    },
+  };
+}
 
 /** Cash on delivery, whatever the shop called it (RO / EN / DE / PL / ES / FR / IT / BG / RU names). */
 const COD_RE = /cash\s*on\s*delivery|\bcod\b|ramburs|nachnahme|pobrani|contra\s*reembolso|contre[\s-]*remboursement|contrassegno|наложен|при\s*доставк|plata\s*la\s*livrare|bei\s*lieferung/i;
@@ -28,35 +43,47 @@ export function cartPaymentMethodsTransformRun(input) {
     if (m === "cod") { const ops = input.paymentMethods.filter((p) => COD_RE.test(p.name || "")).map((p) => ({ paymentMethodHide: { paymentMethodId: p.id } })); return { operations: ops }; }
     return NONE;
   };
+  const fast = Number(list.v) >= 3;
   // yellow level (network only): checked after the red list, with its own action
-  const y = list.y || {};
-  const ySets = {};
-  if (mY !== "none") for (const k of ["e", "p"]) if (y[k] && y[k].length) ySets[k] = new Set(y[k]);
+  const y = list.y || {}, yfl = list.yf || {};
+  const ySets = {}, yfSets = {};   // y: SHA-256 prefixes; yf (v3): fastHash
+  if (mY !== "none") for (const k of ["e", "p"]) {
+    if (y[k] && y[k].length) ySets[k] = lookup(y[k], fast);
+    if (yfl[k] && yfl[k].length) yfSets[k] = lookup(yfl[k], fast);
+  }
+  const own = fast ? (k) => fastHash(k) : (k) => sha256(k, 16);
   const sets = {};
-  if (mR !== "none") for (const k of ["e", "p", "a", "d", "n", "w"]) if (list[k] && list[k].length) sets[k] = new Set(list[k]);
+  if (mR !== "none") for (const k of ["e", "p", "a", "d", "n", "w", "ne", "np"]) if (list[k] && list[k].length) sets[k] = lookup(list[k], fast);
   // older payloads kept single-word name entries in `n` too
   if (!Array.isArray(list.w) && sets.n) sets.w = sets.n;
-  const anyRed = !!(sets.e || sets.p || sets.a || sets.d || sets.n || sets.w);
-  if (!anyRed && !ySets.e && !ySets.p) return NONE;
+  const anyRed = !!(sets.e || sets.p || sets.a || sets.d || sets.n || sets.w || sets.ne || sets.np);
+  if (!anyRed && !ySets.e && !ySets.p && !yfSets.e && !yfSets.p) return NONE;
 
-  const done = new Set();
+  // each key is hashed at most once per algorithm
+  const ownMemo = new Map(), shaMemo = new Map();
+  const ownH = (key) => { let v = ownMemo.get(key); if (v === undefined) { v = own(key); ownMemo.set(key, v); } return v; };
+  const shaH = (key) => { let v = shaMemo.get(key); if (v === undefined) { v = sha256(key, 16); shaMemo.set(key, v); } return v; };
+  // own list in `bucket`; for e-mail/phone (v3) also other shops' red network entries in `ne`/`np` (SHA-256)
+  const NET = { e: "ne", p: "np" };
   const hit = (bucket, kind, norm) => {
-    const set = sets[bucket];
-    if (!set || !norm) return false;
+    if (!norm) return false;
     const key = `${kind}:${norm}`;
-    if (done.has(key)) return false;
-    done.add(key);
-    return set.has(sha256(key, 16));
+    const set = sets[bucket];
+    if (set && set.has(ownH(key))) return true;
+    const nb = fast && NET[bucket];
+    const ns = nb && sets[nb];
+    return !!(ns && ns.has(shaH(key)));
   };
+  const has = (bucket) => !!(sets[bucket] || (fast && NET[bucket] && sets[NET[bucket]]));
   const hideAll = () => act(mR);
 
   const country = input.localization?.country?.isoCode || "RO";
   const cart = input.cart || {};
   const groups = cart.deliveryGroups || [];
 
-  if (sets.e && cart.buyerIdentity?.email && hit("e", "email", normEmail(cart.buyerIdentity.email))) return hideAll();
+  if (has("e") && cart.buyerIdentity?.email && hit("e", "email", normEmail(cart.buyerIdentity.email))) return hideAll();
 
-  if (sets.p) {
+  if (has("p")) {
     const phones = [cart.buyerIdentity?.phone];
     for (const g of groups) phones.push(g.deliveryAddress?.phone);
     for (const p of phones) if (p && hit("p", "phone", normPhone(p, country))) return hideAll();
@@ -83,12 +110,18 @@ export function cartPaymentMethodsTransformRun(input) {
   if (sets.d && dev && hit("d", "device", String(dev).toLowerCase())) return hideAll();
 
   // yellow (network): same hashing, separate sets
-  if (ySets.e || ySets.p) {
-    const yh = (set, kind, norm) => !!(set && norm && set.has(sha256(`${kind}:${norm}`, 16)));
-    if (cart.buyerIdentity?.email && yh(ySets.e, "email", normEmail(cart.buyerIdentity.email))) return act(mY);
-    const phones = [cart.buyerIdentity?.phone];
-    for (const g of groups) phones.push(g.deliveryAddress?.phone);
-    for (const p of phones) if (p && yh(ySets.p, "phone", normPhone(p, country))) return act(mY);
+  if (ySets.e || ySets.p || yfSets.e || yfSets.p) {
+    const yh = (b, kind, norm) => {
+      if (!norm) return false;
+      const key = `${kind}:${norm}`;
+      return !!((yfSets[b] && yfSets[b].has(ownH(key))) || (ySets[b] && ySets[b].has(shaH(key))));
+    };
+    if ((ySets.e || yfSets.e) && cart.buyerIdentity?.email && yh("e", "email", normEmail(cart.buyerIdentity.email))) return act(mY);
+    if (ySets.p || yfSets.p) {
+      const phones = [cart.buyerIdentity?.phone];
+      for (const g of groups) phones.push(g.deliveryAddress?.phone);
+      for (const p of phones) if (p && yh("p", "phone", normPhone(p, country))) return act(mY);
+    }
   }
 
   return NONE;

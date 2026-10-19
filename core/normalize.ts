@@ -8,6 +8,8 @@ export type IdKind = 'email' | 'phone' | 'name' | 'address' | 'name_address' | '
 
 /** Strip Romanian (and general Latin) diacritics: ș→s, ț→t, ă→a, â→a, î→i, ş/ţ cedilla forms too. */
 export function stripDiacritics(s: string): string {
+  // Pure ASCII has nothing to decompose; skipping normalize() keeps the checkout Function cheap.
+  if (/^[\x00-\x7f]*$/.test(s)) return s;
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/ł/g, 'l').replace(/Ł/g, 'L');
 }
 

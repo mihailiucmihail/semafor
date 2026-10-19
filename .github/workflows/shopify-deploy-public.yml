@@ -12,6 +12,7 @@ on:
     paths:
       - "extensions/**"
       - "core/normalize.ts"
+      - "core/fasthash.ts"
       - "shopify.app.public.toml"
       - ".github/workflows/shopify-deploy.yml"
 
