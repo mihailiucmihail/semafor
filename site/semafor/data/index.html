@@ -614,9 +614,12 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
       if(c==='granted'){gtag('consent','update',{analytics_storage:'granted'});try{fbq('consent','grant');fbq('track','PageView')}catch(x){}}
       bar.hidden=true;});}
   var lang=document.documentElement.lang||'en',src=null,SK='kl_src';
-  try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium');
-    if(us||uc)src={s:us,c:uc,m:um};else if(q.get('fbclid'))src={s:'meta',m:'paid_social'};
+  try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium'),ut=q.get('utm_content'),fb=q.get('fbclid');
+    if(us||uc)src={s:us,c:uc,m:um,ct:ut,fb:fb};else if(fb)src={s:'meta',m:'paid_social',fb:fb};
     if(src)sessionStorage.setItem(SK,JSON.stringify(src));else src=JSON.parse(sessionStorage.getItem(SK)||'null');}catch(e){}
+  var TR='https://semafor-copy-production.up.railway.app/api/click';
+  function ping(ev){try{var s=src||{},b=JSON.stringify({e:ev,c:s.ct||'',k:s.c||'',p:location.pathname});navigator.sendBeacon?navigator.sendBeacon(TR,new Blob([b],{type:'text/plain'})):fetch(TR,{method:'POST',body:b,keepalive:true,mode:'no-cors'})}catch(x){}}
+  try{if(src&&!sessionStorage.getItem('kl_land')){sessionStorage.setItem('kl_land','1');ping('landing')}}catch(x){}
   function pos(a){
     if(a.closest('nav.top'))return 'nav';if(a.closest('footer'))return 'footer';
     if(a.classList.contains('pill'))return 'hero_badge';if(a.closest('header.hero'))return 'hero';
@@ -624,9 +627,9 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   function go(e){
     var a=e.target.closest&&e.target.closest('a[href*="apps.shopify.com/semafor"]');if(!a)return;
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
-      p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
+      p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);if(s.ct)p.set('utm_content',s.ct);if(s.fb)p.set('fbclid',s.fb);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a)})}catch(x){}}
+    if(e.type==='click'||e.button===1){var ct=(src&&src.ct)||'';ping('install_click');try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,utm_content:ct,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a),reel:ct}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a),content_ids:[ct||'organic']})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
