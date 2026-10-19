@@ -57,11 +57,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ensurePopupConfig(admin as any, shop as any, installKey).catch((e) => console.error("[semafor] ensurePopupConfig", e)),
     isOwnerShop(session.shop) ? mailQuota().catch(() => null) : null,
   ]);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null };
+  return { apiKey: process.env.SHOPIFY_API_KEY || "", pro: can(plan, "recovery"), basic: can(plan, "popup"), lang: shopLang(shop, request), quota: quota && quota.level !== "ok" ? quota : null, owner: isOwnerShop(session.shop) };
 };
 
 export default function App() {
-  const { apiKey, pro, basic, lang, quota } = useLoaderData<typeof loader>();
+  const { apiKey, pro, basic, lang, quota, owner } = useLoaderData<typeof loader>();
   useTableLabels();
   // page speed beacon: one per page (full load or in-app navigation)
   const { pathname } = useLocation();
@@ -81,6 +81,7 @@ export default function App() {
           <Link to="/app/import">{t(lang, "nav.import")}</Link>
           <Link to="/app/settings">{t(lang, "nav.settings")}</Link>
           <Link to="/app/plan">{t(lang, "nav.plan")}</Link>
+          {owner && <Link to="/app/funnel">Воронка</Link>}
         </NavMenu>
         {quota && (
           <Box paddingBlockStart="400" paddingInline="400">

@@ -900,7 +900,13 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     if(src)sessionStorage.setItem(SK,JSON.stringify(src));else src=JSON.parse(sessionStorage.getItem(SK)||'null');}catch(e){}
   var TR='https://semafor-copy-production.up.railway.app/api/click';
   function ping(ev){try{var s=src||{},b=JSON.stringify({e:ev,c:s.ct||'',k:s.c||'',p:location.pathname});navigator.sendBeacon?navigator.sendBeacon(TR,new Blob([b],{type:'text/plain'})):fetch(TR,{method:'POST',body:b,keepalive:true,mode:'no-cors'})}catch(x){}}
-  try{if(src&&!sessionStorage.getItem('kl_land')){sessionStorage.setItem('kl_land','1');ping('landing')}}catch(x){}
+  // real people only: skip bots/automation, count a landing after the first scroll, tap, click or key press
+  var BOT=/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|facebookexternalhit|meta-externalagent|preview|python|curl|wget/i,
+      human=!(navigator.webdriver||BOT.test(navigator.userAgent||''));
+  try{if(human&&!sessionStorage.getItem('kl_view')){sessionStorage.setItem('kl_view','1');ping('view')}}catch(x){}
+  function engaged(){try{if(!human||sessionStorage.getItem('kl_land'))return;sessionStorage.setItem('kl_land','1');ping('landing')}catch(x){}
+    ['scroll','pointerdown','touchstart','keydown'].forEach(function(t){removeEventListener(t,engaged,true)})}
+  ['scroll','pointerdown','touchstart','keydown'].forEach(function(t){addEventListener(t,engaged,{capture:true,passive:true})});
   function pos(a){
     if(a.closest('nav.top'))return 'nav';if(a.closest('footer'))return 'footer';
     if(a.classList.contains('pill'))return 'hero_badge';if(a.closest('header.hero'))return 'hero';
@@ -910,7 +916,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
       p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);if(s.ct)p.set('utm_content',s.ct);if(s.fb)p.set('fbclid',s.fb);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){var ct=(src&&src.ct)||'';ping('install_click');try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,utm_content:ct,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a),reel:ct}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a),content_ids:[ct||'organic']})}catch(x){}}
+    if(e.type==='click'||e.button===1){var ct=(src&&src.ct)||'';if(human){engaged();ping('install_click')}try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,utm_content:ct,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a),reel:ct}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a),content_ids:[ct||'organic']})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();

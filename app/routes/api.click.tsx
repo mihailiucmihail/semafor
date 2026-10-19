@@ -9,7 +9,7 @@ import db from "../db.server";
  * Lets us see, per reel (utm_content), how many people landed and how many clicked "Install".
  */
 const hits = new Map<string, { n: number; t: number }>();
-const EVENTS = new Set(["landing", "install_click"]);
+const EVENTS = new Set(["view", "landing", "install_click"]);
 const clean = (v: unknown) => (typeof v === "string" ? v.toLowerCase().replace(/[^a-z0-9_\-.]/g, "").slice(0, 40) : "") || "-";
 const CORS = { "Access-Control-Allow-Origin": "*" };
 
@@ -18,6 +18,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const now = Date.now(); const h = hits.get(ip);
   if (h && now - h.t < 600_000) { if (++h.n > 60) return new Response(null, { status: 429, headers: CORS }); } else hits.set(ip, { n: 1, t: now });
   if (hits.size > 5000) hits.clear();
+  const ua = request.headers.get("user-agent") || "";
+  if (!ua || /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|facebookexternalhit|meta-externalagent|python|curl|wget|okhttp|go-http/i.test(ua))
+    return new Response(null, { status: 204, headers: CORS });
   let b: any;
   try { b = JSON.parse((await request.text()).slice(0, 1000)); } catch { return new Response(null, { status: 400, headers: CORS }); }
   const e = String(b?.e || "");
