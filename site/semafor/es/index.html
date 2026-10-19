@@ -17,6 +17,11 @@ gtag('js',new Date());gtag('config','G-0GVM380XSK');
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-0GVM380XSK"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+var klOk=false;try{klOk=localStorage.getItem('kl_consent')==='granted'}catch(e){}
+fbq('consent',klOk?'grant':'revoke');fbq('init','2396146881210734');if(klOk)fbq('track','PageView');
+</script>
 <link rel="canonical" href="https://www.kastellabs.com/semafor/es/">
 <link rel="alternate" hreflang="en" href="https://www.kastellabs.com/semafor/">
 <link rel="alternate" hreflang="ro" href="https://www.kastellabs.com/semafor/ro/">
@@ -869,7 +874,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   if(!still) setInterval(function(){fl.forEach(function(x){x.classList.remove('on')}); fi=(fi+2)%3; fl[fi].classList.add('on')},1600);
 })();
 </script>
-<div class="klc" id="klc" role="region" aria-label="Cookies" hidden><p>Usamos cookies de analítica para saber cómo nos encuentran los visitantes. <a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacidad</a></p><div class="klb"><button type="button" data-c="granted">Aceptar</button><button type="button" data-c="denied">Rechazar</button></div></div>
+<div class="klc" id="klc" role="region" aria-label="Cookies" hidden><p>Usamos cookies de analítica y publicidad para saber cómo nos encuentran los visitantes. <a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacidad</a></p><div class="klb"><button type="button" data-c="granted">Aceptar</button><button type="button" data-c="denied">Rechazar</button></div></div>
 <script>
 (function(){
   var K='kl_consent',bar=document.getElementById('klc'),v=null;
@@ -877,7 +882,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
   if(bar&&v!=='granted'&&v!=='denied'){bar.hidden=false;
     bar.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var c=b.getAttribute('data-c');
       try{localStorage.setItem(K,c)}catch(e){}
-      if(c==='granted')gtag('consent','update',{analytics_storage:'granted'});
+      if(c==='granted'){gtag('consent','update',{analytics_storage:'granted'});try{fbq('consent','grant');fbq('track','PageView')}catch(x){}}
       bar.hidden=true;});}
   var lang=document.documentElement.lang||'en',src=null,SK='kl_src';
   try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium');
@@ -892,7 +897,7 @@ html:not([lang=en]) .hero h1{font-size:clamp(46px,6.6vw,92px)}
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
       p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}}
+    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a)})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();

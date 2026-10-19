@@ -3,16 +3,17 @@
 import html as H
 
 GA_ID = 'G-0GVM380XSK'
+META_PIXEL = '2396146881210734'
 PRIVACY = 'https://semafor-copy-production.up.railway.app/privacy'
 
 # text, accept, decline, privacy link, region label
 CONSENT = {
- 'en': ('We use analytics cookies to see how visitors find us.', 'Accept', 'Decline', 'Privacy policy', 'Cookies'),
- 'ro': ('Folosim cookie-uri de analiză ca să vedem cum ajung vizitatorii la noi.', 'Accept', 'Refuz', 'Confidențialitate', 'Cookie-uri'),
- 'es': ('Usamos cookies de analítica para saber cómo nos encuentran los visitantes.', 'Aceptar', 'Rechazar', 'Privacidad', 'Cookies'),
- 'fr': ('Nous utilisons des cookies de mesure d’audience pour savoir comment les visiteurs nous trouvent.', 'Accepter', 'Refuser', 'Confidentialité', 'Cookies'),
- 'pl': ('Używamy analitycznych plików cookie, żeby wiedzieć, jak trafiają do nas odwiedzający.', 'Akceptuję', 'Odrzucam', 'Prywatność', 'Pliki cookie'),
- 'ru': ('Мы используем аналитические cookie, чтобы понимать, как посетители нас находят.', 'Принять', 'Отклонить', 'Конфиденциальность', 'Cookie'),
+ 'en': ('We use analytics and advertising cookies to see how visitors find us.', 'Accept', 'Decline', 'Privacy policy', 'Cookies'),
+ 'ro': ('Folosim cookie-uri de analiză și publicitate ca să vedem cum ajung vizitatorii la noi.', 'Accept', 'Refuz', 'Confidențialitate', 'Cookie-uri'),
+ 'es': ('Usamos cookies de analítica y publicidad para saber cómo nos encuentran los visitantes.', 'Aceptar', 'Rechazar', 'Privacidad', 'Cookies'),
+ 'fr': ('Nous utilisons des cookies de mesure d’audience et publicitaires pour savoir comment les visiteurs nous trouvent.', 'Accepter', 'Refuser', 'Confidentialité', 'Cookies'),
+ 'pl': ('Używamy analitycznych i reklamowych plików cookie, żeby wiedzieć, jak trafiają do nas odwiedzający.', 'Akceptuję', 'Odrzucam', 'Prywatność', 'Pliki cookie'),
+ 'ru': ('Мы используем аналитические и рекламные cookie, чтобы понимать, как посетители нас находят.', 'Принять', 'Отклонить', 'Конфиденциальность', 'Cookie'),
 }
 
 # In <head>: consent default (denied) BEFORE config, then async gtag.js. Restores a stored "granted".
@@ -25,7 +26,12 @@ gtag('js',new Date());gtag('config','%s');
 <script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script>
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
 <script defer src="/_vercel/insights/script.js"></script>
-''' % (GA_ID, GA_ID)
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+var klOk=false;try{klOk=localStorage.getItem('kl_consent')==='granted'}catch(e){}
+fbq('consent',klOk?'grant':'revoke');fbq('init','%s');if(klOk)fbq('track','PageView');
+</script>
+''' % (GA_ID, GA_ID, META_PIXEL)
 
 CSS = '''
 .klc{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;max-width:680px;margin:0 auto;display:flex;align-items:center;gap:14px 18px;padding:14px 16px 14px 20px;background:rgba(23,21,18,.96);color:var(--cream);border:1px solid var(--edge);border-radius:18px;box-shadow:0 24px 60px -24px #000;font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -54,7 +60,7 @@ JS = r'''<script>
   if(bar&&v!=='granted'&&v!=='denied'){bar.hidden=false;
     bar.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var c=b.getAttribute('data-c');
       try{localStorage.setItem(K,c)}catch(e){}
-      if(c==='granted')gtag('consent','update',{analytics_storage:'granted'});
+      if(c==='granted'){gtag('consent','update',{analytics_storage:'granted'});try{fbq('consent','grant');fbq('track','PageView')}catch(x){}}
       bar.hidden=true;});}
   var lang=document.documentElement.lang||'en',src=null,SK='kl_src';
   try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium');
@@ -69,7 +75,7 @@ JS = r'''<script>
     try{var u=new URL(a.href),p=u.searchParams,s=src||{};
       p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);
       a.href=u.toString();}catch(x){}
-    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}}
+    if(e.type==='click'||e.button===1){try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a)}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a)})}catch(x){}}
   }
   document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
 })();
