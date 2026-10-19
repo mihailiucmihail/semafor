@@ -50,7 +50,7 @@ REDIRECT='''<script>
 }catch(e){}})();
 </script>'''
 
-SAVE_JS='''document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){try{localStorage.setItem('kl-lang',a.getAttribute('data-l'))}catch(e){}})});'''
+SAVE_JS='''document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){var l=a.getAttribute('data-l');try{localStorage.setItem('kl-lang',l)}catch(e){}document.cookie='kl-lang='+l+';path=/;max-age=31536000;samesite=lax'})});'''
 
 def translate(html, d, code):
     missing=set()

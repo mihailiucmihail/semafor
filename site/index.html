@@ -201,7 +201,7 @@ footer .links{display:flex;gap:22px;flex-wrap:wrap}footer a{text-decoration:none
 
 <script>
 (function(){
-  document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){try{localStorage.setItem('kl-lang',a.getAttribute('data-l'))}catch(e){}})});
+  document.querySelectorAll('.lang-a').forEach(function(a){a.addEventListener('click',function(){var l=a.getAttribute('data-l');try{localStorage.setItem('kl-lang',l)}catch(e){}document.cookie='kl-lang='+l+';path=/;max-age=31536000;samesite=lax'})});
   var nav=document.getElementById('nav');function s(){nav.classList.toggle('scrolled',window.scrollY>20)}s();window.addEventListener('scroll',s,{passive:true});
   var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12}):null;
   document.querySelectorAll('.reveal').forEach(function(el){io?io.observe(el):el.classList.add('in')});

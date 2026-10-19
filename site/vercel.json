@@ -1,0 +1,279 @@
+{
+ "redirects": [
+  {
+   "source": "/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RO|MD)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/ro/",
+   "permanent": false
+  },
+  {
+   "source": "/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(ES|MX|CO|AR|CL|PE|EC|VE|GT|CU|BO|DO|HN|PY|SV|NI|CR|PA|UY)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/es/",
+   "permanent": false
+  },
+  {
+   "source": "/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(FR|BE|LU|MC|MA|TN|DZ|SN|CI|CM|ML|BF|NE|BJ|TG|GA|CG|CD|MG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/fr/",
+   "permanent": false
+  },
+  {
+   "source": "/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(PL)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/pl/",
+   "permanent": false
+  },
+  {
+   "source": "/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RU|BY|KZ|KG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/ru/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RO|MD)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/ro/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(ES|MX|CO|AR|CL|PE|EC|VE|GT|CU|BO|DO|HN|PY|SV|NI|CR|PA|UY)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/es/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(FR|BE|LU|MC|MA|TN|DZ|SN|CI|CM|ML|BF|NE|BJ|TG|GA|CG|CD|MG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/fr/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(PL)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/pl/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor/",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RU|BY|KZ|KG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/ru/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RO|MD)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/ro/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(ES|MX|CO|AR|CL|PE|EC|VE|GT|CU|BO|DO|HN|PY|SV|NI|CR|PA|UY)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/es/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(FR|BE|LU|MC|MA|TN|DZ|SN|CI|CM|ML|BF|NE|BJ|TG|GA|CG|CD|MG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/fr/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(PL)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/pl/",
+   "permanent": false
+  },
+  {
+   "source": "/semafor",
+   "has": [
+    {
+     "type": "header",
+     "key": "x-vercel-ip-country",
+     "value": "^(RU|BY|KZ|KG)$"
+    }
+   ],
+   "missing": [
+    {
+     "type": "cookie",
+     "key": "kl-lang"
+    }
+   ],
+   "destination": "/semafor/ru/",
+   "permanent": false
+  },
+  {
+   "source": "/__geo-check",
+   "destination": "/",
+   "permanent": false
+  }
+ ]
+}
