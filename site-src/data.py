@@ -17,6 +17,8 @@ LINKS = {
  'es': {'Data & privacy': 'Datos y privacidad', 'Read how Semafor handles data →': 'Así trata Semafor los datos →'},
  'fr': {'Data & privacy': 'Données et confidentialité', 'Read how Semafor handles data →': 'Comment Semafor traite les données →'},
  'pl': {'Data & privacy': 'Dane i prywatność', 'Read how Semafor handles data →': 'Zobacz, jak Semafor obchodzi się z danymi →'},
+ 'bg': {'Data & privacy': 'Данни и поверителност', 'Read how Semafor handles data →': 'Вижте как Semafor работи с данните →'},
+ 'el': {'Data & privacy': 'Δεδομένα και απόρρητο', 'Read how Semafor handles data →': 'Δείτε πώς χειρίζεται το Semafor τα δεδομένα →'},
  'ru': {'Data & privacy': 'Данные и конфиденциальность', 'Read how Semafor handles data →': 'Как Semafor обращается с данными →'},
 }
 

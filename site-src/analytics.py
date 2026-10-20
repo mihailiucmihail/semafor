@@ -13,6 +13,8 @@ CONSENT = {
  'es': ('Usamos cookies de analítica y publicidad para saber cómo nos encuentran los visitantes.', 'Aceptar', 'Rechazar', 'Privacidad', 'Cookies'),
  'fr': ('Nous utilisons des cookies de mesure d’audience et publicitaires pour savoir comment les visiteurs nous trouvent.', 'Accepter', 'Refuser', 'Confidentialité', 'Cookies'),
  'pl': ('Używamy analitycznych i reklamowych plików cookie, żeby wiedzieć, jak trafiają do nas odwiedzający.', 'Akceptuję', 'Odrzucam', 'Prywatność', 'Pliki cookie'),
+ 'bg': ('Използваме аналитични и рекламни бисквитки, за да видим как посетителите ни намират.', 'Приемам', 'Отказвам', 'Поверителност', 'Бисквитки'),
+ 'el': ('Χρησιμοποιούμε cookies ανάλυσης και διαφήμισης για να βλέπουμε πώς μας βρίσκουν οι επισκέπτες.', 'Αποδοχή', 'Απόρριψη', 'Απόρρητο', 'Cookies'),
  'ru': ('Мы используем аналитические и рекламные cookie, чтобы понимать, как посетители нас находят.', 'Принять', 'Отклонить', 'Конфиденциальность', 'Cookie'),
 }
 
