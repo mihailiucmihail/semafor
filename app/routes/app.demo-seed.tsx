@@ -70,9 +70,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (step === "orders") {
-    const done = await db.appKv.findUnique({ where: { key: `demo-seed:orders:${session.shop}` } });
-    if (done) return { log: ["orders already created"] };
-    for (const [first, last, email, phone, address1, city, zip, items, hoursAgo] of ORDERS) {
+    // dev stores accept only a few orderCreate calls per minute: 4 per click, 15 s apart; each order is remembered
+    const key = (i: number) => `demo-seed:o:${session.shop}:${i}`;
+    const legacy = await db.appKv.findUnique({ where: { key: `demo-seed:orders:${session.shop}` } });
+    if (legacy) { // first run created orders 0–4 before the limit hit
+      for (let i = 0; i < 5; i++) await db.appKv.upsert({ where: { key: key(i) }, create: { key: key(i), value: "1" }, update: {} });
+      await db.appKv.delete({ where: { key: legacy.key } });
+    }
+    let made = 0;
+    for (let i = 0; i < ORDERS.length && made < 4; i++) {
+      if (await db.appKv.findUnique({ where: { key: key(i) } })) continue;
+      const [first, last, email, phone, address1, city, zip, items, hoursAgo] = ORDERS[i];
+      if (made) await new Promise((res) => setTimeout(res, 15000));
+      made++;
       const addr = { firstName: first, lastName: last, address1, city, zip, countryCode: "RO", phone };
       const r = await admin.graphql(
         `mutation($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) { orderCreate(order: $order, options: $options) { order { name } userErrors { field message } } }`,
@@ -91,10 +101,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
       const j: any = await r.json();
       const o = j?.data?.orderCreate;
+      if (o?.order?.name) await db.appKv.create({ data: { key: key(i), value: o.order.name } });
       log.push(o?.order?.name ? `order ${o.order.name}: ${first} ${last}` : `error ${first} ${last}: ${JSON.stringify(o?.userErrors || j?.errors).slice(0, 200)}`);
-      await new Promise((res) => setTimeout(res, 1500)); // webhooks check each order in order
     }
-    await db.appKv.create({ data: { key: `demo-seed:orders:${session.shop}`, value: new Date().toISOString() } });
+    const left = (await Promise.all(ORDERS.map((_, i) => db.appKv.findUnique({ where: { key: key(i) } })))).filter((x) => !x).length;
+    log.push(left ? `${left} orders left: click again in a minute` : "all orders created");
   }
   return { log };
 };
