@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Semafor — vezi aplicația din interior</title>
+<meta name="description" content="Tur prin Semafor, într-un magazin demo cu date fictive: comenzi verificate cu semafor, lista neagră, regulile de la checkout și pop-up-ul de bun venit.">
+<meta property="og:title" content="Demo Semafor — vezi aplicația din interior">
+<meta property="og:image" content="https://www.kastellabs.com/assets/demo/tour/tour-2-checks.jpg">
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',wait_for_update:500});
+try{if(localStorage.getItem('kl_consent')==='granted')gtag('consent','update',{analytics_storage:'granted'})}catch(e){}
+gtag('js',new Date());gtag('config','G-0GVM380XSK');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0GVM380XSK"></script>
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+var klOk=false;try{klOk=localStorage.getItem('kl_consent')==='granted'}catch(e){}
+fbq('consent',klOk?'grant':'revoke');fbq('init','2396146881210734');if(klOk)fbq('track','PageView');
+</script>
+<link rel="canonical" href="https://www.kastellabs.com/semafor/ro/demo/">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--night:#0F0E0C;--night-2:#171512;--edge:#2E2A25;--mute:#8F877B;--soft:#BDB5A8;--cream:#F4EFE6;--ivory:#F1EDE5;--ink:#1B1916;--ink-2:#4A453E;--line:#DED7CA;--red:#E0483C;--amber:#F2A23A;--green:#27B874;--serif:"Instrument Serif",Georgia,serif;--sans:"Inter Tight",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--night);color:var(--cream);font-family:var(--sans);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit} img{max-width:100%;display:block;height:auto}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.012em}
+.eyebrow{font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:500}
+nav{height:72px;display:flex;align-items:center;border-bottom:1px solid var(--edge)}
+nav .wrap{display:flex;justify-content:space-between;align-items:center;width:100%}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:600} .brand img{width:26px;height:26px;border-radius:7px}
+.back{font-size:15px;color:var(--soft);text-decoration:none} .back:hover{color:var(--cream)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 22px;border-radius:999px;font-size:15.5px;font-weight:500;text-decoration:none;white-space:nowrap}
+.btn.pri{background:var(--cream);color:var(--ink)} .btn.sec{border:1px solid var(--edge);color:var(--cream)} .btn.sec:hover{border-color:var(--mute)}
+header{padding:84px 0 40px}
+h1{font-size:clamp(44px,6.4vw,84px);line-height:.98;margin-top:18px} h1 i{color:var(--green)}
+.lead{font-size:18.5px;color:var(--soft);max-width:640px;margin-top:22px}
+.note{display:inline-flex;gap:10px;align-items:center;margin-top:26px;padding:10px 16px;border:1px solid var(--edge);border-radius:999px;font-size:14px;color:var(--soft)}
+.note b{width:9px;height:9px;border-radius:50%;background:var(--amber);flex:none}
+.ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}
+.steps{padding:40px 0 60px}
+.step{display:grid;grid-template-columns:1fr;gap:26px;padding:56px 0;border-top:1px solid var(--edge)}
+.txt{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.1fr);gap:8px 22px;align-items:start}
+.txt .num{margin-top:6px}.txt h2{margin:0!important}.txt p{margin-top:4px}
+.num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;border:1px solid var(--edge);font-size:14px;color:var(--soft)}
+.step h2{font-size:clamp(30px,3.2vw,40px);line-height:1.05;margin:16px 0 12px}
+.step p{color:var(--soft);font-size:16.5px}
+.shot{border-radius:14px;overflow:hidden;border:1px solid var(--edge);background:var(--night-2);box-shadow:0 40px 90px -40px #000}
+.bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--edge);font-size:12.5px;color:var(--mute)}
+.bar i{width:9px;height:9px;border-radius:50%;background:#3a352f} .bar span{margin-left:10px}
+.final{padding:90px 0 110px;text-align:center;border-top:1px solid var(--edge)}
+.final h2{font-size:clamp(38px,5vw,64px);line-height:1} .final p{color:var(--soft);margin:18px auto 0;max-width:560px}
+.final .ctas{justify-content:center}
+footer{border-top:1px solid var(--edge);padding:26px 0;font-size:14px;color:var(--mute)}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s,transform .7s} .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+@media (max-width:860px){.step{gap:18px;padding:34px 0}.txt{grid-template-columns:1fr}.txt h2{margin-top:10px!important} header{padding:56px 0 24px} .wrap{padding:0 16px} .btn{white-space:normal}}
+.klc{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;max-width:680px;margin:0 auto;display:flex;align-items:center;gap:14px 18px;padding:14px 16px 14px 20px;background:rgba(23,21,18,.96);color:var(--cream);border:1px solid var(--edge);border-radius:18px;box-shadow:0 24px 60px -24px #000;font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.klc[hidden]{display:none}
+.klc p{flex:1;margin:0;color:var(--soft)}
+.klc p a{color:var(--cream);text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.klc .klb{display:flex;gap:8px;flex:none}
+.klc button{font:inherit;font-size:14px;font-weight:500;min-width:104px;min-height:40px;padding:9px 16px;border-radius:999px;border:1px solid var(--edge);background:rgba(255,255,255,.04);color:var(--cream);cursor:pointer}
+.klc button:hover{border-color:var(--mute)}
+.klc button:focus-visible,.klc a:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+@media (max-width:560px){.klc{flex-direction:column;align-items:stretch;left:8px;right:8px;bottom:8px;padding:14px}.klc .klb button{flex:1;min-width:0}}
+</style>
+</head>
+<body>
+<nav><div class="wrap"><a class="brand" href="/semafor/ro/"><img src="/assets/icon-512.png" alt="" width="26" height="26">Semafor</a><a class="back" href="/semafor/ro/">← Înapoi la Semafor</a></div></nav>
+<header><div class="wrap">
+  <span class="eyebrow">Demo · fără instalare</span>
+  <h1 class="serif">Vezi Semafor <i>din interior.</i></h1>
+  <p class="lead">Un tur prin aplicație, într-un magazin demo de lumânări. Paginile sunt cele reale din adminul Shopify, iar clienții și comenzile sunt fictive.</p>
+  <span class="note"><b></b>Magazin demo „Lumina de Casă” · date inventate, nicio persoană reală</span>
+  <div class="ctas"><a class="btn pri" href="https://apps.shopify.com/semafor?locale=ro">Instalează gratuit · 14 zile Pro</a><a class="btn sec" href="#tur">Începe turul ↓</a></div>
+</div></header>
+<main class="steps" id="tur"><div class="wrap">
+<article class="step reveal">
+  <div class="txt"><span class="num">1</span><h2 class="serif">Prima pagină: totul dintr-o privire</h2><p>Câte comenzi au fost verificate, câte sunt roșii sau galbene și ce trebuie decis azi. Fiecare număr se deschide cu un clic.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Semafor · Prezentare generală</span></div><a href="/assets/demo/tour/tour-1-overview.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-1-overview.jpg" alt="Prima pagină: totul dintr-o privire" width="1568" height="652" loading="eager"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">2</span><h2 class="serif">Fiecare comandă primește un semafor</h2><p>Verde, galben sau roșu, cu motivul scris clar: e-mail, telefon, nume, adresă sau dispozitiv găsit în lista ta neagră ori în rețeaua de magazine.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Semafor · Comenzi verificate</span></div><a href="/assets/demo/tour/tour-2-checks.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-2-checks.jpg" alt="Fiecare comandă primește un semafor" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">3</span><h2 class="serif">Avertismentul apare direct pe comandă</h2><p>Nu trebuie să deschizi aplicația: comanda riscantă e marcată în Shopify, înainte s-o expediezi. Aici clienta a comandat sub alt nume, dar cu același telefon.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Shopify · Comanda #1007</span></div><a href="/assets/demo/tour/tour-4-order-risk.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-4-order-risk.jpg" alt="Avertismentul apare direct pe comandă" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">4</span><h2 class="serif">Lista neagră a magazinului</h2><p>Adaugi un client cu un clic din comandă sau importi lista din aplicația folosită până acum. Semafor îl recunoaște și dacă își schimbă numele.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Semafor · Lista neagră</span></div><a href="/assets/demo/tour/tour-3-blacklist.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-3-blacklist.jpg" alt="Lista neagră a magazinului" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">5</span><h2 class="serif">Tu alegi ce se întâmplă la checkout</h2><p>Pentru clientul roșu poți ascunde doar plata ramburs (cardul rămâne) sau toate metodele de plată. Clientul nu vede niciun mesaj.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Semafor · Setări</span></div><a href="/assets/demo/tour/tour-5-settings.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-5-settings.jpg" alt="Tu alegi ce se întâmplă la checkout" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">6</span><h2 class="serif">Bonus: pop-up de bun venit</h2><p>Strânge e-mailuri cu o reducere de bun venit, în designul magazinului tău. Previzualizarea arată exact ce vede clientul.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Semafor · Pop-up</span></div><a href="/assets/demo/tour/tour-6-popup.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-6-popup.jpg" alt="Bonus: pop-up de bun venit" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+<article class="step reveal">
+  <div class="txt"><span class="num">7</span><h2 class="serif">Așa arată în magazin</h2><p>Pop-up-ul apare în magazinul tău, iar codul de reducere ajunge pe e-mail. Clienții care renunță primesc apoi e-mailuri de reamintire.</p></div>
+  <figure class="shot"><div class="bar"><i></i><i></i><i></i><span>Magazinul demo · Lumina de Casă</span></div><a href="/assets/demo/tour/tour-7-store-popup.jpg" target="_blank" rel="noopener"><img src="/assets/demo/tour/tour-7-store-popup.jpg" alt="Așa arată în magazin" width="1568" height="652" loading="lazy"></a></figure>
+</article>
+</div></main>
+<section class="final"><div class="wrap">
+  <h2 class="serif">Încearcă-l în magazinul tău.</h2>
+  <p>Instalarea durează două minute. Primele 14 zile ai toate funcțiile Pro, fără card.</p>
+  <div class="ctas"><a class="btn pri" href="https://apps.shopify.com/semafor?locale=ro">Instalează din Shopify App Store</a></div>
+</div></section>
+<footer><div class="wrap">© 2026 Semafor de la <a href="/ro/">Kastel Labs</a></div></footer>
+<script>(function(){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.08});document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)})})();</script>
+<div class="klc" id="klc" role="region" aria-label="Cookie-uri" hidden><p>Folosim cookie-uri de analiză și publicitate ca să vedem cum ajung vizitatorii la noi. <a href="https://semafor-copy-production.up.railway.app/privacy" target="_blank" rel="noopener">Confidențialitate</a></p><div class="klb"><button type="button" data-c="granted">Accept</button><button type="button" data-c="denied">Refuz</button></div></div>
+<script>
+(function(){
+  var K='kl_consent',bar=document.getElementById('klc'),v=null;
+  try{v=localStorage.getItem(K)}catch(e){}
+  if(bar&&v!=='granted'&&v!=='denied'){bar.hidden=false;
+    bar.addEventListener('click',function(e){var b=e.target.closest('button[data-c]');if(!b)return;var c=b.getAttribute('data-c');
+      try{localStorage.setItem(K,c)}catch(e){}
+      if(c==='granted'){gtag('consent','update',{analytics_storage:'granted'});try{fbq('consent','grant');fbq('track','PageView')}catch(x){}}
+      bar.hidden=true;});}
+  var lang=document.documentElement.lang||'en',src=null,SK='kl_src';
+  try{var q=new URLSearchParams(location.search),us=q.get('utm_source'),uc=q.get('utm_campaign'),um=q.get('utm_medium'),ut=q.get('utm_content'),fb=q.get('fbclid');
+    if(us||uc)src={s:us,c:uc,m:um,ct:ut,fb:fb};else if(fb)src={s:'meta',m:'paid_social',fb:fb};
+    if(src)sessionStorage.setItem(SK,JSON.stringify(src));else src=JSON.parse(sessionStorage.getItem(SK)||'null');}catch(e){}
+  var TR='https://semafor-copy-production.up.railway.app/api/click';
+  function ping(ev){try{var s=src||{},b=JSON.stringify({e:ev,c:s.ct||'',k:s.c||'',p:location.pathname});navigator.sendBeacon?navigator.sendBeacon(TR,new Blob([b],{type:'text/plain'})):fetch(TR,{method:'POST',body:b,keepalive:true,mode:'no-cors'})}catch(x){}}
+  // real people only: skip bots/automation, count a landing after the first scroll, tap, click or key press
+  var BOT=/bot|crawl|spider|slurp|headless|lighthouse|pagespeed|facebookexternalhit|meta-externalagent|preview|python|curl|wget/i,
+      human=!(navigator.webdriver||BOT.test(navigator.userAgent||''));
+  try{if(human&&!sessionStorage.getItem('kl_view')){sessionStorage.setItem('kl_view','1');ping('view')}}catch(x){}
+  function engaged(){try{if(!human||sessionStorage.getItem('kl_land'))return;sessionStorage.setItem('kl_land','1');ping('landing')}catch(x){}
+    ['scroll','pointerdown','touchstart','keydown'].forEach(function(t){removeEventListener(t,engaged,true)})}
+  ['scroll','pointerdown','touchstart','keydown'].forEach(function(t){addEventListener(t,engaged,{capture:true,passive:true})});
+  function pos(a){
+    if(a.closest('nav.top'))return 'nav';if(a.closest('footer'))return 'footer';
+    if(a.classList.contains('pill'))return 'hero_badge';if(a.closest('header.hero'))return 'hero';
+    var s=a.closest('section');return s?(s.id||(s.classList.contains('final')?'final':'section')):'other';}
+  function go(e){
+    var a=e.target.closest&&e.target.closest('a[href*="apps.shopify.com/semafor"]');if(!a)return;
+    try{var u=new URL(a.href),p=u.searchParams,s=src||{};
+      p.set('utm_source',s.s||'kastellabs');p.set('utm_medium',s.m||'website');p.set('utm_campaign',s.c||lang);if(s.ct)p.set('utm_content',s.ct);if(s.fb)p.set('fbclid',s.fb);
+      a.href=u.toString();}catch(x){}
+    if(e.type==='click'||e.button===1){var ct=(src&&src.ct)||'';if(human){engaged();ping('install_click')}try{gtag('event','install_click',{lang:lang,position:pos(a),page_path:location.pathname,utm_content:ct,transport_type:'beacon'})}catch(x){}try{window.va('event',{name:'install_click',data:{lang:lang,position:pos(a),reel:ct}})}catch(x){}try{fbq('track','Lead',{content_name:'Semafor install',content_category:pos(a),content_ids:[ct||'organic']})}catch(x){}}
+  }
+  document.addEventListener('click',go,true);document.addEventListener('auxclick',go,true);
+})();
+</script>
+</body>
+</html>
