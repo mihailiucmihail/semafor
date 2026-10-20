@@ -9,7 +9,7 @@ const OWNER_SHOPS = ["1nbnns-by.myshopify.com", "mihailiuc-nyprysws.myshopify.co
   .map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 /** Public demo store (fictional brand, invented customers): always Pro, never writes to the shared network. */
-const DEMO_SHOPS = ["semafor-review-test.myshopify.com", ...(process.env.SEMAFOR_DEMO_SHOPS || "").split(",")]
+const DEMO_SHOPS = ["semafor-review-test.myshopify.com", "semafor-test.myshopify.com", ...(process.env.SEMAFOR_DEMO_SHOPS || "").split(",")]
   .map((s) => s.trim().toLowerCase()).filter(Boolean);
 export function isDemoShop(domain: string | null | undefined) {
   return DEMO_SHOPS.includes(String(domain || "").toLowerCase());
