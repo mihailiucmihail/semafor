@@ -46,6 +46,8 @@ export function buildIdentifiers(i: EntryInput, country = "RO", opts?: { keepWea
 
 /** Strong identifiers (e-mail, phone, name + address) of a shared entry → the network (24 months). */
 export async function shareToNetwork(shopDomain: string, country: string, reason: string, ids: Array<{ kind: string; hash: string; normalized?: string }>) {
+  // the public demo store's invented customers must never reach real merchants
+  if ((await import("./plan.server")).isDemoShop(shopDomain)) return;
   const ref = shopRef(SECRET, shopDomain);
   const expiresAt = new Date(Date.now() + 730 * 86400e3);
   for (const x of ids.filter((i) => ["email", "phone", "name_address"].includes(i.kind))) {

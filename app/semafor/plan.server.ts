@@ -8,6 +8,13 @@ type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 const OWNER_SHOPS = ["1nbnns-by.myshopify.com", "mihailiuc-nyprysws.myshopify.com", ...(process.env.SEMAFOR_PRO_SHOPS || "").split(",")]
   .map((s) => s.trim().toLowerCase()).filter(Boolean);
 
+/** Public demo store (fictional brand, invented customers): always Pro, never writes to the shared network. */
+const DEMO_SHOPS = ["semafor-review-test.myshopify.com", ...(process.env.SEMAFOR_DEMO_SHOPS || "").split(",")]
+  .map((s) => s.trim().toLowerCase()).filter(Boolean);
+export function isDemoShop(domain: string | null | undefined) {
+  return DEMO_SHOPS.includes(String(domain || "").toLowerCase());
+}
+
 export function isOwnerShop(domain: string | null | undefined) {
   return OWNER_SHOPS.includes(String(domain || "").toLowerCase());
 }
@@ -17,7 +24,7 @@ type PlanShop = { plan?: string | null; domain?: string | null; trialEndsAt?: Da
 /** The free Pro trial of a store on Free: active, whole days left (rounded up), end date. */
 export function trialOf(shop: PlanShop | null | undefined) {
   const end = shop?.trialEndsAt ? new Date(shop.trialEndsAt) : null;
-  const paid = normPlan(shop?.plan) !== "free" || isOwnerShop(shop?.domain);
+  const paid = normPlan(shop?.plan) !== "free" || isOwnerShop(shop?.domain) || isDemoShop(shop?.domain);
   const active = !!end && !paid && end.getTime() > Date.now();
   const daysLeft = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86_400_000)) : 0;
   return { active, daysLeft, endsAt: end, ended: !!end && !paid && !active };
@@ -25,7 +32,7 @@ export function trialOf(shop: PlanShop | null | undefined) {
 
 export function planOf(shop: PlanShop | null | undefined): Plan {
   if (!shop) return "free";
-  if (isOwnerShop(shop.domain)) return "pro";
+  if (isOwnerShop(shop.domain) || isDemoShop(shop.domain)) return "pro";
   const p = normPlan(shop.plan);
   if (p === "free" && trialOf(shop).active) return "pro";
   return p;
