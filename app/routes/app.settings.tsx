@@ -1,4 +1,5 @@
 import { payActions } from "../../core/settings";
+import { parsePincodes } from "../../core/normalize";
 import { useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { useFetcher, useLoaderData } from "@remix-run/react";
@@ -33,6 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     yellowPay: (["all", "cod", "none"].includes(String(fd.get("yellowPay"))) ? String(fd.get("yellowPay")) : "none") as any,
     cancelRed: fd.get("cancelRed") === "true",
     shareNetwork: fd.get("shareNetwork") === "true",
+    codPincodes: parsePincodes(String(fd.get("codPincodes") ?? "")),
     tagAttributed: fd.get("tagAttributed") !== "false",
     thresholds: { block: Number(fd.get("block")) || 100, warn: Number(fd.get("warn")) || 40 },
     // language is sent only when the merchant picked one; otherwise the stored choice (or automatic) stays
@@ -50,7 +52,8 @@ export default function Settings() {
   const tr = useT();
   const payOptions = [{ label: tr("settings.payAll"), value: "all" }, { label: tr("settings.payCod"), value: "cod" }, { label: tr("settings.payNone"), value: "none" }];
   const lang = useLang();
-  const [s, setS] = useState({ redPay: payActions(settings).r as string, yellowPay: payActions(settings).y as string, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "" });
+  const [s, setS] = useState({ redPay: payActions(settings).r as string, yellowPay: payActions(settings).y as string, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "", codPincodes: (settings.codPincodes ?? []).join("\n") });
+  const pinCount = parsePincodes(s.codPincodes).length;
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "ORDERS_UPDATED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
@@ -84,6 +87,17 @@ export default function Settings() {
                       options={payOptions} helpText={tr("settings.yellowPayHelp")} />
                   </div>
                 </InlineStack>
+              </BlockStack>
+            </Card>
+          </Layout.AnnotatedSection>
+
+          <Layout.AnnotatedSection title={tr("settings.pinHeading")} description={tr("settings.pinDesc")}>
+            <Card>
+              <BlockStack gap="300">
+                {!basic && <Banner tone="info" action={{ content: tr("settings.seePlans"), url: "/app/plan" }}>{tr("settings.freeBanner")}</Banner>}
+                <TextField label={tr("settings.pinLabel")} multiline={5} disabled={!basic} value={s.codPincodes} onChange={(v) => setS({ ...s, codPincodes: v })}
+                  autoComplete="off" placeholder={"110001\n110002\n8*"} helpText={tr("settings.pinHelp")} />
+                {basic && pinCount > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("settings.pinCount", { n: String(pinCount) })}</Text>}
               </BlockStack>
             </Card>
           </Layout.AnnotatedSection>

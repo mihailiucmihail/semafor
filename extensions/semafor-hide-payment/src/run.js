@@ -7,6 +7,7 @@
 // m = { r, y } in the payload; payloads without m (v:1) hide everything for a hit, as before.
 // The blacklist arrives as short SHA-256 hashes in the customization's metafield ($app:blocklist):
 //   { v:1, e:[…], p:[…], a:[…], d:[…], n:[full names], w:[single name words] }   each = sha256(`${kind}:${normalized}`).slice(0,16)
+// z: PIN / postal code patterns ("110001", "110*") — cash on delivery is hidden for every buyer delivering there.
 //
 // Shopify caps a Function at 11M instructions and SHA-256 in QuickJS costs ~1M per call, so:
 // v3 payloads hash the shop's own list with fastHash (cheap); only other shops' network entries (ne/np/y) stay
@@ -14,7 +15,7 @@
 // Hash only when that bucket has entries, never hash the same value twice, stop at the first hit.
 import { sha256 } from "./sha256.js";
 import { fastHash } from "../../../core/fasthash.ts";
-import { normEmail, normPhone, normAddress, normName } from "../../../core/normalize.ts";
+import { normEmail, normPhone, normAddress, normName, pincodeHit } from "../../../core/normalize.ts";
 
 const NONE = { operations: [] };
 
@@ -30,8 +31,11 @@ function lookup(arr, sorted) {
   };
 }
 
-/** Cash on delivery, whatever the shop called it (RO / EN / DE / PL / ES / FR / IT / BG / RU names). */
-const COD_RE = /cash\s*on\s*delivery|\bcod\b|ramburs|nachnahme|pobrani|contra\s*reembolso|contre[\s-]*remboursement|contrassegno|наложен|при\s*доставк|plata\s*la\s*livrare|bei\s*lieferung/i;
+/** Cash on delivery, whatever the shop called it (RO / EN / DE / PL / ES / FR / IT / BG / RU / IN / PK / MA / EG names). */
+const COD_RE = /cash\s*on\s*delivery|\bcod\b|ramburs|nachnahme|pobrani|contra\s*reembolso|contre[\s-]*remboursement|contrassegno|наложен|при\s*доставк|plata\s*la\s*livrare|bei\s*lieferung|pay(ment)?\s*(on|at|upon)\s*(delivery|doorstep)|cash\s*(on|at|upon)\s*(delivery|doorstep)|paiement\s*(à|a)\s*la\s*livraison|الدفع\s*عند\s*الاستلام|नकद|कैश\s*ऑन\s*डिलीवरी|کیش\s*آن\s*ڈیلیوری/i;
+
+/** Countries where addresses are not matched (see NO_ADDRESS_MATCH in core/normalize.ts). */
+const NO_ADDR = { IN: 1, PK: 1 };
 
 export function cartPaymentMethodsTransformRun(input) {
   const list = input?.paymentCustomization?.metafield?.jsonValue;
@@ -57,7 +61,8 @@ export function cartPaymentMethodsTransformRun(input) {
   // older payloads kept single-word name entries in `n` too
   if (!Array.isArray(list.w) && sets.n) sets.w = sets.n;
   const anyRed = !!(sets.e || sets.p || sets.a || sets.d || sets.n || sets.w || sets.ne || sets.np);
-  if (!anyRed && !ySets.e && !ySets.p && !yfSets.e && !yfSets.p) return NONE;
+  const zips = Array.isArray(list.z) && list.z.length ? list.z : null;
+  if (!anyRed && !ySets.e && !ySets.p && !yfSets.e && !yfSets.p && !zips) return NONE;
 
   // each key is hashed at most once per algorithm
   const ownMemo = new Map(), shaMemo = new Map();
@@ -92,7 +97,7 @@ export function cartPaymentMethodsTransformRun(input) {
   for (const g of groups) {
     const a = g.deliveryAddress;
     if (!a) continue;
-    if (sets.a) {
+    if (sets.a && !NO_ADDR[a.countryCode || country]) {
       if (hit("a", "address", normAddress({ address1: a.address1, address2: a.address2, city: a.city }))) return hideAll();
       if (hit("a", "address", normAddress({ address1: a.address1, address2: a.address2, city: null }))) return hideAll();
     }
@@ -123,6 +128,9 @@ export function cartPaymentMethodsTransformRun(input) {
       for (const p of phones) if (p && yh("p", "phone", normPhone(p, country))) return act(mY);
     }
   }
+
+  // merchant's PIN / postal codes: only cash on delivery is hidden, prepaid stays
+  if (zips) for (const g of groups) if (pincodeHit(zips, g.deliveryAddress?.zip)) return act("cod");
 
   return NONE;
 }

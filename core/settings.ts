@@ -14,6 +14,9 @@ export interface ShopSettings {
   redPay?: PayAction;
   /** Same for a YELLOW customer at checkout (flagged by fewer shops in the network). */
   yellowPay?: PayAction;
+  /** PIN / postal codes (patterns from parsePincodes, e.g. "110001", "8*") where cash on delivery is hidden at checkout
+   *  for everyone — the usual RTO rule of Indian / Pakistani merchants. Basic plan, like the other checkout rules. */
+  codPincodes?: string[];
   /** Share with / see the network. */
   shareNetwork: boolean;
   /** Reasons that go to the network after ONE entry (chargeback, abuse). refuz_colet only after the 2nd. */

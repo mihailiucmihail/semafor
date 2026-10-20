@@ -164,6 +164,11 @@ const D = {
   // ── settings ──
   "settings.ordersHeading": { en: "What to do with orders", ro: "Ce facem cu comenzile" },
   "settings.seePlans": { en: "View plans", ro: "Vezi planurile" },
+  "settings.pinHeading": { en: "Cash on delivery by PIN / postal code", ro: "Ramburs după cod poștal" },
+  "settings.pinDesc": { en: "Hide cash on delivery for every buyer who ships to these codes — areas where most COD parcels come back (RTO). Card, UPI and other prepaid methods stay.", ro: "Ascunde plata ramburs pentru toți cumpărătorii care livrează la aceste coduri poștale — zonele de unde majoritatea coletelor ramburs se întorc. Cardul și celelalte plăți în avans rămân." },
+  "settings.pinLabel": { en: "PIN / postal codes without cash on delivery", ro: "Coduri poștale fără ramburs" },
+  "settings.pinHelp": { en: "One per line, or separated by commas. 110001 = that code only; 110* = every code starting with 110. Spaces and dashes are ignored.", ro: "Câte unul pe rând sau separate prin virgulă. 010011 = doar acel cod; 01* = toate codurile care încep cu 01. Spațiile și cratimele sunt ignorate." },
+  "settings.pinCount": { en: "Cash on delivery is hidden for {n} code(s) or ranges.", ro: "Rambursul e ascuns pentru {n} coduri sau intervale." },
   "settings.freeBanner": { en: "On the Free plan, orders are only flagged (tag + risk signal). Checkout blocking, removing cash on delivery, and auto-cancel are included in Basic.", ro: "Pe planul Gratuit, comenzile sunt doar marcate (etichetă + semnal de risc). Blocarea la finalizarea comenzii, eliminarea plății ramburs și anularea automată sunt incluse în planul Basic." },
   "settings.yellowLabel": { en: "Yellow customer (suspicious, unconfirmed)", ro: "Client galben (suspect, neconfirmat)" },
   "settings.yellowTag": { en: "Flag only (tag + risk signal)", ro: "Doar marchează (etichetă + semnal de risc)" },

@@ -7,7 +7,7 @@ import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { hmacId, shopRef } from "../../core/hash";
 import { fastHash } from "../../core/fasthash";
-import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, NORM_VERSION, type IdKind } from "../../core/normalize";
+import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, parsePincodes, NORM_VERSION, type IdKind } from "../../core/normalize";
 import { shouldShareToNetwork, settingsOf, networkOf, payActions, type ShopSettings } from "../../core/settings";
 
 import { type Reason } from "../../core/reasons";
@@ -34,7 +34,7 @@ export function buildIdentifiers(i: EntryInput, country = "RO", opts?: { keepWea
   const name = normName(i.firstName, i.lastName);
   const rawName = [i.firstName, i.lastName].filter(Boolean).join(" ");
   add("name", rawName || undefined, name);
-  const addr = normAddress({ address1: i.address1, address2: i.address2, city: i.city });
+  const addr = normAddress({ address1: i.address1, address2: i.address2, city: i.city, country });
   const rawAddr = [i.address1, i.address2, i.city].filter(Boolean).join(", ");
   // An address without a house number ("Strada Lungă", a village) is too weak to block on, but the merchant typed it
   // and must see it on the customer: when saving an entry (keepWeakAddress) it is kept under a display-only key ("~…").
@@ -263,7 +263,9 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const m = payActions(st);
   // v3 lists are sorted: the Function binary-searches them instead of building Sets (cheaper for long lists)
   const S = (x: Set<string>) => [...x].sort();
-  return { v: 3, e: S(buckets.e), p: S(buckets.p), a: S(buckets.a), d: S(buckets.d), n: S(buckets.n), w: S(buckets.w), ne: S(buckets.ne), np: S(buckets.np), y: { e: S(yb.e), p: S(yb.p) }, yf: { e: S(yf.e), p: S(yf.p) }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
+  // PIN / postal codes where cash on delivery is hidden for everyone (merchant rule)
+  const z = parsePincodes(st.codPincodes);
+  return { v: 3, z, e: S(buckets.e), p: S(buckets.p), a: S(buckets.a), d: S(buckets.d), n: S(buckets.n), w: S(buckets.w), ne: S(buckets.ne), np: S(buckets.np), y: { e: S(yb.e), p: S(yb.p) }, yf: { e: S(yf.e), p: S(yf.p) }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 
 /** Shops whose old shop-level copy of the blocklist (namespace "semafor") was already removed by this process. */

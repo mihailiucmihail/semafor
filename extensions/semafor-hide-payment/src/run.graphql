@@ -3,7 +3,7 @@ query CartPaymentMethodsTransformRunInput {
   localization { country { isoCode } }
   cart {
     buyerIdentity { email phone }
-    deliveryGroups { deliveryAddress { firstName lastName address1 address2 city phone } }
+    deliveryGroups { deliveryAddress { firstName lastName address1 address2 city zip countryCode phone } }
     attribute(key: "_dev") { value }
   }
   paymentCustomization { metafield(namespace: "$app", key: "blocklist") { jsonValue } }

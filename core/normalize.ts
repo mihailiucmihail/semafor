@@ -29,7 +29,23 @@ export function normEmail(raw: string): string | null {
   return `${local}@${domain}`;
 }
 
-const CC: Record<string, string> = { RO: '40', MD: '373', DE: '49', PL: '48', AT: '43', IT: '39', ES: '34', FR: '33', GB: '44', HU: '36', BG: '359' };
+const CC: Record<string, string> = {
+  RO: '40', MD: '373', DE: '49', PL: '48', AT: '43', IT: '39', ES: '34', FR: '33', GB: '44', HU: '36', BG: '359',
+  IN: '91', PK: '92', MA: '212', EG: '20',
+};
+
+/** Length of the national (significant) number, for countries where it is fixed: lets "9876543210" (IN) be told
+ *  apart from "919876543210" without guessing from the leading digits (Indian mobiles may start with 91 too). */
+const NSN: Record<string, number> = { '40': 9, '91': 10, '92': 10, '212': 9, '20': 10 };
+
+/** "+91 0 98765…" / "0091 0 98765…" → drop the trunk 0 written after the country code. */
+function dropTrunkZero(d: string): string {
+  if (d.startsWith('400')) return '40' + d.slice(3);
+  for (const cc of ['91', '92', '212', '20']) {
+    if (d.startsWith(cc + '0') && d.length === cc.length + 1 + NSN[cc]) return cc + d.slice(cc.length + 1);
+  }
+  return d;
+}
 
 /** E.164 ("+40743088138"). defaultCountry is used for national numbers starting with a single 0. */
 export function normPhone(raw: string, defaultCountry = 'RO'): string | null {
@@ -39,16 +55,24 @@ export function normPhone(raw: string, defaultCountry = 'RO'): string | null {
   let d = s.replace(/\D/g, '');
   if (!d) return null;
   if (plus) {
-    // "+40 (0) 743…" → drop the trunk 0 after the country code
-    if (d.startsWith('400')) d = '40' + d.slice(3);
+    d = dropTrunkZero(d);
     return d.length >= 8 && d.length <= 15 ? '+' + d : null;
   }
   if (d.startsWith('00')) {
-    d = d.slice(2);
-    if (d.startsWith('400')) d = '40' + d.slice(3);
+    d = dropTrunkZero(d.slice(2));
     return d.length >= 8 && d.length <= 15 ? '+' + d : null;
   }
   const cc = CC[defaultCountry.toUpperCase()] ?? '40';
+  const nsn = cc === '40' ? 0 : NSN[cc] ?? 0; // Romania keeps its original rules below
+  if (nsn) {
+    if (d.startsWith('0') && d.length === nsn + 1) d = cc + d.slice(1);           // 09876543210
+    else if (d.length === nsn) d = cc + d;                                         // 9876543210
+    else if (d.startsWith(cc) && d.length === cc.length + nsn) { /* 919876543210 */ }
+    else if (d.startsWith(cc + '0') && d.length === cc.length + 1 + nsn) d = cc + d.slice(cc.length + 1); // 9109876543210
+    else if (d.startsWith('0')) d = cc + d.slice(1);
+    else if (!d.startsWith(cc)) d = cc + d;
+    return d.length >= 8 && d.length <= 15 ? '+' + d : null;
+  }
   if (d.startsWith('0')) d = cc + d.slice(1);
   else if (cc === '40' && d.length === 9 && d.startsWith('7')) d = '40' + d; // "743088138"
   else if (cc === '40' && d.startsWith('40') && d.length === 11) { /* already 40… */ }
@@ -108,7 +132,13 @@ export interface AddressInput { address1?: string | null; address2?: string | nu
  * Returns null when there is no house number (too weak to block on).
  * Without a city the key ends in "|*"; orders also produce that wildcard key, so such entries match any city.
  */
+/** Countries whose addresses rarely carry a street + house number (landmarks, "Flat 302, … Apartments"):
+ *  the Romanian street|number|city key would match strangers ("flat|302|mumbai"), so addresses there are not matched.
+ *  Phone, device, e-mail and the PIN-code rule are used instead. */
+export const NO_ADDRESS_MATCH = new Set(['IN', 'PK']);
+
 export function normAddress(a: AddressInput): string | null {
+  if (a.country && NO_ADDRESS_MATCH.has(String(a.country).toUpperCase())) return null;
   const toks = words(`${a.address1 ?? ''} ${a.address2 ?? ''}`.replace(/\bnr\.?(\d)/gi, 'nr $1')).map((x) => ADDR_WORDS[x] ?? x);
   // No city → wildcard key "street|number|*" (lists imported from other apps often have no city).
   const city = normCity(a.city) || '*';
@@ -141,4 +171,42 @@ export function normNameAddress(name: string | null, address: string | null): st
 export function normDevice(raw: string): string | null {
   const s = raw.trim().toLowerCase();
   return /^[0-9a-f]{16,64}$/.test(s) ? s : null;
+}
+
+// ── PIN / postal codes where cash on delivery is hidden (merchant rule, no blacklist needed) ──
+
+/** "110 001" / "110-001" → "110001"; letters kept for alphanumeric postal codes. */
+export function normZip(raw: string | null | undefined): string {
+  return String(raw ?? '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+}
+
+/**
+ * Merchant's list → clean, sorted, deduplicated patterns. One per line or separated by commas / spaces / semicolons.
+ * "110001" = that code; "110*" = every code starting with 110 ("8*" = a whole first-digit zone).
+ */
+export function parsePincodes(text: string | string[] | null | undefined, max = 1000): string[] {
+  // "110 001" is one code; "110001 110002" is two: split a line on spaces only when it is too long to be one code
+  const parts = (Array.isArray(text) ? text.join('\n') : String(text ?? '')).split(/[\n\r,;]+/)
+    .flatMap((x) => (normZip(x).length > 10 || /\*\s+\S/.test(x) ? x.trim().split(/\s+/) : [x]));
+  const out = new Set<string>();
+  for (const p of parts) {
+    const star = /\*\s*$/.test(p);
+    const z = normZip(p);
+    if (!z || z.length > 10) continue;
+    if (star) out.add(z + '*');
+    else if (z.length >= 3) out.add(z);
+    if (out.size >= max) break;
+  }
+  return [...out].sort();
+}
+
+/** Does a delivery postal code hit one of the patterns? */
+export function pincodeHit(patterns: string[] | null | undefined, zip: string | null | undefined): boolean {
+  if (!patterns || !patterns.length) return false;
+  const z = normZip(zip);
+  if (!z) return false;
+  for (const p of patterns) {
+    if (p.endsWith('*') ? z.startsWith(p.slice(0, -1)) : z === p) return true;
+  }
+  return false;
 }
