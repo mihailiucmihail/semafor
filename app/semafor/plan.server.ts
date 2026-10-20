@@ -56,7 +56,7 @@ export async function applyPlanChange(domain: string) {
 
 /** Read the active subscription from Shopify and store it on the Shop row. */
 export async function refreshPlan(admin: Admin, shop: { id: string; domain: string; plan?: string | null }): Promise<Plan> {
-  if (isOwnerShop(shop.domain)) {
+  if (isOwnerShop(shop.domain) || isDemoShop(shop.domain)) {
     if (shop.plan !== "pro") await db.shop.update({ where: { id: shop.id }, data: { plan: "pro" } });
     return "pro";
   }
