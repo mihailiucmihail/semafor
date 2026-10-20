@@ -6,6 +6,10 @@ export const WEIGHTS: Record<IdKind, number> = {
 };
 export const WEIGHT_NAME_FUZZY = 20;
 export const WEIGHT_DEVICE_IPHONE = 30;
+/** A browser id linked to a blacklist entry stops counting after this many days: phones get sold or reset. */
+export const DEVICE_TTL_DAYS = 365;
+export const deviceExpired = (kind: string, createdAt?: Date | null, now = Date.now()) =>
+  kind === 'device' && !!createdAt && now - +createdAt > DEVICE_TTL_DAYS * 86400e3;
 
 export type Level = 'green' | 'yellow' | 'red';
 

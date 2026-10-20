@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { normEmail, normPhone, normName, normAddress } from '../core/normalize.ts';
 import { hmacId, shortHash } from '../core/hash.ts';
-import { extractIdentifiers, scoreOrder, combinedLevel } from '../core/score.ts';
+import { extractIdentifiers, scoreOrder, combinedLevel, deviceExpired } from '../core/score.ts';
 
 test('email: gmail dots and +tags collapse', () => {
   assert.equal(normEmail('Andreea.Popescu+shop@Gmail.com '), 'andreeapopescu@gmail.com');
@@ -300,4 +300,11 @@ test('pop-up + e-mails: French', async () => {
   const out = render({ subject: `Aujourd’hui seulement${NB}: {{discount_pct}}${NB}% de réduction  sur votre sélection`, html: '<p>Bonjour {{first_name}},</p>' }, { discount_pct: '20', first_name: '' }, true);
   assert.equal(out.subject, `Aujourd’hui seulement${NB}: 20${NB}% de réduction sur votre sélection`);
   assert.equal(out.html, '<p>Bonjour,</p>');
+});
+
+test('device ids stop counting after DEVICE_TTL_DAYS (phones get sold)', () => {
+  const now = Date.now();
+  assert.equal(deviceExpired('device', new Date(now - 400 * 86400e3), now), true);
+  assert.equal(deviceExpired('device', new Date(now - 30 * 86400e3), now), false);
+  assert.equal(deviceExpired('email', new Date(now - 4000 * 86400e3), now), false);
 });

@@ -1,4 +1,5 @@
 // Block entries: create / delete, network sharing rule, checkout metafield rebuild.
+import { deviceExpired } from "../../core/score";
 import { can } from "../../core/plans";
 import { planOf } from "./plan.server";
 import { createHash } from "node:crypto";
@@ -214,13 +215,13 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   if (!can(planOf(shopRow), "checkout_block")) return empty;
   const rows = await db.identifier.findMany({
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
-    select: { kind: true, normalized: true },
+    select: { kind: true, normalized: true, createdAt: true },
   });
   // v3: the shop's own list uses fastHash (cheap inside the Function); network entries stay SHA-256 prefixes (fnHash)
   const sh = (kind: string, n: string) => fastHash(`${kind}:${n}`);
   const buckets: Record<string, Set<string>> = { e: new Set(), p: new Set(), a: new Set(), d: new Set(), n: new Set(), w: new Set(), ne: new Set(), np: new Set() };
   const key: Record<string, string> = { email: "e", phone: "p", address: "a", device: "d" };
-  for (const r of rows) if (!(r.kind === "address" && isWeakAddress(r.normalized))) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
+  for (const r of rows) if (!(r.kind === "address" && isWeakAddress(r.normalized)) && !deviceExpired(r.kind, r.createdAt)) buckets[key[r.kind]].add(sh(r.kind, r.normalized));
   // Name-only entries (the merchant blocked a person by name, with no e-mail/phone/address): match the delivery name.
   // One word ("picioruș") = that word anywhere in first/last name; several words = the full name (any order).
   // Names that are only part of a fuller entry are NOT used here — too many people share a name.

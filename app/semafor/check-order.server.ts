@@ -2,7 +2,7 @@
 // 1) extract + normalize identifiers  2) look up own list  3) ask network  4) score
 // 5) write OrderCheck  6) act in Shopify: tag + risk assessment (+ optional cancel)
 import type { PrismaClient } from '@prisma/client';
-import { extractIdentifiers, scoreOrder, combinedLevel, type ScoreResult, type Level } from '../../core/score';
+import { extractIdentifiers, scoreOrder, combinedLevel, deviceExpired, type ScoreResult, type Level } from '../../core/score';
 import { hmacId, shopRef } from '../../core/hash';
 import type { IdKind } from '../../core/normalize';
 
@@ -45,6 +45,7 @@ export async function checkOrder(opts: {
   const ownMap = new Map<string, Array<{ entryId: string; reason: string }>>();
   for (const r of rows as any[]) {
     if (r.entry.expiresAt && r.entry.expiresAt < now) continue;
+    if (deviceExpired(r.kind, r.createdAt, +now)) continue;
     const k = `${r.kind}:${r.normalized}`;
     ownMap.set(k, [...(ownMap.get(k) ?? []), { entryId: r.entry.id, reason: r.entry.reason }]);
   }

@@ -80,6 +80,7 @@ model Identifier {
   normalized  String
   hash        String                         // HMAC hex
   normVersion Int        @default(1)
+  createdAt   DateTime   @default(now())   // devices stop counting after DEVICE_TTL_DAYS (phones get sold)
 
   @@index([shopId, kind, hash])
   @@index([hash])
