@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
 import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, Badge, Button, Banner, ProgressBar, ButtonGroup, Divider, Icon } from "@shopify/polaris";
 import { CheckIcon } from "@shopify/polaris-icons";
@@ -42,6 +42,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
 export default function PlanPage() {
   const { plan, used, owner, need, pricingUrl, trial, launch } = useLoaderData<typeof loader>();
+  const offer = useFetcher<{ ok: boolean }>();
+  const offerSent = launch.requested || offer.data?.ok === true;
   const rank = { free: 0, basic: 1, pro: 2 } as const;
   const tr = useT();
   const [yearly, setYearly] = useState(false);
@@ -64,7 +66,14 @@ export default function PlanPage() {
             <TrialBanner trial={trial as any} />
             {launch.show && (
               <Banner tone="success" title={tr("plan.launch.title")}>
-                <Text as="p">{tr("plan.launch.body")}</Text>
+                <BlockStack gap="300">
+                  <Text as="p">{offerSent ? tr("plan.launch.thanks") : tr("plan.launch.body")}</Text>
+                  {!offerSent && (
+                    <InlineStack>
+                      <Button variant="primary" loading={offer.state !== "idle"} onClick={() => offer.submit({ intent: "launch-offer" }, { method: "post" })}>{tr("plan.launch.cta")}</Button>
+                    </InlineStack>
+                  )}
+                </BlockStack>
               </Banner>
             )}
 
@@ -111,7 +120,6 @@ export default function PlanPage() {
                         <Text as="p" tone="subdued">{tr(`plan.tagline.${id}` as TKey)}</Text>
                         <BlockStack gap="100">
                           <InlineStack gap="100" blockAlign="baseline">
-                            {launch.show && id !== "free" && <span style={{ textDecoration: "line-through", color: "#8a8a8a", fontSize: 18 }}>{tr(`plan.amount${yr ? "YearOld" : "Old"}.${id}` as TKey)}</span>}
                             <span className="sf-plan-price">{tr(`plan.amount${yr ? "Year" : ""}.${id}` as TKey)}</span>
                             {id !== "free" && <Text as="span" tone="subdued">{yr ? tr("plan.perYear") : tr("plan.perMonth")}</Text>}
                           </InlineStack>
