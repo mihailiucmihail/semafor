@@ -1,6 +1,6 @@
 // Block entries: create / delete, network sharing rule, checkout metafield rebuild.
 import { deviceExpired } from "../../core/score";
-import { can } from "../../core/plans";
+import { can, pincodesFor } from "../../core/plans";
 import { planOf } from "./plan.server";
 import { createHash } from "node:crypto";
 import db from "../db.server";
@@ -212,7 +212,8 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   const empty = { v: 1, e: [] as string[], p: [] as string[], a: [] as string[], d: [] as string[], msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
   // Blocking in checkout (hide cash on delivery / block) is a Basic feature.
   const shopRow = await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, settings: true, trialEndsAt: true } });
-  if (!can(planOf(shopRow), "checkout_block")) return empty;
+  // Free plan: only the PIN-code rule, capped (pincodesFor)
+  if (!can(planOf(shopRow), "checkout_block")) return { ...empty, z: pincodesFor(settingsOf(shopRow?.settings).codPincodes, planOf(shopRow)) };
   const rows = await db.identifier.findMany({
     where: { shopId, kind: { in: ["email", "phone", "address", "device"] }, entry: { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] } },
     select: { kind: true, normalized: true, createdAt: true },
@@ -264,7 +265,7 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // v3 lists are sorted: the Function binary-searches them instead of building Sets (cheaper for long lists)
   const S = (x: Set<string>) => [...x].sort();
   // PIN / postal codes where cash on delivery is hidden for everyone (merchant rule)
-  const z = parsePincodes(st.codPincodes);
+  const z = pincodesFor(parsePincodes(st.codPincodes), planOf(shopRow));
   return { v: 3, z, e: S(buckets.e), p: S(buckets.p), a: S(buckets.a), d: S(buckets.d), n: S(buckets.n), w: S(buckets.w), ne: S(buckets.ne), np: S(buckets.np), y: { e: S(yb.e), p: S(yb.p) }, yf: { e: S(yf.e), p: S(yf.p) }, m, msg: msg || "Nu putem finaliza această comandă. Vă rugăm să ne contactați." };
 }
 

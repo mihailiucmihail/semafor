@@ -1,7 +1,8 @@
 // Semafor plans. Prices and plan names live in the Partner Dashboard (Shopify managed pricing);
 // the app only reads which plan is active and unlocks features.
 //
-//   free  (Gratuit) — manual blacklist + network, traffic light on up to FREE_MONTHLY_CHECKS orders / month
+//   free  (Gratuit) — manual blacklist + network, traffic light on up to FREE_MONTHLY_CHECKS orders / month,
+//                     COD hidden for up to FREE_PINCODES exact PIN codes
 //   basic (Basic)   — unlimited orders, blocking in checkout (hide COD / block), auto-cancel red,
 //                     yellow actions, identities linked by device, storefront e-mail pop-up
 //   pro   (Pro)     — + checkout steps analytics, client page, recovery e-mails (manual + automatic)
@@ -10,6 +11,15 @@ import type { ShopSettings } from './settings';
 export type Plan = 'free' | 'basic' | 'pro';
 export const PLAN_RANK: Record<Plan, number> = { free: 0, basic: 1, pro: 2 };
 export const FREE_MONTHLY_CHECKS = 50;
+/** Free plan: cash on delivery hidden for up to this many exact PIN / postal codes (no "110*" ranges). Basic: no limit. */
+export const FREE_PINCODES = 10;
+
+/** PIN-code patterns that act for this plan. */
+export function pincodesFor(patterns: string[] | null | undefined, plan: string | null | undefined): string[] {
+  const all = patterns ?? [];
+  if (can(plan, 'checkout_block')) return all;
+  return all.filter((p) => !p.endsWith('*')).slice(0, FREE_PINCODES);
+}
 /** Every new store gets Pro free for this many days (no billing); then it falls back to its real plan. */
 export const TRIAL_DAYS = 14;
 

@@ -65,3 +65,13 @@ test("checkout: Indian COD names are recognised", () => {
     assert.deepEqual(hidden(run(input)), ["cod"], name);
   }
 });
+
+test("Free plan: up to 10 exact PIN codes, no ranges; Basic / Pro: all", async () => {
+  const { pincodesFor } = await import("../core/plans.ts");
+  const list = ["110*", ...Array.from({ length: 12 }, (_, i) => String(400050 + i))];
+  const free = pincodesFor(list, "free");
+  assert.equal(free.length, 10);
+  assert.ok(!free.some((p) => p.endsWith("*")));
+  assert.deepEqual(pincodesFor(list, "basic"), list);
+  assert.deepEqual(pincodesFor(list, "pro"), list);
+});

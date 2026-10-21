@@ -12,7 +12,7 @@ import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { pushCheckoutMetafield, buildCheckoutPayload, syncPaymentBlock } from "../semafor/entries.server";
 import { ensureWebhooks, ensurePixel } from "../semafor/webhooks.server";
 import { planOf } from "../semafor/plan.server";
-import { can } from "../../core/plans";
+import { can, FREE_PINCODES } from "../../core/plans";
 import { useT, useLang, trMsg, isLang, LANGS, LANG_NAMES, type Lang, type TKey } from "../i18n";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -53,7 +53,9 @@ export default function Settings() {
   const payOptions = [{ label: tr("settings.payAll"), value: "all" }, { label: tr("settings.payCod"), value: "cod" }, { label: tr("settings.payNone"), value: "none" }];
   const lang = useLang();
   const [s, setS] = useState({ redPay: payActions(settings).r as string, yellowPay: payActions(settings).y as string, cancelRed: settings.cancelRed, shareNetwork: settings.shareNetwork, tagAttributed: settings.tagAttributed !== false, block: String(settings.thresholds.block), warn: String(settings.thresholds.warn), uiLang: settings.uiLang || "", shipCost: settings.shipCost ? String(settings.shipCost) : "", codPincodes: (settings.codPincodes ?? []).join("\n") });
-  const pinCount = parsePincodes(s.codPincodes).length;
+  const pinList = parsePincodes(s.codPincodes);
+  const pinCount = pinList.length;
+  const pinActive = pinList.filter((p) => !p.endsWith("*")).slice(0, FREE_PINCODES).length;
   useEffect(() => { if (fetcher.state === "idle" && fetcher.data?.ok) app.toast.show(tr("common.settingsSaved")); }, [fetcher.state, fetcher.data, app, tr]);
   const topicLabel = (topic: string) => (["ORDERS_CREATE", "APP_UNINSTALLED", "ORDERS_PAID", "ORDERS_CANCELLED", "ORDERS_FULFILLED", "ORDERS_UPDATED", "PIXEL", "PAYMENTS"].includes(topic) ? tr(`settings.topic.${topic}` as TKey) : topic);
 
@@ -94,10 +96,11 @@ export default function Settings() {
           <Layout.AnnotatedSection title={tr("settings.pinHeading")} description={tr("settings.pinDesc")}>
             <Card>
               <BlockStack gap="300">
-                {!basic && <Banner tone="info" action={{ content: tr("settings.seePlans"), url: "/app/plan" }}>{tr("settings.freeBanner")}</Banner>}
-                <TextField label={tr("settings.pinLabel")} multiline={5} disabled={!basic} value={s.codPincodes} onChange={(v) => setS({ ...s, codPincodes: v })}
+                {!basic && <Banner tone="info" action={{ content: tr("settings.seePlans"), url: "/app/plan" }}>{tr("settings.pinFree", { n: String(FREE_PINCODES) })}</Banner>}
+                <TextField label={tr("settings.pinLabel")} multiline={5} value={s.codPincodes} onChange={(v) => setS({ ...s, codPincodes: v })}
                   autoComplete="off" placeholder={"110001\n110002\n8*"} helpText={tr("settings.pinHelp")} />
-                {basic && pinCount > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("settings.pinCount", { n: String(pinCount) })}</Text>}
+                {pinCount > 0 && <Text as="p" variant="bodySm" tone="subdued">{tr("settings.pinCount", { n: String(basic ? pinCount : pinActive) })}</Text>}
+                {!basic && pinCount > pinActive && <Text as="p" variant="bodySm" tone="caution">{tr("settings.pinOver", { n: String(pinCount - pinActive) })}</Text>}
               </BlockStack>
             </Card>
           </Layout.AnnotatedSection>

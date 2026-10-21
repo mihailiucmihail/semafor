@@ -10,7 +10,7 @@ import { ensureShop } from "../semafor/shop.server";
 import { refreshPlan, checksThisMonth, isOwnerShop, trialBanner } from "../semafor/plan.server";
 import { TrialBanner } from "../components/trial-banner";
 import { launchOfferState, requestLaunchOffer } from "../semafor/launch-offer.server";
-import { FREE_MONTHLY_CHECKS, FEATURE_PLAN, type Feature, type Plan } from "../../core/plans";
+import { FREE_MONTHLY_CHECKS, FEATURE_PLAN, type Feature, type Plan, FREE_PINCODES } from "../../core/plans";
 import { useT, type TKey } from "../i18n";
 
 /** Indicative prices shown in the app (texts in app/i18n.ts, plan.price.*); the real ones are set in the Partner Dashboard (managed pricing). */
@@ -103,7 +103,7 @@ export default function PlanPage() {
 
             <InlineGrid columns={{ xs: 1, md: 3 }} gap="400">
               {PLANS.map((id) => {
-                const items = (id === "free" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6]).map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS }));
+                const items = (id === "free" ? [1, 2, 3, 4, 5] : [1, 2, 3, 4, 5, 6]).map((k) => tr(`plan.${id}.${k}` as TKey, { n: FREE_MONTHLY_CHECKS, p: FREE_PINCODES }));
                 const name = planName(id);
                 const yr = yearly && id !== "free";
                 return (
