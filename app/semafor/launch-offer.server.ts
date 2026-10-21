@@ -1,4 +1,4 @@
-// Launch offer: −50% forever for shops that install before 31 Dec 2026 (Romania / Moldova).
+// Launch offer: −50% forever for shops that subscribe before 31 Dec 2026 (all countries; the public plans carry the launch prices).
 // Shopify managed pricing has no discount codes, so the offer is two private plans ("Basic Lansare", "Pro Lansare")
 // that the owner unlocks per store in the Partner Dashboard. The in-app button only records the request and emails the owner.
 import db from "../db.server";
@@ -7,7 +7,6 @@ type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
 /** Last moment to request the offer: 1 Jan 2027 00:00 Bucharest time. */
 export const LAUNCH_OFFER_END = Date.UTC(2026, 11, 31, 22, 0, 0);
-const COUNTRIES = new Set(["RO", "MD"]);
 const kvKey = (shop: string) => `launch-offer:${shop}`;
 
 export async function shopCountry(admin: Admin): Promise<string> {
@@ -21,8 +20,8 @@ export async function shopCountry(admin: Admin): Promise<string> {
 
 export async function launchOfferState(admin: Admin, shop: string, owner: boolean) {
   if (owner || Date.now() >= LAUNCH_OFFER_END) return { show: false, requested: false };
-  const [country, row] = await Promise.all([shopCountry(admin), db.appKv.findUnique({ where: { key: kvKey(shop) } }).catch(() => null)]);
-  return { show: COUNTRIES.has(country), requested: !!row };
+  // Launch prices are now the public plan prices for everybody (all countries), so there is nothing to request.
+  return { show: true, requested: false };
 }
 
 export async function requestLaunchOffer(admin: Admin, shop: string) {

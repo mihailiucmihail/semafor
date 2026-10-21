@@ -15,11 +15,11 @@ async function shopInfo(domain: string, token: string) {
     const r = await fetch(`https://${domain}/admin/api/2026-07/graphql.json`, {
       method: "POST",
       headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: `query{ shop{ name plan{ displayName } billingAddress{ countryCodeV2 } } }` }),
+      body: JSON.stringify({ query: `query{ shop{ name contactEmail email plan{ displayName } billingAddress{ countryCodeV2 } } }` }),
     });
     const j: any = await r.json();
     const s = j?.data?.shop;
-    return s ? { name: String(s.name || ""), plan: String(s.plan?.displayName || ""), country: String(s.billingAddress?.countryCodeV2 || "") } : null;
+    return s ? { name: String(s.name || ""), plan: String(s.plan?.displayName || ""), country: String(s.billingAddress?.countryCodeV2 || ""), email: String(s.contactEmail || s.email || "") } : null;
   } catch { return null; }
 }
 
@@ -34,6 +34,7 @@ async function counts() {
 export function notifyInstall(kind: Kind, domain: string, token = "") {
   void (async () => {
     if (isTest(domain)) return;
+    if (kind !== "uninstall") void import("./merchant-welcome.server").then(async (m) => m.sendMerchantWelcome(domain, await shopInfo(domain, token)));
     const to = process.env.INSTALL_NOTIFY_EMAIL || process.env.LAUNCH_OFFER_EMAIL || process.env.QUOTA_ALERT_EMAIL || "mihailiucmihail@gmail.com";
     if (!process.env.RESEND_API_KEY || to === "off") return;
     const day = new Date().toISOString().slice(0, 10);
