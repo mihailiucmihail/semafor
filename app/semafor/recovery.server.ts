@@ -601,6 +601,11 @@ export async function sendRecovery(i: SendInput) {
   out.html = out.html.replace(/(Hallo|Cześć|Bună|Hola|Bonjour),? ,/g, "$1,").replace(/(Hallo|Cześć|Bună|Hola|Bonjour) ,/g, "$1,");
   if (i.preview) return { ...out, to: ctx.email, code, url };
 
+  // hard safety net: never two automatic reminders to the same buyer (address or browser) within 6 hours
+  if (i.kind !== "manual") {
+    const recent = await db.emailSend.findFirst({ where: { shopId: i.shopId, status: "sent", kind: { in: ["auto1", "auto2", "auto3"] }, createdAt: { gt: new Date(Date.now() - 6 * 3_600_000) }, OR: [{ email: { equals: ctx.email, mode: "insensitive" } }, { deviceId: i.deviceId }] }, select: { id: true } });
+    if (recent) throw new Error("RECENT_SENT");
+  }
   try {
     const sentToday = await db.emailSend.count({ where: { shopId: i.shopId, status: "sent", createdAt: { gt: new Date(Date.now() - DAY) } } });
     if (sentToday >= DAILY_LIMIT) throw new Error(`Limita zilnică de ${DAILY_LIMIT} e-mailuri a fost atinsă.`);
@@ -694,7 +699,9 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     seen.add(em);
     if (await isOptedOut(shop.id, em)) continue;
     // the pop-up welcome e-mail is not a reminder: it doesn't count for the reminder sequence
-    const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, email: d.email, createdAt: { gt: since }, kind: { not: "welcome" } }, orderBy: { createdAt: "asc" } })) as any[];
+    // history by e-mail (any letter case) OR by this browser: the address saved on a sent e-mail can differ from
+    // d.email (another address typed later on the same device, capitals) — then the sequence restarted every 5 minutes
+    const prev = (await db.emailSend.findMany({ where: { shopId: shop.id, createdAt: { gt: since }, kind: { not: "welcome" }, OR: [{ email: { equals: d.email, mode: "insensitive" } }, { deviceId }] }, orderBy: { createdAt: "asc" } })) as any[];
     if (prev.some((p) => p.status === "skipped" && (p.error === "a comandat între timp" || p.error === "fără produse în coș"))) continue;
     const has = (k: string) => prev.some((p) => p.kind === k && p.status === "sent");
     const failed = (k: string) => prev.filter((p) => p.kind === k && p.status === "failed").length;
@@ -762,6 +769,7 @@ export async function runAutomation(shop: { id: string; domain: string; settings
     } catch (e: any) {
       if (e?.message === "NO_ITEMS") await db.emailSend.create({ data: { shopId: shop.id, deviceId, email: d.email, subject: "-", kind, status: "skipped", error: "fără produse în coș" } });
       else if (String(e?.message || "").startsWith("out_of_stock:")) { /* recorded as skipped by sendRecovery; checked again next pass */ }
+      else if (e?.message === "RECENT_SENT") { /* already reminded in the last 6 h */ }
       else console.error("[semafor] recovery send failed", e?.message || e);
     }
   }
