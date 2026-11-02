@@ -33,7 +33,15 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     }
     return { device: short(dev), linkedAt: devId.createdAt, stepAt: null, typed: null, matchedOn: ["(no checkout step of this browser matched — linked by backfill or from an order)"] };
   });
+  // what each browser typed over time (who used it)
+  const perDevice = devices.map((dev) => {
+    const list = attempts.filter((a) => a.deviceId === dev);
+    const uniq = (f: (a: any) => any) => [...new Set(list.map(f).filter(Boolean))];
+    return { device: short(dev), steps: list.length, first: list[0]?.createdAt ?? null, last: list[list.length - 1]?.createdAt ?? null,
+      emails: uniq((a) => a.email), phones: uniq((a) => a.phone), names: uniq((a) => [a.firstName, a.lastName].filter(Boolean).join(" ")), cities: uniq((a) => a.city) };
+  });
   const out = {
+    perDevice,
     entry,
     identifiers: ids.map((i) => ({ at: i.createdAt, kind: i.kind, raw: i.kind === "device" ? short(i.raw) : i.raw })),
     audits: audits.map((a) => ({ at: a.at, action: a.action, actor: a.actor, added: (a.payload?.added || a.payload?.removed || []).map((x: any) => `${x.kind}: ${x.kind === "device" ? short(x.raw) : x.raw}`) })),
