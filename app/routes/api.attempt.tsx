@@ -71,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     },
   });
   // blacklisted buyer (or browser) → link this browser and whatever was typed to the entry, refresh the blocklist
-  if (event !== "completed") void linkDeviceAttempt(shop, deviceId, { email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80), address1: cut(b.address1), city: cut(b.city, 80), country: cut(b.country, 4)?.toUpperCase() ?? null });
+  if (event !== "completed") void linkDeviceAttempt(shop, deviceId, { email: cut(b.email), phone: cut(b.phone, 40), firstName: cut(b.firstName, 80), lastName: cut(b.lastName, 80), address1: cut(b.address1), city: cut(b.city, 80), country: cut(b.country, 4)?.toUpperCase() ?? null }, cut(b.checkoutToken, 100));
   // retention (120 days) runs once a day from the scheduler — app/semafor/retention.server.ts
   return new Response("ok", { headers: CORS });
 };

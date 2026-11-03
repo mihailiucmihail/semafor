@@ -24,9 +24,13 @@ export async function linkDeviceAttempt(
   shop: { id: string; domain: string; plan: string | null; country: string },
   deviceId: string,
   typed: { email?: string | null; phone?: string | null; firstName?: string | null; lastName?: string | null; address1?: string | null; city?: string | null; country?: string | null },
+  checkoutToken?: string | null,
 ) {
   try {
     if (!can(planOf(shop), "checkout_block") || !can(planOf(shop), "device_links")) return;
+    // A checkout that another browser created was opened from a link (shared, forwarded, or an e-mail): its
+    // prefilled data belongs to someone else, so it must not link this browser to anybody.
+    if (checkoutToken && await db.checkoutAttempt.findFirst({ where: { shopId: shop.id, checkoutToken, deviceId: { not: deviceId } }, select: { id: true } })) return;
     const dev = normDevice(deviceId);
     const ids = buildIdentifiers({
       email: typed.email ?? undefined, phone: typed.phone ?? undefined, firstName: typed.firstName ?? undefined, lastName: typed.lastName ?? undefined,
