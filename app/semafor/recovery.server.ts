@@ -309,20 +309,26 @@ export async function productImages(admin: Admin, variantId: string | null | und
   } catch { return []; }
 }
 
-/** Abandoned-checkout recovery URL whose checkout token is exactly `token`, or null. */
-export async function abandonedUrlByToken(admin: Admin, token: string, notBefore?: Date | null): Promise<string | null> {
+/**
+ * Recovery URL of the newest abandoned checkout that belongs to `email` (exact, case-insensitive), or null.
+ * abandonedCheckouts has NO e-mail filter (an `email:` term is ignored and the newest checkout of ANY buyer
+ * comes back), and its URL token differs from the pixel's checkout token — so match the e-mail here.
+ */
+export async function abandonedUrlFor(admin: Admin, email: string, notBefore?: Date | null): Promise<string | null> {
+  const want = email.trim().toLowerCase();
+  if (!want) return null;
   const since = new Date((notBefore ? +notBefore : Date.now()) - 2 * DAY);
   let after: string | null = null;
   for (let page = 0; page < 10; page++) {
     let d: any;
     try {
-      d = await gql(admin, `query($after:String){ abandonedCheckouts(first:100, after:$after, reverse:true, sortKey:CREATED_AT){ pageInfo{ hasNextPage endCursor } nodes{ createdAt abandonedCheckoutUrl } } }`, { after });
+      d = await gql(admin, `query($after:String){ abandonedCheckouts(first:100, after:$after, reverse:true, sortKey:CREATED_AT){ pageInfo{ hasNextPage endCursor } nodes{ createdAt completedAt abandonedCheckoutUrl customer{ defaultEmailAddress{ emailAddress } } } } }`, { after });
     } catch { return null; }
     const conn = d?.abandonedCheckouts;
     for (const n of conn?.nodes ?? []) {
-      const tok = String(n.abandonedCheckoutUrl || "").match(/\/checkouts\/(?:ac|cn|c)\/([^/?]+)/)?.[1];
-      if (tok && tok === token) return n.abandonedCheckoutUrl;
       if (new Date(n.createdAt) < since) return null;
+      const e = String(n.customer?.defaultEmailAddress?.emailAddress || "").trim().toLowerCase();
+      if (e && e === want && !n.completedAt) return n.abandonedCheckoutUrl;
     }
     if (!conn?.pageInfo?.hasNextPage) return null;
     after = conn.pageInfo.endCursor;
@@ -335,9 +341,9 @@ export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: stri
   let url: string | null = null;
   // only a cart (or a newer cart after the checkout): link to the cart itself, not to an older checkout of that e-mail
   if (ctx.lastEvent === "cart") return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
-  // The buyer's OWN checkout, found by its token. (abandonedCheckouts ignores an `email:` filter and
-  // returns the newest checkout of ANY buyer — that sent people links to strangers' checkouts.)
-  if (ctx.checkoutToken) url = await abandonedUrlByToken(admin, ctx.checkoutToken, ctx.firstAt);
+  // The buyer's OWN checkout, matched by her e-mail. (abandonedCheckouts ignores an `email:` filter and
+  // returned the newest checkout of ANY buyer — that sent people links to strangers' checkouts.)
+  if (ctx.email) url = await abandonedUrlFor(admin, ctx.email, ctx.firstAt);
   if (!url) return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
   if (!host) return url;
   try { const u = new URL(url); u.host = host; return u.toString(); } catch { return url; }

@@ -19,15 +19,18 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   // ?leaks=1: sent e-mails whose checkout link points to a DIFFERENT checkout than the recipient's own
   if (new URL(request.url).searchParams.get("leaks")) {
     const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent" }, orderBy: { createdAt: "asc" }, select: { createdAt: true, kind: true, deviceId: true, checkoutToken: true, html: true } })) as any[];
-    let ok = 0, wrong = 0, cart = 0;
-    const out: string[] = [];
+    const byLink = new Map<string, { devs: Set<string>; at: string[] }>();
+    let cart = 0;
     for (const s of sends) {
       const t = String(s.html || "").match(/\/checkouts\/(?:ac|cn|c)\/([A-Za-z0-9_-]+)/)?.[1];
       if (!t) { cart++; continue; }
-      if (t === s.checkoutToken) { ok++; continue; }
-      wrong++; out.push(`${s.createdAt.toISOString().slice(0, 16)} ${s.kind} dev:${(s.deviceId || "-").slice(0, 6)} own ck:${(s.checkoutToken || "-").slice(0, 8)} → link ck:${t.slice(0, 8)}`);
+      if (!byLink.has(t)) byLink.set(t, { devs: new Set(), at: [] });
+      byLink.get(t)!.devs.add((s.deviceId || "-").slice(0, 6)); byLink.get(t)!.at.push(s.createdAt.toISOString().slice(0, 16));
     }
-    return new Response([`sent ${sends.length} | own checkout ${ok} | OTHER checkout ${wrong} | cart link ${cart}`, ...out].join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    const shared = [...byLink.entries()].filter(([, v]) => v.devs.size > 1);
+    const wrong = shared.reduce((n, [, v]) => n + v.devs.size - 1, 0), ok = sends.length - cart;
+    const out = shared.map(([k, v]) => `link ${k.slice(0, 8)} → ${v.devs.size} browsers (${[...v.devs].join(",")}) ${v.at[0]}…${v.at[v.at.length - 1]}`);
+    return new Response([`sent ${sends.length} | checkout links ${ok} | links shared by several browsers ${shared.length} (≥${wrong} went to a stranger) | cart link ${cart}`, ...out].join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
   const emQ = new URL(request.url).searchParams.get("email");
   if (emQ) {
