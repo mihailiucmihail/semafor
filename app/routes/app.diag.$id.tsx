@@ -12,6 +12,23 @@ import { normDevice } from "../../core/normalize";
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
+  // ?dev=<prefix>: every checkout step + every e-mail Semafor sent for one browser (compact lines)
+  const devQ = new URL(request.url).searchParams.get("dev");
+  if (devQ) {
+    const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, deviceId: { startsWith: devQ } }, orderBy: { createdAt: "asc" }, take: 400,
+      select: { deviceId: true, event: true, email: true, phone: true, firstName: true, lastName: true, city: true, checkoutToken: true, host: true, discountCode: true, total: true, ip: true, fingerprint: true, createdAt: true } })) as any[];
+    const devs = [...new Set(rows.map((r) => r.deviceId))];
+    const sends = devs.length ? ((await db.emailSend.findMany({ where: { shopId: shop.id, deviceId: { in: devs } }, orderBy: { createdAt: "asc" }, select: { createdAt: true, kind: true, email: true, status: true, checkoutToken: true } })) as any[]) : [];
+    const leads = devs.length ? ((await db.popupLead.findMany({ where: { shopId: shop.id, deviceId: { in: devs } }, select: { createdAt: true, email: true, source: true } })) as any[]) : [];
+    const lines = [
+      ...rows.map((r) => `${r.createdAt.toISOString().slice(0, 16)} ${r.event.padEnd(9)} ${r.email || "-"} | ${r.phone || "-"} | ${[r.firstName, r.lastName].filter(Boolean).join(" ") || "-"} | ${r.city || "-"} | ck:${(r.checkoutToken || "-").slice(0, 8)} | ip:${(r.ip || "-").slice(0, 15)} | fp:${(r.fingerprint || "-").slice(0, 6)} | ${r.discountCode || ""} ${r.total ?? ""}`),
+      "--- e-mails sent to this browser ---",
+      ...sends.map((s) => `${s.createdAt.toISOString().slice(0, 16)} ${s.kind} ${s.status} → ${s.email} ck:${(s.checkoutToken || "-").slice(0, 8)}`),
+      "--- pop-up leads ---",
+      ...leads.map((l) => `${l.createdAt.toISOString().slice(0, 16)} ${l.source} ${l.email}`),
+    ];
+    return new Response(lines.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   const entry = await db.blockEntry.findFirst({ where: { id: params.id, shopId: shop.id }, select: { id: true, reason: true, createdAt: true } });
   if (!entry) return new Response("not found", { status: 404 });
   const ids = await db.identifier.findMany({ where: { entryId: entry.id }, orderBy: { createdAt: "asc" }, select: { kind: true, raw: true, hash: true, createdAt: true } });
