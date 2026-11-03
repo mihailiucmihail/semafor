@@ -14,18 +14,45 @@ const orderNum = (id: string) => String(id).split("/").pop() || "";
  *  - if any identity tried from that device is on the blacklist → red (weight 100)
  *  - if the device cycled through several identities within 48 h → yellow (weight 40)
  */
-export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO", ro = true, orderId?: string) {
+export type Buyer = { email?: string | null; phone?: string | null; firstName?: string | null; lastName?: string | null };
+type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
+
+/** Checkout tokens used by more than one browser: token → the browser that created it (first step). */
+async function sharedTokens(db: PrismaClient, shopId: string, tokens: string[]) {
+  const out = new Map<string, string>();
+  if (!tokens.length) return out;
+  const rows = (await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken: { in: tokens } }, orderBy: { createdAt: "asc" }, select: { checkoutToken: true, deviceId: true } })) as any[];
+  const first = new Map<string, string>(), devs = new Map<string, Set<string>>();
+  for (const r of rows) { if (!first.has(r.checkoutToken)) first.set(r.checkoutToken, r.deviceId); const s = devs.get(r.checkoutToken) ?? new Set<string>(); s.add(r.deviceId); devs.set(r.checkoutToken, s); }
+  for (const [t, s] of devs) if (s.size > 1) out.set(t, first.get(t)!);
+  return out;
+}
+
+export async function deviceLinks(db: PrismaClient, secret: string, shopId: string, checkoutToken: string | null | undefined, country = "RO", ro = true, orderId?: string, buyer?: Buyer, admin?: Admin) {
   if (!checkoutToken) return { findings: [] as DeviceFinding[], identities: [] as string[] };
-  const seed = await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken }, select: { deviceId: true, fingerprint: true, ip: true } }) as any[];
+  let seed = await db.checkoutAttempt.findMany({ where: { shopId, checkoutToken }, orderBy: { createdAt: "asc" }, select: { deviceId: true, fingerprint: true, ip: true, event: true } }) as any[];
   if (!seed.length) return { findings: [], identities: [] };
+  // a checkout opened in several browsers (a link shared or sent by e-mail): only the browser that placed the order
+  // (or, failing that, the one that created the checkout) counts — the others only looked at someone else's checkout
+  if (new Set(seed.map((s: any) => s.deviceId)).size > 1) {
+    const placer = seed.filter((s: any) => s.event === "completed").map((s: any) => s.deviceId);
+    const keep = new Set<string>(placer.length ? placer : [seed[0].deviceId]);
+    seed = seed.filter((s: any) => keep.has(s.deviceId));
+  }
 
   const devices = [...new Set(seed.map((s: any) => s.deviceId as string))];
   const fpIp = seed.filter((s: any) => s.fingerprint && s.ip).map((s: any) => ({ fingerprint: s.fingerprint!, ip: s.ip! }));
   const since = new Date(Date.now() - 30 * DAY);
-  const attempts = await db.checkoutAttempt.findMany({
+  const attempts0 = await db.checkoutAttempt.findMany({
     where: { shopId, createdAt: { gt: since }, OR: [{ deviceId: { in: devices } }, ...fpIp.map((x: any) => ({ fingerprint: x.fingerprint, ip: x.ip }))] },
     orderBy: { createdAt: "asc" },
   }) as any[];
+  // drop steps a browser made inside a checkout another browser created (someone else's data, prefilled)
+  {
+    const shared = await sharedTokens(db, shopId, [...new Set(attempts0.map((a: any) => a.checkoutToken).filter(Boolean))] as string[]);
+    attempts0.splice(0, attempts0.length, ...attempts0.filter((a: any) => !a.checkoutToken || !shared.has(a.checkoutToken) || shared.get(a.checkoutToken) === a.deviceId));
+  }
+  const attempts = attempts0;
 
   // distinct identities used from this device
   const emails = new Map<string, string>(), phones = new Map<string, string>(), names = new Map<string, string>();
@@ -59,19 +86,40 @@ export async function deviceLinks(db: PrismaClient, secret: string, shopId: stri
   if (rE.size >= 3 || rP.size >= 3 || rN.size >= 3 || rE.size + rP.size + rN.size >= 6) {
     findings.push({ kind: "device", normalized: ro ? `${rE.size} e-mailuri, ${rP.size} telefoane, ${rN.size} nume în 48 h de pe același dispozitiv` : `${rE.size} e-mails, ${rP.size} phones, ${rN.size} names in 48 h from the same device`, entryId: "", reason: ro ? "schimbă datele" : "changes identity", weight: 40 });
   }
-  // other orders placed from the same browser (90 days), whatever name / e-mail / address they used
+  // other orders placed from the same browser (90 days). Not a warning when they were placed by this same buyer
+  // (a returning customer), nor when they were placed under another name but all ended well (paid and shipped/delivered).
+  // Only orders under another name that were cancelled, refused, unpaid or are still open keep the light yellow.
   const devOrders = (await db.checkoutAttempt.findMany({
     where: { shopId, deviceId: { in: devices }, orderId: { not: null }, createdAt: { gt: new Date(Date.now() - 90 * DAY) } },
-    orderBy: { createdAt: "desc" }, select: { orderId: true, firstName: true, lastName: true, email: true },
+    orderBy: { createdAt: "desc" }, select: { orderId: true, firstName: true, lastName: true, email: true, phone: true, checkoutToken: true, deviceId: true },
   })) as any[];
+  const sharedO = await sharedTokens(db, shopId, [...new Set(devOrders.map((a) => a.checkoutToken).filter(Boolean))] as string[]);
+  const myE = buyer?.email ? normEmail(buyer.email) : null, myP = buyer?.phone ? normPhone(buyer.phone, country) : null, myN = normName(buyer?.firstName, buyer?.lastName);
+  const samePerson = (a: any) => !!((myE && a.email && normEmail(a.email) === myE) || (myP && a.phone && normPhone(a.phone, country) === myP) || (myN && normName(a.firstName, a.lastName) === myN));
   // the pixel reports gid://shopify/OrderIdentity/N, the webhook gid://shopify/Order/N — compare by the number,
   // and never list the order being checked itself
   const self = orderId ? orderNum(orderId) : "";
-  const byOrder = new Map<string, string>();
+  const byOrder = new Map<string, string>(), mine = new Set<string>();
   for (const a of devOrders) {
+    if (a.checkoutToken && sharedO.has(a.checkoutToken) && sharedO.get(a.checkoutToken) !== a.deviceId) continue;
     const num = a.orderId ? orderNum(a.orderId) : ""; if (!num || num === self) continue;
     const gid = `gid://shopify/Order/${num}`;
+    if (samePerson(a)) { mine.add(gid); continue; }
     if (!byOrder.has(gid)) byOrder.set(gid, [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email || "");
+  }
+  for (const g of mine) byOrder.delete(g); // any step of that order by this buyer → it is hers
+  if (byOrder.size && admin) {
+    try {
+      const ids = [...byOrder.keys()].slice(0, 20);
+      const d: any = await (await admin.graphql(`#graphql
+        query($ids:[ID!]!){ nodes(ids:$ids){ ... on Order { id cancelledAt displayFinancialStatus displayFulfillmentStatus fulfillments(first:5){ displayStatus } } } }`, { variables: { ids } })).json();
+      for (const o of (d?.data?.nodes ?? []) as any[]) {
+        if (!o?.id) continue;
+        const shipped = o.displayFulfillmentStatus === "FULFILLED" || (o.fulfillments || []).some((f: any) => f.displayStatus === "DELIVERED");
+        const refused = (o.fulfillments || []).some((f: any) => ["FAILURE", "CANCELED", "NOT_DELIVERED"].includes(f.displayStatus));
+        if (!o.cancelledAt && o.displayFinancialStatus === "PAID" && shipped && !refused) byOrder.delete(o.id);
+      }
+    } catch (e) { console.error("[semafor] device orders status", e); }
   }
   if (byOrder.size) {
     const names = (await db.orderCheck.findMany({ where: { shopId, orderId: { in: [...byOrder.keys()] } }, select: { orderId: true, orderName: true } })) as any[];

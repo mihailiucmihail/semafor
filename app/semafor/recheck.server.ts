@@ -36,7 +36,7 @@ export async function recheckTransient(admin: Admin, shop: { id: string; domain:
       if (green.length) console.log("[semafor] healed stale risk", shop.domain, green.length);
     } catch (e: any) { console.error("[semafor] heal risk", shop.domain, e?.message || e); }
   }
-  const transient = rows.filter((r) => ((r.matched as any[]) || []).some((m) => m?.kind === "order")).slice(0, 15);
+  const transient = rows.filter((r) => ((r.matched as any[]) || []).some((m) => m?.kind === "order" || (m?.kind === "device" && /mai există comenzile|în 48 h de pe același dispozitiv/.test(String(m?.normalized || ""))))).slice(0, 15);
   let n = 0;
   for (const r of transient) {
     try {

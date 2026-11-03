@@ -12,6 +12,9 @@ import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers, pushCheckoutMetafield, unshareFromNetwork } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
 import { normDevice, type IdKind } from "../../core/normalize";
+import { fetchOrder } from "../semafor/backfill.server";
+import { checkOrder } from "../semafor/check-order.server";
+import { settingsOf } from "../../core/settings";
 
 const DAY = 86_400_000;
 const LINK: IdKind[] = ["email", "phone", "address"];
@@ -20,6 +23,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const apply = new URL(request.url).searchParams.get("apply") === "1";
+  // ?recheck=<order number>,<…>: check these orders again now (same as the 15-minute re-check)
+  const rq = new URL(request.url).searchParams.get("recheck");
+  if (rq) {
+    const out: string[] = [];
+    for (const num of rq.split(",").map((x) => x.trim().replace("#", "")).filter(Boolean).slice(0, 10)) {
+      const row = (await db.orderCheck.findFirst({ where: { shopId: shop.id, orderName: `#${num}` }, select: { orderId: true, level: true } })) as any;
+      if (!row) { out.push(`#${num}: not found`); continue; }
+      const order: any = await fetchOrder(admin as any, row.orderId);
+      await checkOrder({ db, secret: SECRET, shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: settingsOf((shop as any).settings), order, admin: admin as any, skipCancel: true, recheck: true });
+      const now = (await db.orderCheck.findFirst({ where: { shopId: shop.id, orderId: row.orderId }, select: { level: true, matched: true } })) as any;
+      out.push(`#${num}: ${row.level} → ${now?.level} | ${((now?.matched as any[]) || []).map((m) => m.normalized || m.kind).join(" ; ")}`);
+    }
+    return new Response(out.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
 
   const entries = (await db.blockEntry.findMany({ where: { shopId: shop.id }, select: { id: true, createdAt: true, expiresAt: true, identifiers: { select: { id: true, kind: true, raw: true, hash: true, createdAt: true } } } })) as any[];
   const audits = (await db.auditLog.findMany({ where: { shopId: shop.id, action: { in: ["entry.link_device", "entry.add_data"] } }, select: { action: true, entryId: true, payload: true } })) as any[];
