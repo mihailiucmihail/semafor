@@ -24,6 +24,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const shop = await ensureShop(session.shop, session.accessToken ?? "");
   const apply = new URL(request.url).searchParams.get("apply") === "1";
   // ?recheck=<order number>,<…>: check these orders again now (same as the 15-minute re-check)
+  // ?riskfix=<order number>: write Semafor's clean (NONE) assessment again and show Shopify's answer
+  const rf = new URL(request.url).searchParams.get("riskfix");
+  if (rf) {
+    const row = (await db.orderCheck.findFirst({ where: { shopId: shop.id, orderName: `#${rf.replace("#", "")}` }, select: { orderId: true, level: true } })) as any;
+    if (!row) return new Response("not found");
+    const r: any = await (await admin.graphql(`#graphql
+      mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ orderRiskAssessment{ riskLevel } userErrors{ field message } } }`,
+      { variables: { in: { orderId: row.orderId, riskLevel: "NONE", facts: [{ description: "Semafor: verificat din nou — nimic de semnalat", sentiment: "POSITIVE" }] } } })).json();
+    return new Response(`level ${row.level}\n` + JSON.stringify(r), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   const rq = new URL(request.url).searchParams.get("recheck");
   if (rq) {
     const out: string[] = [];
