@@ -16,6 +16,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const devQ = new URL(request.url).searchParams.get("dev");
   // ?email=<exact>: every step that typed this e-mail, on which browser / checkout / IP / fingerprint,
   // and how many browsers share each checkout token (a shared token = a link opened on several browsers)
+  // ?leaks=1: sent e-mails whose checkout link points to a DIFFERENT checkout than the recipient's own
+  if (new URL(request.url).searchParams.get("leaks")) {
+    const sends = (await db.emailSend.findMany({ where: { shopId: shop.id, status: "sent" }, orderBy: { createdAt: "asc" }, select: { createdAt: true, kind: true, deviceId: true, checkoutToken: true, html: true } })) as any[];
+    let ok = 0, wrong = 0, cart = 0;
+    const out: string[] = [];
+    for (const s of sends) {
+      const t = String(s.html || "").match(/\/checkouts\/(?:ac|cn|c)\/([A-Za-z0-9_-]+)/)?.[1];
+      if (!t) { cart++; continue; }
+      if (t === s.checkoutToken) { ok++; continue; }
+      wrong++; out.push(`${s.createdAt.toISOString().slice(0, 16)} ${s.kind} dev:${(s.deviceId || "-").slice(0, 6)} own ck:${(s.checkoutToken || "-").slice(0, 8)} → link ck:${t.slice(0, 8)}`);
+    }
+    return new Response([`sent ${sends.length} | own checkout ${ok} | OTHER checkout ${wrong} | cart link ${cart}`, ...out].join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   const emQ = new URL(request.url).searchParams.get("email");
   if (emQ) {
     const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, email: { equals: emQ, mode: "insensitive" } }, orderBy: { createdAt: "asc" }, take: 1000,

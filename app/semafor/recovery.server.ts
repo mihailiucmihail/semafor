@@ -309,17 +309,35 @@ export async function productImages(admin: Admin, variantId: string | null | und
   } catch { return []; }
 }
 
+/** Abandoned-checkout recovery URL whose checkout token is exactly `token`, or null. */
+export async function abandonedUrlByToken(admin: Admin, token: string, notBefore?: Date | null): Promise<string | null> {
+  const since = new Date((notBefore ? +notBefore : Date.now()) - 2 * DAY);
+  let after: string | null = null;
+  for (let page = 0; page < 10; page++) {
+    let d: any;
+    try {
+      d = await gql(admin, `query($after:String){ abandonedCheckouts(first:100, after:$after, reverse:true, sortKey:CREATED_AT){ pageInfo{ hasNextPage endCursor } nodes{ createdAt abandonedCheckoutUrl } } }`, { after });
+    } catch { return null; }
+    const conn = d?.abandonedCheckouts;
+    for (const n of conn?.nodes ?? []) {
+      const tok = String(n.abandonedCheckoutUrl || "").match(/\/checkouts\/(?:ac|cn|c)\/([^/?]+)/)?.[1];
+      if (tok && tok === token) return n.abandonedCheckoutUrl;
+      if (new Date(n.createdAt) < since) return null;
+    }
+    if (!conn?.pageInfo?.hasNextPage) return null;
+    after = conn.pageInfo.endCursor;
+  }
+  return null;
+}
+
 export async function recoveryUrl(admin: Admin, ctx: DeviceCtx, shopDomain: string): Promise<string> {
   const host = ctx.host || null;
   let url: string | null = null;
   // only a cart (or a newer cart after the checkout): link to the cart itself, not to an older checkout of that e-mail
   if (ctx.lastEvent === "cart") return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
-  if (ctx.email) {
-    try {
-      const d = await gql(admin, `query($q:String!){ abandonedCheckouts(first:1, reverse:true, sortKey:CREATED_AT, query:$q){ nodes{ abandonedCheckoutUrl } } }`, { q: `email:${JSON.stringify(ctx.email)}` });
-      url = d?.abandonedCheckouts?.nodes?.[0]?.abandonedCheckoutUrl ?? null;
-    } catch { url = null; }
-  }
+  // The buyer's OWN checkout, found by its token. (abandonedCheckouts ignores an `email:` filter and
+  // returns the newest checkout of ANY buyer — that sent people links to strangers' checkouts.)
+  if (ctx.checkoutToken) url = await abandonedUrlByToken(admin, ctx.checkoutToken, ctx.firstAt);
   if (!url) return cartPermalink(`https://${host || shopDomain}`, ctx.items as any);
   if (!host) return url;
   try { const u = new URL(url); u.host = host; return u.toString(); } catch { return url; }
