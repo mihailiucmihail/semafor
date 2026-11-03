@@ -22,7 +22,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const byLink = new Map<string, { devs: Set<string>; at: string[] }>();
     let cart = 0;
     for (const s of sends) {
-      const t = String(s.html || "").match(/\/checkouts\/(?:ac|cn|c)\/([A-Za-z0-9_-]+)/)?.[1];
+      const t = String(s.html || "").replace(/%2F/gi, "/").replace(/&amp;/g, "&").match(/\/checkouts\/(?:ac|cn|c)\/([A-Za-z0-9_-]+)/)?.[1];
       if (!t) { cart++; continue; }
       if (!byLink.has(t)) byLink.set(t, { devs: new Set(), at: [] });
       byLink.get(t)!.devs.add((s.deviceId || "-").slice(0, 6)); byLink.get(t)!.at.push(s.createdAt.toISOString().slice(0, 16));
