@@ -3,7 +3,7 @@ import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link, Avatar, Button, TextField } from "@shopify/polaris";
 import { PersonIcon, ShieldNoneIcon, AlertTriangleIcon, ShieldPersonIcon, EmailIcon, PhoneIcon, OrderIcon, SearchIcon } from "@shopify/polaris-icons";
-import { Kpi, SignalStrip, SectionHead, IdLine } from "../components/semafor-ui";
+import { Kpi, SignalStrip, SectionHead, IdLine, Lamp } from "../components/semafor-ui";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { requireFeature } from "../semafor/plan.server";
@@ -38,21 +38,59 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // ?q= search: name, e-mail, phone (any spelling), city, order number — over every buyer of the last 90 days
   const q = (sp.get("q") || "").trim().slice(0, 100);
   let rows: any[];
+  let found: FoundOrder[] = [];
   if (q) {
+    // orders of this person: by phone (Semafor's hashes — Shopify search can't look up a shipping phone),
+    // otherwise Shopify's own order search (name, e-mail, order number)
+    found = await findOrders(admin, shop, q).catch((e) => { console.error("[stats] search", e); return []; });
+    const ids = new Set(found.map((o) => o.id));
     const wide = days >= 90 ? c : await memo(`stats:${shop.id}:90`, TTL, () => computeStats(shop, admin, 90));
-    rows = wide.lists.all.map(wide.row).filter((r: any) => matchesQuery(r, q));
+    rows = wide.lists.all.map(wide.row).filter((r: any) => matchesQuery(r, q) || (r.orderId && ids.has(`gid://shopify/Order/${r.orderId}`)));
   } else {
     const pick = c.lists[f as keyof typeof c.lists] ?? c.lists.all;
     rows = pick.map(c.row);
   }
   return {
-    days, f, q, since: c.since, at: c.at, n, sn,
+    days, f, q, found, since: c.since, at: c.at, n, sn,
     kpi: c.kpi, orders: c.orders,
     suspicious: c.suspicious.slice(0, sn), suspiciousTotal: c.suspicious.length,
     devices: rows.slice(0, n), devicesTotal: rows.length,
     storeHandle, attr: c.attr,
   };
 };
+
+type FoundOrder = { id: string; num: string; name: string; customer: string; email: string; createdAt: string; status: string; level: string | null };
+
+const QFIND = `#graphql
+query($q: String!) { orders(first: 25, query: $q, sortKey: CREATED_AT, reverse: true) { nodes { id name createdAt email displayFinancialStatus displayFulfillmentStatus cancelledAt
+  shippingAddress { name } customer { displayName } } } }`;
+const QNODES = `#graphql
+query($ids: [ID!]!) { nodes(ids: $ids) { ... on Order { id name createdAt email displayFinancialStatus displayFulfillmentStatus cancelledAt
+  shippingAddress { name } customer { displayName } } } }`;
+
+async function findOrders(admin: any, shop: { id: string; country: string }, q: string): Promise<FoundOrder[]> {
+  const raw = q.replace(/[\s()+.-]/g, "");
+  const nodes = new Map<string, any>();
+  if (/^\d{6,}$/.test(raw)) {
+    const p = normPhone(q, shop.country);
+    const h = p ? hmacId(SECRET, "phone", p) : null;
+    const ids = h ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, personHashes: { has: h } }, select: { orderId: true }, orderBy: { checkedAt: "desc" }, take: 25 })) as any[]).map((r) => r.orderId) : [];
+    if (ids.length) { const j: any = await (await admin.graphql(QNODES, { variables: { ids } })).json(); for (const o of j?.data?.nodes ?? []) if (o?.id) nodes.set(o.id, o); }
+  }
+  if (!nodes.size) {
+    const term = /^#?\d{1,6}$/.test(q.trim()) ? `name:#${q.trim().replace(/^#/, "")}` : q.trim();
+    const j: any = await (await admin.graphql(QFIND, { variables: { q: term } })).json();
+    for (const o of j?.data?.orders?.nodes ?? []) if (o?.id) nodes.set(o.id, o);
+  }
+  const list = [...nodes.values()];
+  const checks = list.length ? ((await db.orderCheck.findMany({ where: { shopId: shop.id, orderId: { in: list.map((o) => o.id) } }, select: { orderId: true, level: true, networkLevel: true } })) as any[]) : [];
+  const rank: Record<string, number> = { green: 0, yellow: 1, red: 2 };
+  const lvl = new Map(checks.map((c) => [c.orderId, (rank[c.networkLevel] ?? 0) > (rank[c.level] ?? 0) ? c.networkLevel : c.level]));
+  return list.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).map((o) => ({
+    id: o.id, num: String(o.id).split("/").pop()!, name: o.name, customer: o.shippingAddress?.name || o.customer?.displayName || "", email: o.email || "",
+    createdAt: o.createdAt, status: o.cancelledAt ? "CANCELLED" : `${o.displayFinancialStatus}|${o.displayFulfillmentStatus}`, level: lvl.get(o.id) ?? null,
+  }));
+}
 
 /** One search box for everything a buyer typed: words must all appear; a phone matches by its last 9 digits. */
 function matchesQuery(r: any, q: string): boolean {
@@ -170,7 +208,7 @@ function uniqPhones(list: string[]) {
 }
 
 export default function Stats() {
-  const { days, f, q, since, at, n: shown, sn, kpi, orders, suspicious, suspiciousTotal, devices, devicesTotal, storeHandle, attr } = useLoaderData<typeof loader>();
+  const { days, f, q, found, since, at, n: shown, sn, kpi, orders, suspicious, suspiciousTotal, devices, devicesTotal, storeHandle, attr } = useLoaderData<typeof loader>();
   const [sp, setSp] = useSearchParams();
   const [qText, setQText] = useState(q);
   useEffect(() => setQText(q), [q]);
@@ -202,6 +240,32 @@ export default function Stats() {
                   options={[{ label: tr("stats.today"), value: "1" }, { label: tr("stats.d7"), value: "7" }, { label: tr("stats.d30"), value: "30" }, { label: tr("stats.d90"), value: "90" }]} />
               </Box>
             </InlineStack>
+
+            <Card>
+              <BlockStack gap="300">
+                <form onSubmit={(e) => { e.preventDefault(); search(qText); }}>
+                  <TextField label={tr("stats.search")} labelHidden autoComplete="off" prefix={<SearchIconBox />} placeholder={tr("stats.searchPlaceholder")}
+                    value={qText} onChange={setQText} clearButton onClearButtonClick={() => { setQText(""); search(""); }}
+                    connectedRight={<Button submit variant="primary">{tr("stats.search")}</Button>} />
+                </form>
+                {q ? (found.length ? (
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingSm">{tr("stats.foundOrders", { n: found.length })}</Text>
+                    {found.map((o: any) => (
+                      <InlineStack key={o.id} gap="300" blockAlign="center" wrap>
+                        <Lamp level={o.level} />
+                        <Link url={`https://admin.shopify.com/store/${storeHandle}/orders/${o.num}`} target="_top">{o.name}</Link>
+                        <Text as="span" fontWeight="semibold">{o.customer || "—"}</Text>
+                        <Text as="span" variant="bodySm" tone="subdued">{o.email}</Text>
+                        <Text as="span" variant="bodySm" tone="subdued">{new Date(o.createdAt).toLocaleDateString(loc)}</Text>
+                        {o.status === "CANCELLED" ? <Badge tone="critical">{tr("stats.cancelled")}</Badge> : null}
+                      </InlineStack>
+                    ))}
+                    <Button variant="plain" onClick={() => document.getElementById("sf-attempts")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{tr("stats.searchSeeCheckout", { n: devicesTotal })}</Button>
+                  </BlockStack>
+                ) : <Text as="p" tone="subdued">{tr("stats.noOrdersFound")}</Text>) : null}
+              </BlockStack>
+            </Card>
 
             <BlockStack gap="300">
               <SectionHead title={tr("stats.checkout")} />
@@ -282,11 +346,6 @@ export default function Stats() {
                 <SectionHead title={q ? tr("stats.searchResults", { q, n: devicesTotal }) : f ? tr(`stats.filter.${f}` as TKey) : tr("stats.allAttempts")} description={q ? tr("stats.searchHint") : tr("stats.allAttemptsHint")}>
                   {f && !q ? <Button variant="plain" onClick={() => filterBy("")}>{tr("stats.showAll")}</Button> : null}
                 </SectionHead>
-                <form onSubmit={(e) => { e.preventDefault(); search(qText); }}>
-                  <TextField label={tr("stats.search")} labelHidden autoComplete="off" prefix={<SearchIconBox />} placeholder={tr("stats.searchPlaceholder")}
-                    value={qText} onChange={setQText} clearButton onClearButtonClick={() => { setQText(""); search(""); }}
-                    connectedRight={<Button submit>{tr("stats.search")}</Button>} />
-                </form>
                 </BlockStack>
               </Box>
               {devices.length === 0 ? (
