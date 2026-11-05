@@ -1,7 +1,8 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link, Avatar, Button } from "@shopify/polaris";
-import { PersonIcon, ShieldNoneIcon, AlertTriangleIcon, ShieldPersonIcon, EmailIcon, PhoneIcon, OrderIcon } from "@shopify/polaris-icons";
+import { useEffect, useState } from "react";
+import { Page, Layout, Card, BlockStack, InlineGrid, InlineStack, Text, IndexTable, Badge, Select, Banner, Box, Link, Avatar, Button, TextField } from "@shopify/polaris";
+import { PersonIcon, ShieldNoneIcon, AlertTriangleIcon, ShieldPersonIcon, EmailIcon, PhoneIcon, OrderIcon, SearchIcon } from "@shopify/polaris-icons";
 import { Kpi, SignalStrip, SectionHead, IdLine } from "../components/semafor-ui";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -33,16 +34,36 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const sn = Math.min(50, Math.max(SPAGE, Number(sp.get("sn")) || SPAGE));
   // the heavy part (every checkout step of the period) is computed at most every 10 minutes per shop and period
   const c = await memo(`stats:${shop.id}:${days}`, TTL, () => computeStats(shop, admin, days), sp.get("fresh") === "1");
-  const pick = c.lists[f as keyof typeof c.lists] ?? c.lists.all;
   const storeHandle = session.shop.replace(".myshopify.com", "");
+  // ?q= search: name, e-mail, phone (any spelling), city, order number — over every buyer of the last 90 days
+  const q = (sp.get("q") || "").trim().slice(0, 100);
+  let rows: any[];
+  if (q) {
+    const wide = days >= 90 ? c : await memo(`stats:${shop.id}:90`, TTL, () => computeStats(shop, admin, 90));
+    rows = wide.lists.all.map(wide.row).filter((r: any) => matchesQuery(r, q));
+  } else {
+    const pick = c.lists[f as keyof typeof c.lists] ?? c.lists.all;
+    rows = pick.map(c.row);
+  }
   return {
-    days, f, since: c.since, at: c.at, n, sn,
+    days, f, q, since: c.since, at: c.at, n, sn,
     kpi: c.kpi, orders: c.orders,
     suspicious: c.suspicious.slice(0, sn), suspiciousTotal: c.suspicious.length,
-    devices: pick.slice(0, n).map(c.row), devicesTotal: pick.length,
+    devices: rows.slice(0, n), devicesTotal: rows.length,
     storeHandle, attr: c.attr,
   };
 };
+
+/** One search box for everything a buyer typed: words must all appear; a phone matches by its last 9 digits. */
+function matchesQuery(r: any, q: string): boolean {
+  const hay = [r.id, r.dev, ...r.names, ...r.emails, ...r.phones, r.city, r.popup, r.orderName, ...(r.matched || [])].filter(Boolean).join(" ").toLowerCase();
+  const digits = [...r.phones, r.orderName || ""].map((p: string) => p.replace(/\D/g, ""));
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every((w) => {
+    const d = w.replace(/\D/g, "");
+    if (d.length >= 6 && d.length === w.replace(/[\s+()#.-]/g, "").length) return digits.some((p) => p.includes(d.slice(-9)));
+    return hay.includes(w.replace(/^#/, "")) || hay.includes(w);
+  });
+}
 
 async function computeStats(shop: Awaited<ReturnType<typeof ensureShop>>, admin: any, days: number) {
   await enrichFromShopify(admin as any, shop.id, 14).catch(() => 0);
@@ -149,8 +170,11 @@ function uniqPhones(list: string[]) {
 }
 
 export default function Stats() {
-  const { days, f, since, at, n: shown, sn, kpi, orders, suspicious, suspiciousTotal, devices, devicesTotal, storeHandle, attr } = useLoaderData<typeof loader>();
+  const { days, f, q, since, at, n: shown, sn, kpi, orders, suspicious, suspiciousTotal, devices, devicesTotal, storeHandle, attr } = useLoaderData<typeof loader>();
   const [sp, setSp] = useSearchParams();
+  const [qText, setQText] = useState(q);
+  useEffect(() => setQText(q), [q]);
+  const search = (v: string) => { const x = params(); x.delete("n"); x.delete("f"); if (v.trim()) x.set("q", v.trim()); else x.delete("q"); setSp(x, { preventScrollReset: true }); };
   const params = () => { const x = new URLSearchParams(sp); x.delete("fresh"); return x; };
   /** next page of a list: the server sends only the extra rows; the page keeps its scroll position */
   const more = (key: "n" | "sn", cur: number, step: number) => { const x = params(); x.set(key, String(cur + step)); setSp(x, { preventScrollReset: true, replace: true }); };
@@ -254,12 +278,19 @@ export default function Stats() {
             <div id="sf-attempts" />
             <Card padding="0">
               <Box padding="400">
-                <SectionHead title={f ? tr(`stats.filter.${f}` as TKey) : tr("stats.allAttempts")} description={tr("stats.allAttemptsHint")}>
-                  {f ? <Button variant="plain" onClick={() => filterBy("")}>{tr("stats.showAll")}</Button> : null}
+                <BlockStack gap="300">
+                <SectionHead title={q ? tr("stats.searchResults", { q, n: devicesTotal }) : f ? tr(`stats.filter.${f}` as TKey) : tr("stats.allAttempts")} description={q ? tr("stats.searchHint") : tr("stats.allAttemptsHint")}>
+                  {f && !q ? <Button variant="plain" onClick={() => filterBy("")}>{tr("stats.showAll")}</Button> : null}
                 </SectionHead>
+                <form onSubmit={(e) => { e.preventDefault(); search(qText); }}>
+                  <TextField label={tr("stats.search")} labelHidden autoComplete="off" prefix={<SearchIconBox />} placeholder={tr("stats.searchPlaceholder")}
+                    value={qText} onChange={setQText} clearButton onClearButtonClick={() => { setQText(""); search(""); }}
+                    connectedRight={<Button submit>{tr("stats.search")}</Button>} />
+                </form>
+                </BlockStack>
               </Box>
               {devices.length === 0 ? (
-                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr("stats.noAttempts")}</Text></Box>
+                <Box padding="400" paddingBlockStart="0"><Text as="p" tone="subdued">{tr(q ? "stats.noResults" : "stats.noAttempts")}</Text></Box>
               ) : (
                 <><div className="sf-phone-only sf-cl">
                   {devices.map((d: any, i: number) => {
@@ -352,4 +383,8 @@ export default function Stats() {
       </Layout>
     </Page>
   );
+}
+
+function SearchIconBox() {
+  return <span style={{ display: "inline-flex", width: 20, height: 20 }}><SearchIcon /></span>;
 }

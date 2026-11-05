@@ -249,6 +249,11 @@
   "emails.list.colReason": "Motif",
   "common.back": "Retour",
   "stats.showAll": "Tout afficher",
+  "stats.search": "Rechercher",
+  "stats.searchPlaceholder": "Nom, e-mail, téléphone, ville ou numéro de commande",
+  "stats.searchResults": "Recherche « {q} » · {n} trouvés",
+  "stats.searchHint": "Tous les acheteurs des 90 derniers jours. Le téléphone est trouvé quel que soit son format.",
+  "stats.noResults": "Aucun résultat. Essayez seulement le téléphone ou le nom de famille.",
   "stats.allAttempts": "Toutes les tentatives au checkout",
   "stats.noAttempts": "Aucune tentative sur cette période.",
   "stats.colContact": "Contact",
@@ -964,7 +969,10 @@
   "commande en transit",
   "change de coordonnées",
   "autres commandes depuis le même appareil : $1",
-  "même appareil"
+  "même appareil",
+  "client récurrent — commandes précédentes : $1",
+  "client récurrent",
+  "historique de retours / refus"
  ],
  "skip": [
   "Non envoyé : l'article du panier est en rupture de stock ($1).",

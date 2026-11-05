@@ -249,6 +249,11 @@
   "emails.list.colReason": "Powód",
   "common.back": "Wstecz",
   "stats.showAll": "Pokaż wszystko",
+  "stats.search": "Szukaj",
+  "stats.searchPlaceholder": "Imię, e-mail, telefon, miasto lub numer zamówienia",
+  "stats.searchResults": "Wyszukiwanie „{q}” · znaleziono {n}",
+  "stats.searchHint": "Wszyscy kupujący z ostatnich 90 dni. Telefon w dowolnym zapisie.",
+  "stats.noResults": "Nic nie znaleziono. Spróbuj tylko telefonu lub nazwiska.",
   "stats.allAttempts": "Wszystkie próby w kasie",
   "stats.noAttempts": "Brak prób w tym okresie.",
   "stats.colContact": "Kontakt",
@@ -964,7 +969,10 @@
   "zamówienie w drodze",
   "zmienia dane",
   "inne zamówienia z tego samego urządzenia: $1",
-  "to samo urządzenie"
+  "to samo urządzenie",
+  "powracający klient — wcześniejsze zamówienia: $1",
+  "powracający klient",
+  "historia zwrotów / odmów"
  ],
  "skip": [
   "Nie wysłano: produkt z koszyka jest niedostępny ($1).",

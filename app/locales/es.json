@@ -249,6 +249,11 @@
   "emails.list.colReason": "Motivo",
   "common.back": "Atrás",
   "stats.showAll": "Ver todo",
+  "stats.search": "Buscar",
+  "stats.searchPlaceholder": "Nombre, e-mail, teléfono, ciudad o número de pedido",
+  "stats.searchResults": "Búsqueda «{q}» · {n} encontrados",
+  "stats.searchHint": "Todos los compradores de los últimos 90 días. El teléfono se encuentra en cualquier formato.",
+  "stats.noResults": "No se encontró nada. Prueba solo el teléfono o el apellido.",
   "stats.allAttempts": "Todos los intentos de checkout",
   "stats.noAttempts": "No hay intentos en este período.",
   "stats.colContact": "Contacto",
@@ -964,7 +969,10 @@
   "pedido en tránsito",
   "cambia sus datos",
   "otros pedidos desde el mismo dispositivo: $1",
-  "mismo dispositivo"
+  "mismo dispositivo",
+  "cliente recurrente — pedidos anteriores: $1",
+  "cliente recurrente",
+  "historial de devoluciones / rechazos"
  ],
  "skip": [
   "No enviado: el artículo del carrito está agotado ($1).",

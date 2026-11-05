@@ -41,7 +41,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       const row = (await db.orderCheck.findFirst({ where: { shopId: shop.id, orderName: `#${num}` }, select: { orderId: true, level: true } })) as any;
       if (!row) { out.push(`#${num}: not found`); continue; }
       const order: any = await fetchOrder(admin as any, row.orderId);
-      await checkOrder({ db, secret: SECRET, shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: settingsOf((shop as any).settings), order, admin: admin as any, skipCancel: true, recheck: true });
+      await checkOrder({ db, secret: SECRET, shopId: shop.id, shopDomain: shop.domain, country: shop.country, settings: settingsOf((shop as any).settings), order, admin: admin as any, skipCancel: true, ...(new URL(request.url).searchParams.get("full") ? { forceNote: true } : { recheck: true }) });
       const now = (await db.orderCheck.findFirst({ where: { shopId: shop.id, orderId: row.orderId }, select: { level: true, matched: true } })) as any;
       out.push(`#${num}: ${row.level} → ${now?.level} | ${((now?.matched as any[]) || []).map((m) => m.normalized || m.kind).join(" ; ")}`);
     }

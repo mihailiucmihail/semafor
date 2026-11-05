@@ -10,7 +10,7 @@ import { networkOf, type ShopSettings } from '../../core/settings';
 import { can, effectiveSettings } from '../../core/plans';
 import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
-import { findRelated, personHashes } from './open-cod.server';
+import { findRelated, personHashes, personHistory, pastOrderText } from './open-cod.server';
 import { shopLang } from '../i18n.server';
 import { attributeOrder } from './attribution.server';
 
@@ -20,6 +20,8 @@ async function gql(admin: AdminClient, q: string, variables?: Record<string, unk
 // Visible in the Orders list (Tags column) — the whole point: see the traffic light without opening the app.
 // A text traffic light: the active lamp lit, the other two dark.
 export const TAG: Record<Level, string> = { red: '🔴⚫⚫', yellow: '⚫🟡⚫', green: '⚫⚫🟢' };
+/** Same person ordered before (any e-mail): visible in the Orders list next to the light. */
+export const RETURNING_TAG = 'Semafor · client revenit';
 const ALL_TAGS = [...Object.values(TAG), '🔴 Semafor', '🟡 Semafor', '🟢 Semafor', 'refuz:blocked', 'refuz:warn'];
 
 export async function checkOrder(opts: {
@@ -27,6 +29,8 @@ export async function checkOrder(opts: {
   settings: ShopSettings; order: any; admin: AdminClient; skipCancel?: boolean;
   /** periodic re-check (app/semafor/recheck.server.ts): Shopify risk is written only when the light changed */
   recheck?: boolean;
+  /** write the returning-customer note to Shopify even if the order was checked before (admin re-run) */
+  forceNote?: boolean;
 }): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
   const { db, secret, shopId, order, admin } = opts;
   const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, trialEndsAt: true } }));
@@ -97,6 +101,32 @@ export async function checkOrder(opts: {
     for (const n of r.codInTransit) (result.matches as any[]).push({ kind: 'order', normalized: `are deja comanda ${n} cu ramburs, în drum — așteaptă să o ridice`, entryId: '', reason: 'comandă în drum', weight: 40 });
     if ((r.unshipped.length || r.codInTransit.length) && result.level === 'green') result.level = 'yellow';
   } catch (e) { console.error('[semafor] findRelated', e); }
+  // Earlier orders of the same person (also delivered ones, also under another e-mail): always shown as a note;
+  // a refused parcel / return / refund among them → at least yellow.
+  let history: string | null = null;
+  // the returning-customer note goes to Shopify's risk panel once, at the order's first check
+  const firstCheck = !opts.recheck && !(await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { orderId: true } }));
+  const HIST_REASONS = ['client revenit', 'istoric retur/refuz'];
+  if (opts.recheck) {
+    // periodic re-checks reuse what the first check found (saves 3 Shopify calls per order every 15 min)
+    const prevCheck: any = await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { matched: true } });
+    const m = ((prevCheck?.matched as any[]) ?? []).find((x) => HIST_REASONS.includes(x?.reason));
+    if (m) {
+      history = m.normalized;
+      (result.matches as any[]).push(m);
+      if (m.weight > 0 && result.level === 'green') result.level = 'yellow';
+    }
+  } else try {
+    const ph = personHashes(secret, order, opts.country);
+    const past = ph.length ? await db.orderCheck.findMany({ where: { shopId, personHashes: { hasSome: ph }, orderId: { not: order.admin_graphql_api_id } }, select: { orderId: true }, orderBy: { checkedAt: 'desc' }, take: 30 }) : [];
+    const h = await personHistory(admin as any, order, opts.country, past.map((o) => o.orderId));
+    if (h.length) {
+      history = `client revenit — comenzi anterioare: ${h.map(pastOrderText).join(', ')}`;
+      const bad = h.filter((x) => x.bad);
+      (result.matches as any[]).push({ kind: 'order', normalized: history, entryId: '', reason: bad.length ? 'istoric retur/refuz' : 'client revenit', weight: bad.length ? 40 : 0 });
+      if (bad.length && result.level === 'green') result.level = 'yellow';
+    }
+  } catch (e) { console.error('[semafor] personHistory', e); }
   const combined = combinedLevel(result);
 
   // Device trail
@@ -123,13 +153,16 @@ export async function checkOrder(opts: {
       const ue = r?.data?.tagsRemove?.userErrors; if (ue?.length || r?.errors) console.error('[semafor] tagsRemove', JSON.stringify(ue || r.errors));
     }
     await gql(admin, `#graphql
-      mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: [tag] });
+      mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: history ? [tag, RETURNING_TAG] : [tag] });
   }
-  if (combined === 'green' && ((opts.recheck && changed) || staleRisk)) {
-    // the reason is gone (e.g. the other order was delivered): Shopify shows Semafor's latest assessment
+  if (combined === 'green' && ((opts.recheck && changed) || staleRisk || (history && (firstCheck || opts.forceNote)))) {
+    // the reason is gone (e.g. the other order was delivered): Shopify shows Semafor's latest assessment;
+    // a returning customer is shown there too (as information, the light stays green)
+    const facts = [{ description: (opts.recheck || staleRisk) ? 'Semafor: verificat din nou — nimic de semnalat' : 'Semafor: verificat — nimic de semnalat', sentiment: 'POSITIVE' }];
+    if (history) facts.push({ description: `Semafor: ${history}`, sentiment: 'NEUTRAL' });
     await gql(admin, `#graphql
       mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
-      { in: { orderId: order.admin_graphql_api_id, riskLevel: 'NONE', facts: [{ description: 'Semafor: verificat din nou — nimic de semnalat', sentiment: 'POSITIVE' }] } });
+      { in: { orderId: order.admin_graphql_api_id, riskLevel: 'NONE', facts } });
   }
   if (combined !== 'green' && changed) {
     const facts = result.matches.map((m) => ({ description: (m.kind as string) === 'device' || (m.kind as string) === 'order' ? `Semafor: ${m.normalized}` : (ro ? `Semafor: ${labelKind(m.kind, true)} în lista neagră (${m.reason})` : `Semafor: ${labelKind(m.kind, false)} is on the blacklist (${REASON_EN[m.reason as string] ?? m.reason})`), sentiment: 'NEGATIVE' }));

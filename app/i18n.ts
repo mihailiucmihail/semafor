@@ -299,6 +299,11 @@ const D = {
   "emails.list.colReason": { en: "Reason", ro: "Motiv" },
   "common.back": { en: "Back", ro: "Înapoi" },
   "stats.showAll": { en: "Show all", ro: "Vezi tot" },
+  "stats.search": { en: "Search", ro: "Caută" },
+  "stats.searchPlaceholder": { en: "Name, e-mail, phone, city or order number", ro: "Nume, e-mail, telefon, oraș sau număr comandă" },
+  "stats.searchResults": { en: "Search “{q}” · {n} found", ro: "Căutare „{q}” · {n} găsiți" },
+  "stats.searchHint": { en: "Every buyer of the last 90 days. A phone matches in any spelling (07…, +407…).", ro: "Toți cumpărătorii din ultimele 90 de zile. Telefonul se găsește în orice formă (07…, +407…)." },
+  "stats.noResults": { en: "Nothing found. Try only the phone or the last name.", ro: "Nu s-a găsit nimic. Încearcă doar telefonul sau numele de familie." },
   "stats.allAttempts": { en: "All checkout attempts", ro: "Toate încercările de comandă" },
   "stats.noAttempts": { en: "No attempts in this period.", ro: "Nicio încercare în această perioadă." },
   "stats.colContact": { en: "Contact", ro: "Contact" },
@@ -1060,7 +1065,20 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^schimbă datele$/, "changing details"],
   [/^de pe același dispozitiv mai există comenzile: (.+)$/, "other orders from the same device: $1"],
   [/^același dispozitiv$/, "same device"],
+  [/^client revenit — comenzi anterioare: (.+)$/, "returning customer — earlier orders: $1"],
+  [/^client revenit$/, "returning customer"],
+  [/^istoric retur\/refuz$/, "return / refusal history"],
 ];
+
+/** Status words inside "earlier orders: #4183 livrată 19.10.2026 (alt e-mail)", per language. */
+const PAST_WORDS: Record<Exclude<Lang, "ro">, Record<string, string>> = {
+  en: { "livrată": "delivered", "în curs": "in progress", "anulată": "cancelled", "refuzată": "refused", "retur": "returned", "rambursată": "refunded", "alt e-mail": "other e-mail" },
+  es: { "livrată": "entregado", "în curs": "en curso", "anulată": "cancelado", "refuzată": "rechazado", "retur": "devuelto", "rambursată": "reembolsado", "alt e-mail": "otro e-mail" },
+  fr: { "livrată": "livrée", "în curs": "en cours", "anulată": "annulée", "refuzată": "refusée", "retur": "retournée", "rambursată": "remboursée", "alt e-mail": "autre e-mail" },
+  pl: { "livrată": "dostarczone", "în curs": "w toku", "anulată": "anulowane", "refuzată": "odmowa", "retur": "zwrot", "rambursată": "zwrot pieniędzy", "alt e-mail": "inny e-mail" },
+  ru: { "livrată": "доставлен", "în curs": "в процессе", "anulată": "отменён", "refuzată": "отказ", "retur": "возврат", "rambursată": "деньги возвращены", "alt e-mail": "другая почта" },
+};
+const pastWords = (lang: Lang, s: string) => lang === "ro" ? s : s.replace(/(?<![\p{L}])(livrată|în curs|anulată|refuzată|retur|rambursată|alt e-mail)(?![\p{L}])/gu, (w) => PAST_WORDS[lang][w] ?? w);
 
 /** SERVER_MSG read the other way round: [English text as a pattern, the Romanian text with $1…]. */
 const EN_MSG: Array<[RegExp, string]> = SERVER_MSG.map(([re, en]) => {
@@ -1100,7 +1118,7 @@ export function trMsg(lang: Lang, msg: string | null | undefined): string {
   if (lang !== "ro") {
     for (let i = 0; i < SERVER_MSG.length; i++) {
       const [re, en] = SERVER_MSG[i];
-      if (re.test(s)) return s.replace(re, x?.server[i] || en);
+      if (re.test(s)) return pastWords(lang, s.replace(re, x?.server[i] || en));
     }
   }
   // some older rows were stored in English: translate those too (to Romanian or any other language)

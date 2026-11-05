@@ -8,6 +8,8 @@ import { hmacId } from "../../core/hash";
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
 export type Related = { unshipped: string[]; codInTransit: string[]; ids: string[] };
+/** An earlier order of the same person (same phone, or same name + address), whatever its state. */
+export type PastOrder = { id: string; name: string; createdAt: string; status: "livrată" | "în curs" | "anulată" | "refuzată" | "retur" | "rambursată"; otherEmail: boolean; bad: boolean };
 
 const FRAG = `fragment F on Order { id name createdAt cancelledAt closed displayFinancialStatus displayFulfillmentStatus fulfillments(first: 5) { displayStatus }
   email phone customer { email phone firstName lastName }
@@ -87,4 +89,74 @@ export async function findRelated(admin: Admin, order: any, same?: { country: st
     if (thisUnpaid && o.displayFinancialStatus === "PENDING" && !delivered) out.codInTransit.push(o.name);
   }
   return out;
+}
+
+const QR = `#graphql
+query($ids: [ID!]!) { nodes(ids: $ids) { ... on Order { id returnStatus } } }`;
+
+/**
+ * Every earlier order of the same person — also delivered ones and ones under another Shopify customer / e-mail
+ * (Shopify keeps a customer per e-mail, so "same phone, new e-mail" looks like a new customer there).
+ * Sources: the same Shopify customer (all time), Semafor's own checks with the same phone / name + address
+ * (all time, `otherIds`), and the newest orders compared by phone / name + address.
+ * A refused parcel, a return or a refund marks the history as bad.
+ */
+export async function personHistory(admin: Admin, order: any, country: string, otherIds: string[]): Promise<PastOrder[]> {
+  const me = String(order.admin_graphql_api_id || "");
+  const cid = order.customer?.id ? String(order.customer.id).split("/").pop() : null;
+  const myEmail = String(order.email || order.customer?.email || "").trim().toLowerCase();
+  const mine = personKeys(order, country);
+  const nodes = new Map<string, any>();
+  const add = (list: any[]) => { for (const o of list || []) if (o?.id && o.id !== me) nodes.set(o.id, o); };
+  if (cid) {
+    const j: any = await (await admin.graphql(Q, { variables: { q: `customer_id:${cid}` } })).json();
+    add(j?.data?.orders?.nodes);
+  }
+  const ids = [...new Set(otherIds)].filter((id) => id !== me).slice(0, 30);
+  if (ids.length) {
+    const k: any = await (await admin.graphql(QIDS, { variables: { ids } })).json();
+    add((k?.data?.nodes ?? []).filter(Boolean));
+  }
+  if (mine.size) {
+    const j: any = await (await admin.graphql(Q, { variables: { q: `created_at:<=${new Date().toISOString().slice(0, 10)}` } })).json();
+    for (const o of j?.data?.orders?.nodes ?? []) {
+      if (!o?.id || o.id === me || nodes.has(o.id)) continue;
+      for (const key of personKeys(toOrderLike(o), country)) if (mine.has(key)) { nodes.set(o.id, o); break; }
+    }
+  }
+  // only orders placed before this one
+  const myAt = Date.parse(order.created_at || order.createdAt || "") || Date.now();
+  const list = [...nodes.values()].filter((o) => Date.parse(o.createdAt) < myAt);
+  if (!list.length) return [];
+  // return status: separate query, so a shop without access to it still gets the rest
+  const ret = new Map<string, string>();
+  try {
+    const r: any = await (await admin.graphql(QR, { variables: { ids: list.map((o) => o.id) } })).json();
+    for (const n of r?.data?.nodes ?? []) if (n?.id) ret.set(n.id, n.returnStatus);
+  } catch { /* no access */ }
+  return list
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, 10)
+    .map((o) => {
+      const f = (o.fulfillments || []) as any[];
+      const refused = f.some((x) => ["FAILURE", "CANCELED", "NOT_DELIVERED"].includes(x.displayStatus));
+      const delivered = f.some((x) => x.displayStatus === "DELIVERED");
+      const rs = ret.get(o.id) || "";
+      const refunded = ["REFUNDED", "PARTIALLY_REFUNDED"].includes(o.displayFinancialStatus);
+      const status: PastOrder["status"] = refused ? "refuzată"
+        : ["RETURN_REQUESTED", "IN_PROGRESS", "RETURNED", "INSPECTION_COMPLETE"].includes(rs) ? "retur"
+        : refunded ? "rambursată"
+        : o.cancelledAt ? "anulată"
+        : delivered || (o.displayFulfillmentStatus === "FULFILLED" && o.displayFinancialStatus === "PAID") ? "livrată"
+        : "în curs";
+      const email = String(o.email || o.customer?.email || "").trim().toLowerCase();
+      return { id: o.id, name: o.name, createdAt: o.createdAt, status, otherEmail: !!email && !!myEmail && email !== myEmail, bad: status === "refuzată" || status === "retur" || status === "rambursată" };
+    });
+}
+
+/** "#4183 livrată 19.10.2026 (alt e-mail)" — Romanian, the canonical stored form (trMsg translates it). */
+export function pastOrderText(p: PastOrder): string {
+  const d = new Date(p.createdAt);
+  const date = `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`;
+  return `${p.name} ${p.status} ${date}${p.otherEmail ? " (alt e-mail)" : ""}`;
 }
