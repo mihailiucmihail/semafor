@@ -78,8 +78,9 @@ test('score: phone match alone blocks; name alone only warns', () => {
 
   const ownName = (kind: string, n: string) => (kind === 'name' && n === 'andreea popescu' ? [{ entryId: 'e2', reason: 'refuz_colet' }] : []);
   const r2 = scoreOrder({ ids, own: ownName });
-  assert.equal(r2.score, 40);
-  assert.equal(r2.level, 'yellow');
+  assert.equal(r2.score, 0);          // a name alone never counts
+  assert.equal(r2.level, 'green');
+  assert.equal(r2.matches.length, 0);
 });
 
 test('score: name+address pair counts once (100), not 100+40+60', () => {

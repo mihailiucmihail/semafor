@@ -2,9 +2,10 @@
 import { normEmail, normPhone, normName, normAddress, normNameAddress, normDevice, type IdKind } from './normalize.ts';
 
 export const WEIGHTS: Record<IdKind, number> = {
-  email: 100, phone: 100, name_address: 100, device: 70, address: 60, name: 40,
+  email: 100, phone: 100, name_address: 100, device: 70, address: 60, name: 0,
 };
-export const WEIGHT_NAME_FUZZY = 20;
+/** A name alone never counts (many people share a name): only e-mail, phone, address, name + address and device do. */
+export const WEIGHT_NAME_FUZZY = 0;
 export const WEIGHT_DEVICE_IPHONE = 30;
 /** A browser id linked to a blacklist entry stops counting after this many days: phones get sold or reset. */
 export const DEVICE_TTL_DAYS = 365;
@@ -108,6 +109,8 @@ export function scoreOrder(inp: ScoreInput): ScoreResult {
   let score = 0;
 
   for (const id of inp.ids) {
+    // the name alone is not a match: it is not scored, not shown and not linked to the entry
+    if (id.kind === 'name') continue;
     const hits = inp.own(id.kind, id.normalized);
     if (!hits.length) continue;
     let w = WEIGHTS[id.kind];

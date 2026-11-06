@@ -35,6 +35,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
   // ?match=<e-mail>: would the checkout hide payment methods for this buyer? Every value typed (all her browsers)
   // checked against the shop's list, name-only entries, the network and the COD postal-code rule.
+  // ?nameonly=1: orders whose own-list light came only from a name match (to re-check after names stopped counting)
+  if (new URL(request.url).searchParams.get("nameonly")) {
+    const rows = (await db.orderCheck.findMany({ where: { shopId: shop.id, level: { in: ["yellow", "red"] } }, select: { orderName: true, level: true, matched: true } as any, take: 5000 })) as any[];
+    const only = rows.filter((r) => { const own = ((r.matched as any[]) || []).filter((m) => m && m.entryId); return own.length > 0 && own.every((m) => m.kind === "name"); });
+    return new Response(`${only.length} orders\n` + only.map((r) => `${String(r.orderName || "").replace("#", "")} ${r.level}`).join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   const mQ = new URL(request.url).searchParams.get("match");
   if (mQ) {
     const seed = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, email: { equals: mQ, mode: "insensitive" } }, select: { deviceId: true } })) as any[];

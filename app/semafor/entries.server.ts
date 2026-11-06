@@ -227,7 +227,7 @@ export async function buildCheckoutPayload(shopId: string, msg?: string) {
   // One word ("picioruș") = that word anywhere in first/last name; several words = the full name (any order).
   // Names that are only part of a fuller entry are NOT used here — too many people share a name.
   // Full names go to `n`, single words to `w` (the Function then only hashes the buyer's name words when `w` has entries).
-  for (const r of await nameOnlyRows(shopId)) { if (r.includes(" ")) buckets.n.add(sh("name", r)); else buckets.w.add(sh("nw", r)); }
+  // Name-only entries are NOT sent any more: a name alone never blocks (merchant's rule, Nov 2026 — namesakes were hit).
   // Network blocking (optional, off by default): e-mails / phones reported by enough OTHER shops for a counted reason
   const st = settingsOf(shopRow?.settings);
   const nw = networkOf(st.network);
