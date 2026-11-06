@@ -7,7 +7,8 @@ import db from "../db.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers } from "../semafor/entries.server";
 import { hmacId } from "../../core/hash";
-import { normDevice } from "../../core/normalize";
+import { normDevice, normPhone, normEmail, normName, normAddress } from "../../core/normalize";
+import { nameOnlyRows, buildCheckoutPayload } from "../semafor/entries.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -31,6 +32,38 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     const wrong = shared.reduce((n, [, v]) => n + v.devs.size - 1, 0), ok = sends.length - cart;
     const out = shared.map(([k, v]) => `link ${k.slice(0, 8)} → ${v.devs.size} browsers (${[...v.devs].join(",")}) ${v.at[0]}…${v.at[v.at.length - 1]}`);
     return new Response([`sent ${sends.length} | checkout links ${ok} | links shared by several browsers ${shared.length} (≥${wrong} went to a stranger) | cart link ${cart}`, ...out].join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
+  // ?match=<e-mail>: would the checkout hide payment methods for this buyer? Every value typed (all her browsers)
+  // checked against the shop's list, name-only entries, the network and the COD postal-code rule.
+  const mQ = new URL(request.url).searchParams.get("match");
+  if (mQ) {
+    const seed = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, email: { equals: mQ, mode: "insensitive" } }, select: { deviceId: true } })) as any[];
+    const devs = [...new Set(seed.map((r) => r.deviceId).filter(Boolean))];
+    const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, OR: [{ email: { equals: mQ, mode: "insensitive" } }, { deviceId: { in: devs } }] }, take: 3000,
+      select: { deviceId: true, email: true, phone: true, firstName: true, lastName: true, address1: true, city: true, country: true } as any })) as any[];
+    const vals = new Map<string, string>();   // normalized → kind
+    const words = new Set<string>(); const names = new Set<string>(); const zips = new Set<string>();
+    for (const r of rows) {
+      const c = r.country || shop.country;
+      const e = r.email && normEmail(r.email); if (e) vals.set(e, "email");
+      const ph = r.phone && normPhone(r.phone, c); if (ph) vals.set(ph, "phone");
+      const n = normName(r.firstName, r.lastName); if (n) { names.add(n); n.split(" ").forEach((w) => words.add(w)); }
+      for (const city of [r.city, null]) { const a = normAddress({ address1: r.address1, city, country: c } as any); if (a) vals.set(a, "address"); }
+      if (r.deviceId) vals.set(String(r.deviceId).toLowerCase(), "device");
+      if (r.zip) zips.add(String(r.zip));
+    }
+    const hits = (await db.identifier.findMany({ where: { shopId: shop.id, normalized: { in: [...vals.keys()] } }, select: { kind: true, normalized: true, entryId: true, createdAt: true } })) as any[];
+    const nameRows = await nameOnlyRows(shop.id);
+    const nameHits = nameRows.filter((x) => (x.includes(" ") ? names.has(x) : words.has(x)));
+    const pay: any = await buildCheckoutPayload(shop.id);
+    const out = [
+      `typed values: ${[...vals.entries()].map(([v, k]) => `${k}:${k === "device" ? v.slice(0, 6) : v}`).join(" ; ")}`,
+      `names: ${[...names].join(" ; ")} | zips: ${[...zips].join(",") || "-"}`,
+      `--- own list hits (${hits.length}) ---`, ...hits.map((h) => `${h.kind}: ${h.normalized} (entry ${h.entryId}, ${h.createdAt.toISOString().slice(0, 10)})`),
+      `--- name-only entries hit (${nameHits.length}) ---`, ...nameHits,
+      `--- payload --- mode red:${pay.m?.r} yellow:${pay.m?.y} | zip rule: ${(pay.z || []).length} patterns ${(pay.z || []).slice(0, 20).join(",")} | network ne:${pay.ne?.length} np:${pay.np?.length} y:${(pay.y?.e?.length || 0) + (pay.y?.p?.length || 0)} yf:${(pay.yf?.e?.length || 0) + (pay.yf?.p?.length || 0)}`,
+    ];
+    return new Response(out.join("\n"), { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
   const emQ = new URL(request.url).searchParams.get("email");
   if (emQ) {
