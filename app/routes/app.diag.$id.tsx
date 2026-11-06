@@ -35,13 +35,13 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const emQ = new URL(request.url).searchParams.get("email");
   if (emQ) {
     const rows = (await db.checkoutAttempt.findMany({ where: { shopId: shop.id, email: { equals: emQ, mode: "insensitive" } }, orderBy: { createdAt: "asc" }, take: 1000,
-      select: { deviceId: true, event: true, phone: true, firstName: true, lastName: true, city: true, checkoutToken: true, ip: true, fingerprint: true, discountCode: true, createdAt: true } })) as any[];
+      select: { deviceId: true, event: true, phone: true, firstName: true, lastName: true, city: true, checkoutToken: true, ip: true, fingerprint: true, discountCode: true, createdAt: true, host: true, total: true } })) as any[];
     const toks = [...new Set(rows.map((r) => r.checkoutToken).filter(Boolean))];
     const tokRows = toks.length ? ((await db.checkoutAttempt.findMany({ where: { shopId: shop.id, checkoutToken: { in: toks } }, select: { checkoutToken: true, deviceId: true, email: true } })) as any[]) : [];
     const byTok = new Map<string, { devs: Set<string>; emails: Set<string> }>();
     for (const t of tokRows) { const k = t.checkoutToken; if (!byTok.has(k)) byTok.set(k, { devs: new Set(), emails: new Set() }); byTok.get(k)!.devs.add((t.deviceId || "-").slice(0, 6)); if (t.email) byTok.get(k)!.emails.add(t.email); }
     const lines = [
-      ...rows.map((r) => `${r.createdAt.toISOString().slice(0, 16)} dev:${(r.deviceId || "-").slice(0, 6)} ${r.event.padEnd(9)} ${r.phone || "-"} | ${[r.firstName, r.lastName].filter(Boolean).join(" ") || "-"} | ${r.city || "-"} | ck:${(r.checkoutToken || "-").slice(0, 8)} | ip:${(r.ip || "-").slice(0, 15)} | fp:${(r.fingerprint || "-").slice(0, 6)} | ${r.discountCode || ""}`),
+      ...rows.map((r) => `${r.createdAt.toISOString().slice(0, 16)} dev:${(r.deviceId || "-").slice(0, 6)} ${r.event.padEnd(9)} ${r.phone || "-"} | ${[r.firstName, r.lastName].filter(Boolean).join(" ") || "-"} | ${r.city || "-"} | ck:${(r.checkoutToken || "-").slice(0, 8)} | ip:${(r.ip || "-").slice(0, 15)} | fp:${(r.fingerprint || "-").slice(0, 6)} | ${r.discountCode || ""} | ${r.host || ""} ${r.total ?? ""}`),
       "--- per checkout token: browsers / e-mails ---",
       ...[...byTok.entries()].map(([k, v]) => `ck:${k.slice(0, 8)} browsers:${[...v.devs].join(",")} emails:${[...v.emails].join(",")}`),
     ];
