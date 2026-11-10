@@ -22,7 +22,9 @@ async function gql(admin: AdminClient, q: string, variables?: Record<string, unk
 export const TAG: Record<Level, string> = { red: '🔴⚫⚫', yellow: '⚫🟡⚫', green: '⚫⚫🟢' };
 /** Same person ordered before (any e-mail): visible in the Orders list next to the light. */
 export const RETURNING_TAG = 'Semafor · client revenit';
-const ALL_TAGS = [...Object.values(TAG), '🔴 Semafor', '🟡 Semafor', '🟢 Semafor', 'refuz:blocked', 'refuz:warn'];
+/** Why it's red: the same person has a return request not settled yet (dropped automatically once it is). */
+export const RETURN_TAG = 'Semafor · retur nerezolvat';
+const ALL_TAGS = [...Object.values(TAG), RETURN_TAG, '🔴 Semafor', '🟡 Semafor', '🟢 Semafor', 'refuz:blocked', 'refuz:warn'];
 
 export async function checkOrder(opts: {
   db: PrismaClient; secret: string; shopId: string; shopDomain: string; country: string;
@@ -169,14 +171,16 @@ export async function checkOrder(opts: {
     const present: string[] = cur?.data?.order?.tags ?? [];
     const ours = ((cur?.data?.order?.risk?.assessments ?? []) as any[]).filter((a) => /semafor/i.test(a?.provider?.title || ''));
     staleRisk = !!ours.length && ours[ours.length - 1].riskLevel !== 'NONE';
-    const stale = present.filter((t) => t !== tag && ALL_TAGS.includes(t));
+    const hasReturn = (result.matches as any[]).some((m) => m?.reason === OPEN_RETURN_REASON);
+    const want = [tag, ...(history ? [RETURNING_TAG] : []), ...(hasReturn ? [RETURN_TAG] : [])];
+    const stale = present.filter((t) => !want.includes(t) && ALL_TAGS.includes(t));
     if (stale.length) {
       const r: any = await gql(admin, `#graphql
         mutation($id:ID!,$tags:[String!]!){ tagsRemove(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: stale });
       const ue = r?.data?.tagsRemove?.userErrors; if (ue?.length || r?.errors) console.error('[semafor] tagsRemove', JSON.stringify(ue || r.errors));
     }
     await gql(admin, `#graphql
-      mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: history ? [tag, RETURNING_TAG] : [tag] });
+      mutation($id:ID!,$tags:[String!]!){ tagsAdd(id:$id,tags:$tags){ userErrors{ message } } }`, { id: order.admin_graphql_api_id, tags: want });
   }
   if (combined === 'green' && ((opts.recheck && changed) || staleRisk || (history && (firstCheck || opts.forceNote)))) {
     // the reason is gone (e.g. the other order was delivered): Shopify shows Semafor's latest assessment;
@@ -194,7 +198,7 @@ export async function checkOrder(opts: {
       `#graphql
       mutation($in:OrderRiskAssessmentCreateInput!){ orderRiskAssessmentCreate(orderRiskAssessmentInput:$in){ userErrors{ message } } }`,
       { in: { orderId: order.admin_graphql_api_id, riskLevel: combined === 'red' ? 'HIGH' : 'MEDIUM', facts } },
-    );
+    ).then((r: any) => { const ue = r?.data?.orderRiskAssessmentCreate?.userErrors; if (ue?.length || r?.errors) console.error('[semafor] risk', order.name, JSON.stringify(ue?.length ? ue : r.errors)); });
     action = 'tag+risk';
     if (combined === 'red' && combinedLevel({ ...result, level: levelBeforeReturn }) === 'red' && settings.cancelRed && !opts.skipCancel) {
       await gql(admin, `#graphql
