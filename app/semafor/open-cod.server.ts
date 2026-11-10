@@ -9,7 +9,13 @@ type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 
 export type Related = { unshipped: string[]; codInTransit: string[]; ids: string[] };
 /** An earlier order of the same person (same phone, or same name + address), whatever its state. */
-export type PastOrder = { id: string; name: string; createdAt: string; status: "livrată" | "în curs" | "anulată" | "refuzată" | "retur" | "rambursată"; otherEmail: boolean; bad: boolean };
+export type PastOrder = { id: string; name: string; createdAt: string; status: "livrată" | "în curs" | "anulată" | "refuzată" | "retur" | "rambursată"; otherEmail: boolean; bad: boolean; openReturn: boolean };
+
+/** A return the merchant hasn't settled yet: the customer asked for it, or it's approved and on its way back. */
+export const OPEN_RETURN = ["RETURN_REQUESTED", "IN_PROGRESS"];
+/** Only returns on orders from the last 90 days count — older requests left open in Shopify are usually forgotten, not pending. */
+export const OPEN_RETURN_DAYS = 90;
+const recentForReturn = (createdAt: string) => Date.parse(createdAt) > Date.now() - OPEN_RETURN_DAYS * 86_400_000;
 
 const FRAG = `fragment F on Order { id name createdAt cancelledAt closed displayFinancialStatus displayFulfillmentStatus fulfillments(first: 5) { displayStatus }
   email phone customer { email phone firstName lastName }
@@ -26,7 +32,7 @@ ${FRAG}`;
 // phone, or name + address together. Never the name alone.
 const SAME_PERSON_KINDS = ["phone", "name_address"];
 
-function toOrderLike(o: any) {
+export function toOrderLike(o: any) {
   const a = (x: any) => x && { first_name: x.firstName, last_name: x.lastName, name: x.name, address1: x.address1, address2: x.address2, city: x.city, zip: x.zip, country_code: x.countryCodeV2, phone: x.phone };
   return { email: o.email, phone: o.phone, customer: o.customer && { email: o.customer.email, phone: o.customer.phone, first_name: o.customer.firstName, last_name: o.customer.lastName }, shipping_address: a(o.shippingAddress), billing_address: a(o.billingAddress) };
 }
@@ -150,7 +156,7 @@ export async function personHistory(admin: Admin, order: any, country: string, o
         : delivered || (o.displayFulfillmentStatus === "FULFILLED" && o.displayFinancialStatus === "PAID") ? "livrată"
         : "în curs";
       const email = String(o.email || o.customer?.email || "").trim().toLowerCase();
-      return { id: o.id, name: o.name, createdAt: o.createdAt, status, otherEmail: !!email && !!myEmail && email !== myEmail, bad: status === "refuzată" || status === "retur" || status === "rambursată" };
+      return { id: o.id, name: o.name, createdAt: o.createdAt, status, otherEmail: !!email && !!myEmail && email !== myEmail, bad: status === "refuzată" || status === "retur" || status === "rambursată", openReturn: OPEN_RETURN.includes(rs) && recentForReturn(o.createdAt) };
     });
 }
 
@@ -159,4 +165,22 @@ export function pastOrderText(p: PastOrder): string {
   const d = new Date(p.createdAt);
   const date = `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}.${d.getUTCFullYear()}`;
   return `${p.name} ${p.status} ${date}${p.otherEmail ? " (alt e-mail)" : ""}`;
+}
+
+const QRN = `#graphql
+query($ids: [ID!]!) { nodes(ids: $ids) { ... on Order { id name createdAt returnStatus } } }`;
+
+/** Of these orders, the ones whose return is still unsettled (re-checked live; a settled or declined return drops out). */
+export async function stillOpenReturns(admin: Admin, ids: string[]): Promise<{ id: string; name: string }[]> {
+  const uniq = [...new Set(ids.filter(Boolean))].slice(0, 20);
+  if (!uniq.length) return [];
+  const r: any = await (await admin.graphql(QRN, { variables: { ids: uniq } })).json();
+  if (!r?.data?.nodes) throw new Error(r?.errors?.map((e: any) => e.message).join("; ") || "return status unavailable");
+  return (r.data.nodes as any[]).filter((n) => n?.id && OPEN_RETURN.includes(n.returnStatus) && recentForReturn(n.createdAt)).map((n) => ({ id: n.id, name: n.name }));
+}
+
+/** Canonical (Romanian) text of the red finding; trMsg translates it. */
+export const OPEN_RETURN_REASON = "retur nerezolvat";
+export function openReturnText(names: string[]): string {
+  return `cerere de retur nerezolvată: ${names.join(", ")} — rezolvă întâi returul (poate fi un schimb), apoi expediază`;
 }

@@ -10,7 +10,7 @@ import { networkOf, type ShopSettings } from '../../core/settings';
 import { can, effectiveSettings } from '../../core/plans';
 import { planOf } from './plan.server';
 import { deviceLinks } from './device-links.server';
-import { findRelated, personHashes, personHistory, pastOrderText } from './open-cod.server';
+import { findRelated, personHashes, personHistory, pastOrderText, stillOpenReturns, openReturnText, OPEN_RETURN_REASON } from './open-cod.server';
 import { shopLang } from '../i18n.server';
 import { attributeOrder } from './attribution.server';
 
@@ -31,6 +31,8 @@ export async function checkOrder(opts: {
   recheck?: boolean;
   /** write the returning-customer note to Shopify even if the order was checked before (admin re-run) */
   forceNote?: boolean;
+  /** orders of the same person with a return request still unsettled, found after this order was placed (recheck.server.ts) */
+  openReturns?: { id: string; name: string }[];
 }): Promise<ScoreResult & { combined: Level; action: string; related: string[] }> {
   const { db, secret, shopId, order, admin } = opts;
   const plan = planOf(await db.shop.findUnique({ where: { id: shopId }, select: { plan: true, domain: true, trialEndsAt: true } }));
@@ -107,9 +109,14 @@ export async function checkOrder(opts: {
   // the returning-customer note goes to Shopify's risk panel once, at the order's first check
   const firstCheck = !opts.recheck && !(await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { orderId: true } }));
   const HIST_REASONS = ['client revenit', 'istoric retur/refuz'];
+  // orders of the same person with an unsettled return request → red (ship nothing before the return is sorted out)
+  let returnIds: string[] = (opts.openReturns ?? []).map((x) => x.id);
+  let prevReturn: any = null;
   if (opts.recheck) {
     // periodic re-checks reuse what the first check found (saves 3 Shopify calls per order every 15 min)
     const prevCheck: any = await db.orderCheck.findUnique({ where: { shopId_orderId: { shopId, orderId: order.admin_graphql_api_id } }, select: { matched: true } });
+    prevReturn = ((prevCheck?.matched as any[]) ?? []).find((x) => x?.reason === OPEN_RETURN_REASON) ?? null;
+    if (prevReturn?.orders?.length) returnIds.push(...prevReturn.orders);
     const m = ((prevCheck?.matched as any[]) ?? []).find((x) => HIST_REASONS.includes(x?.reason));
     if (m) {
       history = m.normalized;
@@ -125,8 +132,24 @@ export async function checkOrder(opts: {
       const bad = h.filter((x) => x.bad);
       (result.matches as any[]).push({ kind: 'order', normalized: history, entryId: '', reason: bad.length ? 'istoric retur/refuz' : 'client revenit', weight: bad.length ? 40 : 0 });
       if (bad.length && result.level === 'green') result.level = 'yellow';
+      returnIds.push(...h.filter((x) => x.openReturn).map((x) => x.id));
     }
   } catch (e) { console.error('[semafor] personHistory', e); }
+  // the level without the return finding: auto-cancel (settings.cancelRed) never fires just because of a return request
+  const levelBeforeReturn = result.level;
+  returnIds = [...new Set(returnIds)].filter((id) => id !== order.admin_graphql_api_id);
+  if (returnIds.length) try {
+    const open = await stillOpenReturns(admin as any, returnIds);
+    if (open.length) {
+      (result.matches as any[]).push({ kind: 'order', normalized: openReturnText(open.map((o) => o.name)), entryId: '', reason: OPEN_RETURN_REASON, weight: 100, orders: open.map((o) => o.id) });
+      result.level = 'red';
+    }
+  } catch (e) {
+    // Shopify didn't answer: keep the last known finding rather than turning the light green by mistake
+    console.error('[semafor] open returns', e);
+    const keep = prevReturn ?? ((opts.openReturns ?? []).length ? { kind: 'order', normalized: openReturnText(opts.openReturns!.map((o) => o.name)), entryId: '', reason: OPEN_RETURN_REASON, weight: 100, orders: opts.openReturns!.map((o) => o.id) } : null);
+    if (keep) { (result.matches as any[]).push(keep); result.level = 'red'; }
+  }
   const combined = combinedLevel(result);
 
   // Device trail
@@ -173,7 +196,7 @@ export async function checkOrder(opts: {
       { in: { orderId: order.admin_graphql_api_id, riskLevel: combined === 'red' ? 'HIGH' : 'MEDIUM', facts } },
     );
     action = 'tag+risk';
-    if (combined === 'red' && settings.cancelRed && !opts.skipCancel) {
+    if (combined === 'red' && combinedLevel({ ...result, level: levelBeforeReturn }) === 'red' && settings.cancelRed && !opts.skipCancel) {
       await gql(admin, `#graphql
       mutation($id:ID!){ orderCancel(orderId:$id, reason:FRAUD, notifyCustomer:false, refund:false, restock:true){ userErrors{ message } } }`, { id: order.admin_graphql_api_id });
       action = 'tag+risk+cancel';

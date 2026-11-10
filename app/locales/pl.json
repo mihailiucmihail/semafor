@@ -976,7 +976,9 @@
   "to samo urządzenie",
   "powracający klient — wcześniejsze zamówienia: $1",
   "powracający klient",
-  "historia zwrotów / odmów"
+  "historia zwrotów / odmów",
+  "nierozpatrzona prośba o zwrot: $1 — najpierw rozwiąż zwrot (może to być wymiana), potem wysyłaj",
+  "nierozpatrzony zwrot"
  ],
  "skip": [
   "Nie wysłano: produkt z koszyka jest niedostępny ($1).",

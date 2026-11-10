@@ -1072,6 +1072,8 @@ const SERVER_MSG: Array<[RegExp, string]> = [
   [/^client revenit — comenzi anterioare: (.+)$/, "returning customer — earlier orders: $1"],
   [/^client revenit$/, "returning customer"],
   [/^istoric retur\/refuz$/, "return / refusal history"],
+  [/^cerere de retur nerezolvată: (.+) — rezolvă întâi returul \(poate fi un schimb\), apoi expediază$/, "unresolved return request: $1 — settle the return first (it may be an exchange), then ship"],
+  [/^retur nerezolvat$/, "unresolved return"],
 ];
 
 /** Status words inside "earlier orders: #4183 livrată 19.10.2026 (alt e-mail)", per language. */

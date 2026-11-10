@@ -976,7 +976,9 @@
   "même appareil",
   "client récurrent — commandes précédentes : $1",
   "client récurrent",
-  "historique de retours / refus"
+  "historique de retours / refus",
+  "demande de retour non résolue : $1 — réglez d'abord le retour (c'est peut-être un échange), puis expédiez",
+  "retour non résolu"
  ],
  "skip": [
   "Non envoyé : l'article du panier est en rupture de stock ($1).",

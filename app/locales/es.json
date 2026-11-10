@@ -976,7 +976,9 @@
   "mismo dispositivo",
   "cliente recurrente — pedidos anteriores: $1",
   "cliente recurrente",
-  "historial de devoluciones / rechazos"
+  "historial de devoluciones / rechazos",
+  "solicitud de devolución sin resolver: $1 — resuelve primero la devolución (puede ser un cambio) y luego envía",
+  "devolución sin resolver"
  ],
  "skip": [
   "No enviado: el artículo del carrito está agotado ($1).",
