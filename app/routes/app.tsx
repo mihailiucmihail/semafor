@@ -82,6 +82,7 @@ export default function App() {
           <Link to="/app/settings">{t(lang, "nav.settings")}</Link>
           <Link to="/app/plan">{t(lang, "nav.plan")}</Link>
           {owner && <Link to="/app/funnel">Воронка</Link>}
+          {owner && <Link to="/app/facturi">Фактуры</Link>}
         </NavMenu>
         {quota && (
           <Box paddingBlockStart="400" paddingInline="400">

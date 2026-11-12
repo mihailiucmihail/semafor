@@ -48,6 +48,21 @@ export interface ShopSettings {
   reviewAskedAt?: number | null;
   /** How reports from OTHER shops of the network are read (page Network). */
   network: NetworkSettings;
+  /** SmartBill invoices in the order's currency (owner-only page /app/facturi, app/semafor/smartbill.server.ts). */
+  smartbill?: SmartBillSettings | null;
+}
+
+export interface SmartBillSettings {
+  username: string;          // SmartBill login e-mail
+  token: string;             // API token (SmartBill → Contul meu → Integrări); entered by the merchant, never shown back
+  cif: string;               // company VAT code
+  series: string;            // invoice series, e.g. "MG"
+  /** automatic invoices: off / once the order is shipped / once FAN Courier says delivered */
+  auto?: 'off' | 'fulfilled' | 'delivered';
+  /** automatic mode only for orders created after this moment (ISO) — the backlog is issued by hand */
+  autoSince?: string | null;
+  /** automatic mode only for these presentment currencies (empty = all) */
+  currencies?: string[];
 }
 
 /** Network: yellow / red from how many other shops reported the buyer, which reasons count, and checkout blocking. */

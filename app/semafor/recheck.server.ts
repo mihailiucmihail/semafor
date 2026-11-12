@@ -44,6 +44,11 @@ export async function recheckTransient(admin: Admin, shop: { id: string; domain:
     popupHealed.add(shop.id);
     try { await healSavedMainCode(admin as any, shop); } catch (e: any) { console.error("[semafor] popup heal", shop.domain, e?.message || e); }
   }
+  // SmartBill invoices in the order's currency (owner shop, automatic mode on)
+  if (shop.settings.smartbill?.auto && shop.settings.smartbill.auto !== "off") {
+    try { const { autoInvoices } = await import("./smartbill.server"); const n = await autoInvoices(admin as any, shop); if (n) console.log("[semafor] smartbill auto", shop.domain, n); }
+    catch (e: any) { console.error("[semafor] smartbill auto", shop.domain, e?.message || e); }
+  }
   try { await flagOpenReturns(admin, shop); } catch (e: any) { console.error("[semafor] open returns", shop.domain, e?.message || e); }
   const transient = rows.filter((r) => ((r.matched as any[]) || []).some((m) => m?.kind === "order" || (m?.kind === "device" && /mai există comenzile|în 48 h de pe același dispozitiv/.test(String(m?.normalized || ""))))).slice(0, 15);
   let n = 0;
