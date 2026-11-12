@@ -671,6 +671,8 @@
   "popup.code": "Código de descuento",
   "popup.pct": "Descuento (%) que se muestra en los textos",
   "popup.codeOk": "Encontrado en Shopify: {title}",
+  "popup.codeHealedPct": "El código principal {from} daba un descuento distinto al del pop-up, así que Semafor lo cambió por {code}.",
+  "popup.codeHealedInactive": "El código principal {from} ya no funciona en Shopify (caducado o desactivado), así que Semafor lo cambió por {code}.",
   "popup.codeInactive": "El código {code} existe, pero no está activo ({status}).",
   "popup.codeMissing": "El código {code} no existe en Shopify. Créalo en Descuentos — de lo contrario, los visitantes recibirán un código que no funciona.",
   "popup.codePct": "El código da {pct}%, pero los textos dicen {shown}%.",

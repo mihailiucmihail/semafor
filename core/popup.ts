@@ -298,6 +298,29 @@ function cleanLocalCodes(m: unknown): Partial<Record<PopupLang, string>> {
 /** The code a visitor of this language gets (falls back to the main code). */
 export const codeForLang = (p: Pick<PopupSettings, 'code' | 'localCodes'>, lang: PopupLang) => p.localCodes?.[lang] || p.code;
 
+/** The language whose per-language code name the main code carries, with the % in that name (BUNVENIT15 → ro, 15). */
+export function mainCodeLang(code: string | null | undefined): { lang: PopupLang; pct: number } | null {
+  if (!code) return null;
+  for (const l of POPUP_LANGS) {
+    const m = new RegExp(`^${LOCAL_CODE_PREFIX[l]}(\\d{1,3})(?:S|-SMF)?$`).exec(code);
+    if (m) return { lang: l, pct: Number(m[1]) };
+  }
+  return null;
+}
+
+/**
+ * Own-code mode: a main code whose name says another percentage than that language now gives (BUNVENIT15 after
+ * switching the pop-up to 10 %) is replaced by that language's current code (BUNVENIT10). null = nothing to change.
+ */
+export function alignedMainCode(p: Pick<PopupSettings, 'code' | 'pct' | 'pctByLang' | 'localCodes'>): string | null {
+  const m = mainCodeLang(p.code);
+  if (!m) return null;
+  const want = pctFor(p, m.lang);
+  if (m.pct === want) return null;
+  const lc = p.localCodes?.[m.lang];
+  return lc && lc !== p.code && isLocalCodeFor(lc, localCodeName(m.lang, want)) ? lc : null;
+}
+
 /** All codes the pop-up may hand out (attribution). */
 export const allPopupCodes = (p: Pick<PopupSettings, 'code' | 'localCodes'>) => [...new Set([p.code, ...Object.values(p.localCodes ?? {})].filter(Boolean) as string[])];
 

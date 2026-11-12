@@ -671,6 +671,8 @@
   "popup.code": "Kod rabatowy",
   "popup.pct": "Rabat (%) pokazywany w tekstach",
   "popup.codeOk": "Znaleziono w Shopify: {title}",
+  "popup.codeHealedPct": "Kod główny {from} dawał inny rabat niż pop-up, więc Semafor zamienił go na {code}.",
+  "popup.codeHealedInactive": "Kod główny {from} nie działa już w Shopify (wygasł lub wyłączony), więc Semafor zamienił go na {code}.",
   "popup.codeInactive": "Kod {code} istnieje, ale nie jest aktywny ({status}).",
   "popup.codeMissing": "Kod {code} nie istnieje w Shopify. Utwórz go w Rabatach — w przeciwnym razie odwiedzający dostaną kod, który nie działa.",
   "popup.codePct": "Kod daje {pct}%, a teksty mówią {shown}%.",

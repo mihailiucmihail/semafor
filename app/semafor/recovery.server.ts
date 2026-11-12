@@ -892,7 +892,7 @@ export function startRecoveryScheduler() {
             g.__semaforRecheck.set(sh.id, Date.now());
             const { recheckTransient } = await import("./recheck.server");
             const { admin } = await unauthenticated.admin(sh.domain);
-            await recheckTransient(admin as any, { id: sh.id, domain: sh.domain, country: sh.country, settings: settingsOf(sh.settings) });
+            await recheckTransient(admin as any, { id: sh.id, domain: sh.domain, country: sh.country, plan: (sh as any).plan ?? null, settings: settingsOf(sh.settings) });
           }
         } catch (e: any) { console.error("[semafor] recheck", sh.domain, e?.message || e); }
         // network blocking on: other shops' reports change without this shop doing anything → refresh its blocklist every 30 min.

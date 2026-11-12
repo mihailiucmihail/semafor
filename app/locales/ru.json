@@ -671,6 +671,8 @@
   "popup.code": "Код скидки",
   "popup.pct": "Скидка (%), указанная в текстах",
   "popup.codeOk": "Найден в Shopify: {title}",
+  "popup.codeHealedPct": "Основной код {from} давал другую скидку, чем pop-up, поэтому Semafor заменил его на {code}.",
+  "popup.codeHealedInactive": "Основной код {from} больше не работает в Shopify (истёк или выключен), поэтому Semafor заменил его на {code}.",
   "popup.codeInactive": "Код {code} существует, но не активен ({status}).",
   "popup.codeMissing": "Кода {code} нет в Shopify. Создайте его в разделе «Скидки» — иначе посетители получат неработающий код.",
   "popup.codePct": "Код даёт {pct}%, а в текстах указано {shown}%.",

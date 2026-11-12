@@ -7,7 +7,7 @@
  */
 import db from "../db.server";
 import { can } from "../../core/plans";
-import { buildPopupConfig, autoCode, localCodeName, codeForLang, pctFor, isLocalCodeFor } from "../../core/popup";
+import { buildPopupConfig, autoCode, localCodeName, codeForLang, pctFor, isLocalCodeFor, alignedMainCode } from "../../core/popup";
 import { POPUP_LANGS, type PopupLang } from "../../core/settings";
 import { saveSettings } from "./shop.server";
 import type { PopupSettings, ShopSettings } from "../../core/settings";
@@ -121,6 +121,39 @@ export async function ensureLocalCodes(admin: Admin, p: PopupSettings): Promise<
     catch (e: any) { console.error("[semafor] popup local code", lang, e?.message || e); }
   }
   return out;
+}
+
+/**
+ * Own-code mode: keeps the main code in step with the pop-up. It is replaced when its name says another percentage
+ * (BUNVENIT15 while the pop-up gives 10 % → BUNVENIT10) or when it no longer works in Shopify (expired / disabled /
+ * deleted → the first active per-language code with the pop-up's percentage). null = it is fine as it is.
+ */
+export async function healMainCode(admin: Admin, p: PopupSettings): Promise<{ code: string; from: string; reason: "pct" | "inactive" } | null> {
+  if (p.codeMode !== "own") return null;
+  const aligned = alignedMainCode(p);
+  if (aligned) return { code: aligned, from: p.code, reason: "pct" };
+  const c = await checkDiscountCode(admin, p.code);
+  if (c.error || (c.exists && c.status === "ACTIVE")) return null;
+  for (const l of POPUP_LANGS) {
+    const lc = p.localCodes?.[l];
+    if (!lc || lc === p.code || pctFor(p, l) !== p.pct) continue;
+    const k = await checkDiscountCode(admin, lc);
+    if (k.exists && k.status === "ACTIVE" && (k.pct == null || k.pct === p.pct)) return { code: lc, from: p.code, reason: "inactive" };
+  }
+  return null;
+}
+
+/** Heals the main code of a saved pop-up (see healMainCode), saves it and republishes the storefront config. */
+export async function healSavedMainCode(admin: Admin, shop: { id: string; plan?: string | null; domain?: string | null; settings: ShopSettings }) {
+  const p = shop.settings.popup;
+  if (!p || p.codeMode !== "own") return null;
+  const h = await healMainCode(admin, p);
+  if (!h) return null;
+  const next = await saveSettings(shop.id, { popup: { ...p, code: h.code } }, "semafor");
+  shop.settings = next;
+  try { await pushPopupConfig(admin, { ...shop, settings: next }); } catch (e: any) { console.error("[semafor] popup push after heal", e?.message || e); }
+  console.log("[semafor] popup main code", shop.domain, h.from, "→", h.code, h.reason);
+  return h;
 }
 
 /** Code for a visitor's language; creates the per-language codes once if this shop doesn't have them yet. */

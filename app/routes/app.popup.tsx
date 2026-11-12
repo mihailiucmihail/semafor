@@ -7,7 +7,7 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, saveSettings } from "../semafor/shop.server";
 import { requireFeature, planOf } from "../semafor/plan.server";
-import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, ensureLocalCodes, type CodeCheck } from "../semafor/popup.server";
+import { pushPopupConfig, checkDiscountCode, popupStats, ensurePopupDiscount, ensureLocalCodes, healMainCode, healSavedMainCode, type CodeCheck } from "../semafor/popup.server";
 import db from "../db.server";
 import { can } from "../../core/plans";
 import { POPUP_LANGS, POPUP_DESIGNS, type PopupLang, type PopupSettings, type PopupTexts, type WelcomeTexts } from "../../core/settings";
@@ -36,6 +36,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const own = await checkDiscountCode(admin as any, "BUNVENIT15");
     if (own.exists && own.status === "ACTIVE") p = { ...p, codeMode: "own", code: "BUNVENIT15", pct: own.pct || p.pct };
   }
+  // a saved own code that no longer matches the pop-up (other % in its name, or expired) is switched to the current one
+  let healed: { code: string; from: string; reason: string } | null = null;
+  if (raw?.popup) {
+    try { healed = await healSavedMainCode(admin as any, shop); if (healed) p = shop.settings.popup; } catch (e: any) { console.error("[semafor] popup heal", e?.message || e); }
+  }
   let shopName = "";
   try { const j: any = await (await admin.graphql(`query { shop { name } }`)).json(); shopName = j?.data?.shop?.name || ""; } catch { /* ignore */ }
   await backfillAttribution(db, admin as any, shop);
@@ -47,7 +52,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const handle = session.shop.replace(/\.myshopify\.com$/, "");
   const apiKey = process.env.SHOPIFY_API_KEY || "";
   return {
-    popup: p, texts, wtexts, shopName, stats, code, attr,
+    popup: p, texts, wtexts, shopName, stats, code, attr, healed,
     mail: { ready: mailReady(), sender, semaforDomain: !!MAIL_DOMAIN && sender.endsWith("@" + MAIL_DOMAIN) },
     seenAt: shop.settings.popupSeenAt ?? null,
     recovery: { pro: can(plan, "recovery"), auto: !!shop.settings.recovery.enabled },
@@ -82,10 +87,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
   // one code per storefront language (BUNVENIT15 / WILLKOMMEN15 / WITAJ15 / WELCOME15)
   if (!codeError) popup.localCodes = await ensureLocalCodes(admin as any, popup).catch(() => popup.localCodes ?? {});
+  // own code: keep the main code in step with the chosen percentage (BUNVENIT15 → BUNVENIT10 when switching to 10 %)
+  let healed: { code: string; from: string; reason: string } | null = null;
+  if (!codeError && popup.codeMode === "own") {
+    try { healed = await healMainCode(admin as any, popup); if (healed) popup.code = healed.code; } catch (e: any) { console.error("[semafor] popup heal", e?.message || e); }
+  }
   const next = await saveSettings(shop.id, { popup }, (session as any).email || session.shop);
   let pushError: string | null = null;
   try { await pushPopupConfig(admin as any, { ...shop, settings: next }); } catch (e: any) { pushError = String(e?.message || e).slice(0, 300); console.error("[semafor] popup push", pushError); }
-  return { ok: true, pushError, codeError, savedCode: popup.code, code: await checkDiscountCode(admin as any, popup.code) };
+  return { ok: true, pushError, codeError, healed, savedCode: popup.code, code: await checkDiscountCode(admin as any, popup.code) };
 };
 
 /** Small swatches for the design picker (the real palettes live in popup.css). */
@@ -324,6 +334,7 @@ export default function PopupPage() {
                     {!auto && (
                       <>
                         <TextField label={tr("popup.code")} value={p.code} onChange={(v) => set("code", v.toUpperCase().replace(/\s+/g, ""))} onBlur={checkCode} autoComplete="off" monospaced />
+                        {(() => { const h: any = res?.healed ?? (data as any).healed; return h ? <Banner tone="info">{tr(h.reason === "pct" ? "popup.codeHealedPct" : "popup.codeHealedInactive", { from: h.from, code: h.code })}</Banner> : null; })()}
                         {code && codeInfo && (
                           !codeInfo.exists
                             ? <Banner tone="critical" action={{ content: tr("popup.openDiscounts"), url: data.discountsUrl, target: "_blank" }}>{tr("popup.codeMissing", { code })}</Banner>

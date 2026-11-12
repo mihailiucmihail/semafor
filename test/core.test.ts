@@ -309,3 +309,19 @@ test('device ids stop counting after DEVICE_TTL_DAYS (phones get sold)', () => {
   assert.equal(deviceExpired('device', new Date(now - 30 * 86400e3), now), false);
   assert.equal(deviceExpired('email', new Date(now - 4000 * 86400e3), now), false);
 });
+
+// ── pop-up main code kept in step with the percentage (own-code mode) ──
+import { alignedMainCode, mainCodeLang } from '../core/popup.ts';
+test('popup: own main code follows the chosen percentage', () => {
+  const lc = { ro: 'BUNVENIT10', de: 'WILLKOMMEN10S', pl: 'WITAJ10', en: 'WELCOME10' };
+  assert.deepEqual(mainCodeLang('BUNVENIT15'), { lang: 'ro', pct: 15 });
+  assert.deepEqual(mainCodeLang('WILLKOMMEN10S'), { lang: 'de', pct: 10 });
+  assert.equal(mainCodeLang('SUMMER15'), null);
+  assert.equal(alignedMainCode({ code: 'BUNVENIT15', pct: 10, localCodes: lc }), 'BUNVENIT10');
+  assert.equal(alignedMainCode({ code: 'BUNVENIT10', pct: 10, localCodes: lc }), null);
+  assert.equal(alignedMainCode({ code: 'SUMMER15', pct: 10, localCodes: lc }), null);
+  // RO overridden to 15 %: BUNVENIT15 is right for RO, nothing to change
+  assert.equal(alignedMainCode({ code: 'BUNVENIT15', pct: 10, pctByLang: { ro: 15 }, localCodes: { ...lc, ro: 'BUNVENIT15' } }), null);
+  // no matching per-language code yet → leave it (the expiry check handles it)
+  assert.equal(alignedMainCode({ code: 'BUNVENIT15', pct: 10, localCodes: {} }), null);
+});

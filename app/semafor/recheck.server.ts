@@ -5,14 +5,16 @@ import db from "../db.server";
 import { SECRET } from "./shop.server";
 import { fetchOrder } from "./backfill.server";
 import { checkOrder } from "./check-order.server";
+import { healSavedMainCode } from "./popup.server";
 import type { ShopSettings } from "../../core/settings";
 import { personHashes, toOrderLike as gqlToLike, OPEN_RETURN_REASON, OPEN_RETURN_DAYS } from "./open-cod.server";
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
 const DAY = 86_400_000;
 const healed = new Set<string>();
+const popupHealed = new Set<string>();
 
-export async function recheckTransient(admin: Admin, shop: { id: string; domain: string; country: string; settings: ShopSettings }) {
+export async function recheckTransient(admin: Admin, shop: { id: string; domain: string; country: string; plan?: string | null; settings: ShopSettings }) {
   const rows = (await db.orderCheck.findMany({
     // orders from the last 14 days (by order date; re-checks move checkedAt), not checked in the last 10 minutes
     where: {
@@ -36,6 +38,11 @@ export async function recheckTransient(admin: Admin, shop: { id: string; domain:
       }
       if (green.length) console.log("[semafor] healed stale risk", shop.domain, green.length);
     } catch (e: any) { console.error("[semafor] heal risk", shop.domain, e?.message || e); }
+  }
+  // once per process: a pop-up own code that no longer matches the pop-up (BUNVENIT15 while it gives 10 %) or expired
+  if (!popupHealed.has(shop.id)) {
+    popupHealed.add(shop.id);
+    try { await healSavedMainCode(admin as any, shop); } catch (e: any) { console.error("[semafor] popup heal", shop.domain, e?.message || e); }
   }
   try { await flagOpenReturns(admin, shop); } catch (e: any) { console.error("[semafor] open returns", shop.domain, e?.message || e); }
   const transient = rows.filter((r) => ((r.matched as any[]) || []).some((m) => m?.kind === "order" || (m?.kind === "device" && /mai există comenzile|în 48 h de pe același dispozitiv/.test(String(m?.normalized || ""))))).slice(0, 15);

@@ -742,6 +742,8 @@ const D = {
   "popup.code": { en: "Discount code", ro: "Cod de reducere" },
   "popup.pct": { en: "Discount (%) shown in the texts", ro: "Reducerea (%) afișată în texte" },
   "popup.codeOk": { en: "Found in Shopify: {title}", ro: "Există în Shopify: {title}" },
+  "popup.codeHealedPct": { en: "The main code {from} gave a different discount than the pop-up, so Semafor switched it to {code}.", ro: "Codul principal {from} dădea altă reducere decât pop-up-ul, așa că Semafor l-a înlocuit cu {code}." },
+  "popup.codeHealedInactive": { en: "The main code {from} no longer works in Shopify (expired or disabled), so Semafor switched it to {code}.", ro: "Codul principal {from} nu mai funcționează în Shopify (expirat sau dezactivat), așa că Semafor l-a înlocuit cu {code}." },
   "popup.codeInactive": { en: "Code {code} exists but is not active ({status}).", ro: "Codul {code} există, dar nu este activ ({status})." },
   "popup.codeMissing": { en: "Code {code} doesn't exist in Shopify. Create it in Discounts — otherwise visitors get a code that doesn't work.", ro: "Codul {code} nu există în Shopify. Creează-l în Reduceri — altfel vizitatorii primesc un cod care nu funcționează." },
   "popup.codePct": { en: "The code gives {pct}% but the texts say {shown}%.", ro: "Codul oferă {pct}%, dar textele afișează {shown}%." },
