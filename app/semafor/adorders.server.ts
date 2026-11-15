@@ -5,10 +5,9 @@
  *    "Mihailiuc Group Ads" act_1514522812566848): names for the ID links and the spend per ad, also for ads with no order.
  * Read-only: no scopes, webhooks or extensions involved (read_orders is already granted).
  */
-import { orderSource, groupByAd, isMetaId, type AdOrder, type AdRow, type Channel } from "../../core/adattr";
+import { orderSource, groupByAd, isMetaId, periodRange, type AdOrder, type AdRow, type Channel, type PeriodKey } from "../../core/adattr";
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
-const DAY = 86_400_000;
 
 const VISIT = `source sourceType landingPage utmParameters{ source medium campaign content term }`;
 const Q = `query($q:String!,$after:String){ orders(first:100, after:$after, sortKey:CREATED_AT, reverse:true, query:$q){
@@ -16,12 +15,12 @@ const Q = `query($q:String!,$after:String){ orders(first:100, after:$after, sort
   nodes{ id name createdAt cancelledAt totalPriceSet{ presentmentMoney{ amount currencyCode } }
     customerJourneySummary{ firstVisit{ ${VISIT} } lastVisit{ ${VISIT} } } } } }`;
 
-export async function fetchOrders(admin: Admin, days: number, max = 1000): Promise<AdOrder[]> {
-  const since = new Date(Date.now() - days * DAY).toISOString();
+export async function fetchOrders(admin: Admin, range: { since: Date; until: Date | null }, max = 1000): Promise<AdOrder[]> {
+  const q = `created_at:>='${range.since.toISOString()}'` + (range.until ? ` created_at:<'${range.until.toISOString()}'` : "") + " status:any";
   const out: AdOrder[] = [];
   let after: string | null = null;
   while (out.length < max) {
-    const r: any = await (await admin.graphql(Q, { variables: { q: `created_at:>='${since}' status:any`, after } })).json();
+    const r: any = await (await admin.graphql(Q, { variables: { q, after } })).json();
     if (r.errors) throw new Error(JSON.stringify(r.errors).slice(0, 300));
     const c = r?.data?.orders;
     for (const o of (c?.nodes ?? []) as any[]) {
@@ -39,13 +38,12 @@ export async function fetchOrders(admin: Admin, days: number, max = 1000): Promi
 
 export type MetaAd = { campaignId: string; campaign: string; adsetId: string; adset: string; adId: string; ad: string; spend: number; clicks: number; lpv: number };
 
-async function metaAds(days: number): Promise<{ ok: boolean; reason: string; currency: string | null; ads: MetaAd[] }> {
+async function metaAds(range: { metaSince: string; metaUntil: string }): Promise<{ ok: boolean; reason: string; currency: string | null; ads: MetaAd[] }> {
   const token = process.env.META_ADS_TOKEN;
   if (!token) return { ok: false, reason: "нет токена Meta (META_ADS_TOKEN)", currency: null, ads: [] };
   const acct = process.env.META_STORE_AD_ACCOUNT || "act_1514522812566848";
   const v = process.env.META_API_VERSION || "v23.0";
-  const since = new Date(Date.now() - (days - 1) * DAY).toISOString().slice(0, 10);
-  const until = new Date().toISOString().slice(0, 10);
+  const since = range.metaSince, until = range.metaUntil;
   const qs = new URLSearchParams({
     level: "ad",
     fields: "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,inline_link_clicks,actions,account_currency",
@@ -78,8 +76,9 @@ async function metaAds(days: number): Promise<{ ok: boolean; reason: string; cur
 
 export type ReklamaRow = AdRow & { spend: number | null; clicks: number | null; lpv: number | null };
 
-export async function reklama(admin: Admin, days: number) {
-  const [orders, meta] = await Promise.all([fetchOrders(admin, days), metaAds(days)]);
+export async function reklama(admin: Admin, days: PeriodKey) {
+  const range = periodRange(days);
+  const [orders, meta] = await Promise.all([fetchOrders(admin, range), metaAds(range)]);
   const names = { campaigns: {} as Record<string, string>, adsets: {} as Record<string, string>, ads: {} as Record<string, string> };
   for (const a of meta.ads) { names.campaigns[a.campaignId] = a.campaign; names.adsets[a.adsetId] = a.adset; names.ads[a.adId] = a.ad; }
   const grouped = groupByAd(orders, names);

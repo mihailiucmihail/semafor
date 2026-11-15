@@ -7,14 +7,14 @@ import { authenticate } from "../shopify.server";
 import { isOwnerShop } from "../semafor/plan.server";
 import { reklama } from "../semafor/adorders.server";
 import { memo } from "../semafor/memo.server";
-import { CHANNEL_LABEL, type Channel } from "../../core/adattr";
+import { CHANNEL_LABEL, PERIODS, PERIOD_LABEL, parsePeriod, type Channel, type PeriodKey } from "../../core/adattr";
 
 // Owner-only page (Russian): which reel / ad brought which order, from Shopify's own visit data (UTM links).
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   if (!isOwnerShop(session.shop)) throw new Response("Not found", { status: 404 });
   const sp = new URL(request.url).searchParams;
-  const days = [7, 14, 30, 60, 90].includes(Number(sp.get("d"))) ? Number(sp.get("d")) : 30;
+  const days = parsePeriod(sp.get("d"));
   const data = await memo(`reklama:${session.shop}:${days}`, 10 * 60_000, () => reklama(admin as any, days), sp.get("fresh") === "1");
   return { ...data, store: session.shop.replace(".myshopify.com", "") };
 };
@@ -32,7 +32,7 @@ export default function Reklama() {
   const [sp, setSp] = useSearchParams();
   const [tab, setTab] = useState(Number(sp.get("t") ?? 0) || 0);
   const [open, setOpen] = useState<string | null>(null);
-  const go = (days: number) => { const p = new URLSearchParams(sp); p.set("d", String(days)); setSp(p); };
+  const go = (days: PeriodKey) => { const p = new URLSearchParams(sp); p.set("d", String(days)); setSp(p); };
   const orderUrl = (id: string) => `https://admin.shopify.com/store/${d.store}/orders/${id.split("/").pop()}`;
   const th: React.CSSProperties = { textAlign: "left", padding: "10px 12px", fontWeight: 600, fontSize: 13, color: "#616161", whiteSpace: "nowrap", borderBottom: "1px solid #e3e3e3" };
   const td: React.CSSProperties = { padding: "10px 12px", borderBottom: "1px solid #f1f1f1", verticalAlign: "top" };
@@ -54,7 +54,7 @@ export default function Reklama() {
               <Text as="p" tone="subdued">Какое объявление (рилс) привело какой заказ. Данные — визиты покупателя, которые видит Shopify, и метки в ссылках рекламы.</Text>
               <InlineStack gap="200">
                 <ButtonGroup variant="segmented">
-                  {[7, 14, 30, 60, 90].map((n) => <Button key={n} pressed={d.days === n} onClick={() => go(n)}>{`${n} дн.`}</Button>)}
+                  {PERIODS.map((n) => <Button key={n} pressed={d.days === n} onClick={() => go(n)}>{PERIOD_LABEL(n)}</Button>)}
                 </ButtonGroup>
                 <Button onClick={() => { const p = new URLSearchParams(sp); p.set("fresh", "1"); setSp(p); }}>Обновить</Button>
               </InlineStack>

@@ -122,3 +122,35 @@ export function groupByAd(orders: AdOrder[], names: { campaigns?: Record<string,
   }
   return [...rows.values()].sort((x, y) => y.orders.filter((o) => !o.cancelled).length - x.orders.filter((o) => !o.cancelled).length || String(y.lastAt).localeCompare(String(x.lastAt)));
 }
+
+/** Report period. 'today' / 'yesterday' are calendar days in the shop's time zone (Romania); a number is the last N days. */
+export type PeriodKey = 'today' | 'yesterday' | 7 | 14 | 30 | 60 | 90;
+export const PERIODS: PeriodKey[] = ['today', 'yesterday', 7, 14, 30, 60, 90];
+export const PERIOD_LABEL = (k: PeriodKey) => (k === 'today' ? 'Сегодня' : k === 'yesterday' ? 'Вчера' : `${k} дн.`);
+export function parsePeriod(s: string | null | undefined): PeriodKey {
+  if (s === 'today' || s === 'yesterday') return s;
+  const n = Number(s);
+  return (PERIODS as unknown[]).includes(n) ? (n as PeriodKey) : 30;
+}
+
+/** Midnight (start of the calendar day) in a time zone, as a UTC Date. */
+export function midnightIn(tz: string, at: Date): Date {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    .formatToParts(at).map((x) => [x.type, x.value]));
+  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  const offset = asUtc - Math.floor(at.getTime() / 1000) * 1000; // tz offset at `at`
+  return new Date(Date.UTC(+p.year, +p.month - 1, +p.day) - offset);
+}
+
+/** [since, until) of a period; until null = now. `day` = local calendar date strings for the Meta report (YYYY-MM-DD). */
+export function periodRange(k: PeriodKey, now = new Date(), tz = 'Europe/Bucharest') {
+  const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+  if (k === 'today') { const s = midnightIn(tz, now); return { since: s, until: null as Date | null, metaSince: ymd(now), metaUntil: ymd(now) }; }
+  if (k === 'yesterday') {
+    const today0 = midnightIn(tz, now);
+    const y = midnightIn(tz, new Date(today0.getTime() - 3600_000));
+    return { since: y, until: today0 as Date | null, metaSince: ymd(y), metaUntil: ymd(y) };
+  }
+  const since = new Date(now.getTime() - k * 86_400_000);
+  return { since, until: null as Date | null, metaSince: ymd(new Date(now.getTime() - (k - 1) * 86_400_000)), metaUntil: ymd(now) };
+}

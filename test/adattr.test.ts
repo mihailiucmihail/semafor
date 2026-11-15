@@ -68,3 +68,16 @@ test("grouping by ad: counts, revenue per currency, cancelled left out, ID names
   assert.deepEqual(rows[0].revenue, { RON: 300, EUR: 76 });
   assert.equal(rows[1].ad, "—");
 });
+
+import { periodRange, parsePeriod, midnightIn } from "../core/adattr.ts";
+test("periods: today / yesterday are Romanian calendar days", () => {
+  const now = new Date("2026-11-15T13:40:00Z"); // 15:40 in Bucharest (UTC+2)
+  assert.equal(midnightIn("Europe/Bucharest", now).toISOString(), "2026-11-14T22:00:00.000Z");
+  const t = periodRange("today", now);
+  assert.equal(t.since.toISOString(), "2026-11-14T22:00:00.000Z"); assert.equal(t.until, null); assert.equal(t.metaSince, "2026-11-15");
+  const y = periodRange("yesterday", now);
+  assert.equal(y.since.toISOString(), "2026-11-13T22:00:00.000Z"); assert.equal(y.until!.toISOString(), "2026-11-14T22:00:00.000Z"); assert.equal(y.metaUntil, "2026-11-14");
+  const s = periodRange("today", new Date("2026-07-01T00:30:00Z")); // 03:30 summer time (UTC+3)
+  assert.equal(s.since.toISOString(), "2026-06-30T21:00:00.000Z");
+  assert.equal(parsePeriod("today"), "today"); assert.equal(parsePeriod("7"), 7); assert.equal(parsePeriod("x"), 30);
+});
