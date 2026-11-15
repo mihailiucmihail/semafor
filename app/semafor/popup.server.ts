@@ -158,9 +158,11 @@ export async function expiredPromoFallback(admin: Admin, p: PopupSettings): Prom
   for (const pct of cands) {
     const codes: Partial<Record<PopupLang, string>> = {};
     for (const l of POPUP_LANGS) {
-      const name = localCodeName(l, pct);
-      const k = await checkDiscountCode(admin, name);
-      if (k.exists && k.status === "ACTIVE" && (k.pct == null || k.pct === pct)) codes[l] = name;
+      const base = localCodeName(l, pct);
+      for (const name of [base, `${base}S`, `${base}-SMF`]) {
+        const k = await checkDiscountCode(admin, name);
+        if (k.exists && k.status === "ACTIVE" && (k.pct == null || k.pct === pct)) { codes[l] = name; break; }
+      }
     }
     const main = codes.ro ?? codes.en ?? Object.values(codes)[0];
     if (main) return { pct, pctByLang: {}, code: main, localCodes: codes, texts: {}, welcomeTexts: {} };
