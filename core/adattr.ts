@@ -175,6 +175,23 @@ export function classifyTouch(t: TouchRow): VisitInfo {
   return v;
 }
 
+export type AdNames = { campaigns: Record<string, string>; ads: Record<string, string> };
+
+/** Names learned from ad visits whose link carried both the campaign name and its id (utm_campaign={{campaign.name}}, utm_id={{campaign.id}}). */
+export function learnNames(rows: { campaignId?: string | null; campaign?: string | null }[], into: AdNames = { campaigns: {}, ads: {} }): AdNames {
+  for (const r of rows) if (isMetaId(r.campaignId) && r.campaign && !isMetaId(r.campaign)) into.campaigns[r.campaignId!] = r.campaign;
+  return into;
+}
+
+/** Human label of the ad that brought a visit: campaign name, else ad name, never a bare long number. */
+export function adLabel(v: { campaign?: string | null; ad?: string | null }, names: AdNames = { campaigns: {}, ads: {} }): string {
+  const nm = (x: string | null | undefined, map: Record<string, string>) => (!x ? null : isMetaId(x) ? map[x] ?? null : x);
+  const camp = nm(v.campaign, names.campaigns) ?? nm(v.campaign, names.ads);
+  const ad = nm(v.ad, names.ads) ?? nm(v.ad, names.campaigns);
+  const id = [v.ad, v.campaign].find((x) => isMetaId(x));
+  return camp || ad || (id ? `Reclamă Meta · …${id.slice(-4)}` : 'Reclamă Meta');
+}
+
 /** Carts (and checkouts) per browser with the ad that brought it: the last ad visit before the browser's last activity. */
 export function cartRows(attempts: AttemptRow[], touches: TouchRow[]): CartRow[] {
   const byDev = new Map<string, AttemptRow[]>();

@@ -103,3 +103,11 @@ test("carts: the last ad visit before the cart, the furthest step, the last item
   const d2 = rows.find((r) => r.deviceId === "d2")!;
   assert.equal(d2.src?.channel, "meta_ads"); assert.equal(d2.src?.ad, null);
 });
+
+import { learnNames as _ln, adLabel as _al } from '../core/adattr.ts';
+test('ad label never shows a bare Meta id', () => {
+  const names = _ln([{ campaignId: '120252785078690594', campaign: 'MIA DARK CHERRY' }, { campaignId: '1', campaign: 'x' }]);
+  assert.equal(_al({ campaign: '120252785078690594', ad: '120252785078690999' }, names), 'MIA DARK CHERRY');
+  assert.equal(_al({ campaign: 'ROMANIA MIA', ad: 'Reel 1' }), 'ROMANIA MIA');
+  assert.equal(_al({ campaign: null, ad: '120252784781220594' }), 'Reclamă Meta · …0594');
+});

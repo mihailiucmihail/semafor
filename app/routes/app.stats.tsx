@@ -12,7 +12,7 @@ import { popupLeadMap } from "../semafor/popup.server";
 import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
-import { classifyTouch } from "../../core/adattr";
+import { classifyTouch, learnNames, adLabel } from "../../core/adattr";
 import { memo } from "../semafor/memo.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers, nameOnlyEntries, nameOnlyHit } from "../semafor/entries.server";
@@ -190,9 +190,10 @@ async function computeStats(shop: Awaited<ReturnType<typeof ensureShop>>, admin:
   try {
     const ids = [...new Set(Object.values(lists).flat().map((d) => d.id))].slice(0, 5000);
     const ts = ids.length ? ((await db.adTouch.findMany({ where: { shopId: shop.id, deviceId: { in: ids } }, orderBy: { createdAt: "asc" }, select: { deviceId: true, createdAt: true, source: true, medium: true, campaign: true, content: true, term: true, fbclid: true } })) as any[]) : [];
+    const names = learnNames((await db.adTouch.findMany({ where: { shopId: shop.id, campaignId: { not: null } }, select: { campaignId: true, campaign: true }, orderBy: { createdAt: "desc" }, take: 3000 })) as any[]);
     for (const t of ts) {
       const v = classifyTouch(t);
-      if (v.channel === "meta_ads" && +t.createdAt <= +(lastAt.get(t.deviceId) ?? new Date()) + 60_000) adOf.set(t.deviceId, v.ad || v.campaign || "Meta");
+      if (v.channel === "meta_ads" && +t.createdAt <= +(lastAt.get(t.deviceId) ?? new Date()) + 60_000) adOf.set(t.deviceId, adLabel(v, names));
     }
   } catch { /* table missing on an old deployment → no badges */ }
   const row = (d: Dev) => ({

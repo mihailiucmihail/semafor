@@ -5,7 +5,7 @@
  *    "Mihailiuc Group Ads" act_1514522812566848): names for the ID links and the spend per ad, also for ads with no order.
  * Read-only: no scopes, webhooks or extensions involved (read_orders is already granted).
  */
-import { orderSource, groupByAd, isMetaId, periodRange, cartRows, type AdOrder, type AdRow, type Channel, type PeriodKey } from "../../core/adattr";
+import { orderSource, groupByAd, isMetaId, periodRange, cartRows, learnNames, adLabel, type AdOrder, type AdRow, type Channel, type PeriodKey } from "../../core/adattr";
 import db from "../db.server";
 
 type Admin = { graphql: (q: string, o?: any) => Promise<Response> };
@@ -80,10 +80,10 @@ export type ReklamaRow = AdRow & { spend: number | null; clicks: number | null; 
 /** Carts of the period (Semafor pixel) with the ad visit (theme snippet) that brought the browser. */
 async function carts(shopDomain: string, range: { since: Date; until: Date | null }) {
   const shop = await db.shop.findUnique({ where: { domain: shopDomain }, select: { id: true } });
-  if (!shop) return { rows: [], tracking: false };
+  if (!shop) return { rows: [] as ReturnType<typeof cartRows>, learned: undefined, tracking: false };
   const created = range.until ? { gte: range.since, lt: range.until } : { gte: range.since };
   const devs = ((await db.checkoutAttempt.findMany({ where: { shopId: shop.id, createdAt: created }, select: { deviceId: true }, distinct: ["deviceId"], take: 3000 })) as any[]).map((r) => r.deviceId);
-  if (!devs.length) return { rows: [], tracking: (await db.adTouch.count({ where: { shopId: shop.id } })) > 0 };
+  if (!devs.length) return { rows: [] as ReturnType<typeof cartRows>, learned: undefined, tracking: (await db.adTouch.count({ where: { shopId: shop.id } })) > 0 };
   const attempts = (await db.checkoutAttempt.findMany({
     where: { shopId: shop.id, deviceId: { in: devs }, createdAt: { gte: new Date(+range.since - 3 * 86_400_000), ...(range.until ? { lt: range.until } : {}) } },
     select: { deviceId: true, event: true, createdAt: true, items: true, total: true, currency: true, orderId: true, host: true },
@@ -93,14 +93,22 @@ async function carts(shopDomain: string, range: { since: Date; until: Date | nul
     select: { deviceId: true, createdAt: true, source: true, medium: true, campaign: true, content: true, term: true, fbclid: true, landing: true },
   })) as any[];
   const rows = cartRows(attempts, touches).filter((r) => +new Date(r.last) >= +range.since);
-  return { rows, tracking: (await db.adTouch.count({ where: { shopId: shop.id } })) > 0 };
+  const learned = learnNames((await db.adTouch.findMany({ where: { shopId: shop.id, campaignId: { not: null } }, select: { campaignId: true, campaign: true }, orderBy: { createdAt: "desc" }, take: 3000 })) as any[]);
+  return { rows, learned, tracking: (await db.adTouch.count({ where: { shopId: shop.id } })) > 0 };
 }
 
 export async function reklama(admin: Admin, days: PeriodKey, shopDomain = "") {
   const range = periodRange(days);
-  const [orders, meta, cart] = await Promise.all([fetchOrders(admin, range), metaAds(range), shopDomain ? carts(shopDomain, range) : Promise.resolve({ rows: [], tracking: false })]);
+  const [orders, meta, cart] = await Promise.all([fetchOrders(admin, range), metaAds(range), shopDomain ? carts(shopDomain, range) : Promise.resolve({ rows: [] as ReturnType<typeof cartRows>, learned: undefined, tracking: false })]);
   const names = { campaigns: {} as Record<string, string>, adsets: {} as Record<string, string>, ads: {} as Record<string, string> };
   for (const a of meta.ads) { names.campaigns[a.campaignId] = a.campaign; names.adsets[a.adsetId] = a.adset; names.ads[a.adId] = a.ad; }
+  // cart sources: show names, never bare Meta ids
+  const nm = { campaigns: { ...(cart.learned?.campaigns ?? {}), ...names.campaigns }, ads: names.ads };
+  for (const r of cart.rows) if (r.src?.channel === "meta_ads") {
+    const label = adLabel(r.src, nm);
+    const adName = r.src.ad && !isMetaId(r.src.ad) ? r.src.ad : r.src.ad ? nm.ads[r.src.ad] ?? null : null;
+    r.src = { ...r.src, campaign: label, ad: adName && adName !== label ? adName : null };
+  }
   const grouped = groupByAd(orders, names);
 
   // spend per (campaign name, ad name); an ad row of an old hand-made link has no ad → the campaign's total
