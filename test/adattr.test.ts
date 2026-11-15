@@ -81,3 +81,25 @@ test("periods: today / yesterday are Romanian calendar days", () => {
   assert.equal(s.since.toISOString(), "2026-06-30T21:00:00.000Z");
   assert.equal(parsePeriod("today"), "today"); assert.equal(parsePeriod("7"), 7); assert.equal(parsePeriod("x"), 30);
 });
+
+import { cartRows } from "../core/adattr.ts";
+test("carts: the last ad visit before the cart, the furthest step, the last items", () => {
+  const items = (t: string) => [{ title: t, qty: 1, price: 350, variant: "Ivory" }];
+  const rows = cartRows([
+    { deviceId: "d1", event: "cart", createdAt: "2026-11-15T10:00:00Z", items: items("MIA"), total: 350, currency: "RON" },
+    { deviceId: "d1", event: "contact", createdAt: "2026-11-15T10:05:00Z" },
+    { deviceId: "d2", event: "cart", createdAt: "2026-11-15T11:00:00Z", items: items("AVELINE"), total: 400, currency: "RON" },
+    { deviceId: "d3", event: "cart", createdAt: "2026-11-15T12:00:00Z", items: [], total: null },
+  ], [
+    { deviceId: "d1", createdAt: "2026-11-14T09:00:00Z", source: "facebook", medium: "paid", campaign: "OLD", content: "old ad" },
+    { deviceId: "d1", createdAt: "2026-11-15T09:58:00Z", source: "facebook", medium: "paid", campaign: "FACEBOOK | MIA GREIGE | F 28-38", content: "FACEBOOK MIA GREIGE carusel" },
+    { deviceId: "d1", createdAt: "2026-11-16T09:00:00Z", source: "facebook", medium: "paid", campaign: "LATER", content: "later" },
+    { deviceId: "d2", createdAt: "2026-11-15T10:59:00Z", fbclid: true },
+  ]);
+  assert.equal(rows.length, 2);
+  const d1 = rows.find((r) => r.deviceId === "d1")!;
+  assert.equal(d1.step, "contact"); assert.equal(d1.items[0].title, "MIA");
+  assert.equal(d1.src?.channel, "meta_ads"); assert.equal(d1.src?.ad, "FACEBOOK MIA GREIGE carusel");
+  const d2 = rows.find((r) => r.deviceId === "d2")!;
+  assert.equal(d2.src?.channel, "meta_ads"); assert.equal(d2.src?.ad, null);
+});

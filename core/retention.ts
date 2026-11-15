@@ -1,5 +1,6 @@
 // Retention (privacy policy + kastellabs.com/semafor/data): run once a day by the app scheduler.
 //   checkout steps (CheckoutAttempt)        120 days
+//   ad visits (AdTouch)                     120 days
 //   order checks (OrderCheck) + DeviceEvent  12 months
 //   activity log (AuditLog)                  12 months (it holds raw values the merchant added / removed)
 //   network reports (NetworkReport)          until expiresAt (24 months after the report)
@@ -29,7 +30,7 @@ async function purge(model: any, where: Record<string, unknown>): Promise<number
   }
 }
 
-export interface RetentionResult { attempts: number; orderChecks: number; deviceEvents: number; audit: number; network: number }
+export interface RetentionResult { attempts: number; adTouches?: number; orderChecks: number; deviceEvents: number; audit: number; network: number }
 
 export async function runRetention(db: any, now = new Date()): Promise<RetentionResult> {
   const c = cutoffs(now);
@@ -39,6 +40,7 @@ export async function runRetention(db: any, now = new Date()): Promise<Retention
     deviceEvents: await purge(db.deviceEvent, { seenAt: { lt: c.checks } }),
     audit: await purge(db.auditLog, { at: { lt: c.audit } }),
     network: await purge(db.networkReport, { expiresAt: { lt: c.network } }),
+    ...(db.adTouch ? { adTouches: await purge(db.adTouch, { createdAt: { lt: c.attempts } }) } : {}),
   };
 }
 

@@ -27,6 +27,7 @@ model Shop {
   templates   EmailTemplate[]
   sends       EmailSend[]
   popupLeads  PopupLead[]
+  adTouches   AdTouch[]
 }
 
 enum Reason {
@@ -314,4 +315,27 @@ model AppKv {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+/// Ad visit (owner page «Реклама» → Корзины): the store theme reports the UTM labels of a visit that came from an ad
+/// (only after the visitor accepted cookies), keyed by the same browser id as the pixel, so a cart can be tied to the reel.
+model AdTouch {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  deviceId  String
+  source    String?
+  medium    String?
+  campaign  String?
+  content   String?
+  term      String?
+  campaignId String?                         // utm_id
+  fbclid    Boolean  @default(false)
+  landing   String?                          // path only, no query
+  referrer  String?                          // host only
+  host      String?
+  createdAt DateTime @default(now())
+
+  @@index([shopId, deviceId, createdAt])
+  @@index([shopId, createdAt])
 }

@@ -154,3 +154,50 @@ export function periodRange(k: PeriodKey, now = new Date(), tz = 'Europe/Buchare
   const since = new Date(now.getTime() - k * 86_400_000);
   return { since, until: null as Date | null, metaSince: ymd(new Date(now.getTime() - (k - 1) * 86_400_000)), metaUntil: ymd(now) };
 }
+
+// ── Carts → which ad brought the browser (theme UTM visits, AdTouch) ───────────────────────────────
+export type TouchRow = { deviceId: string; createdAt: Date | string; source?: string | null; medium?: string | null; campaign?: string | null; content?: string | null; term?: string | null; fbclid?: boolean | null; landing?: string | null };
+export type AttemptRow = { deviceId: string; event: string; createdAt: Date | string; items?: unknown; total?: number | null; currency?: string | null; orderId?: string | null; host?: string | null };
+export type CartItem = { title: string; qty: number; image: string | null; variant: string | null; price: number | null };
+const STEP_ORDER = ['cart', 'started', 'contact', 'address', 'shipping', 'payment', 'completed'];
+export type CartRow = {
+  deviceId: string; first: string; last: string; items: CartItem[]; total: number | null; currency: string | null; host: string | null;
+  step: string; orderId: string | null;
+  src: { channel: Channel; campaign: string | null; adset: string | null; ad: string | null; at: string; landing: string | null } | null;
+};
+
+const ms = (d: Date | string) => +new Date(d);
+
+/** One visit from the theme → channel / campaign / ad (same rules as Shopify's visits). fbclid alone = a Meta ad click without labels. */
+export function classifyTouch(t: TouchRow): VisitInfo {
+  const v = classifyVisit({ source: t.fbclid ? 'facebook' : 'direct', utmParameters: { source: t.source, medium: t.medium, campaign: t.campaign, content: t.content, term: t.term } });
+  if (v.channel === 'facebook' && t.fbclid) return { channel: 'meta_ads', campaign: t.campaign || null, adset: t.term || null, ad: t.content || null };
+  return v;
+}
+
+/** Carts (and checkouts) per browser with the ad that brought it: the last ad visit before the browser's last activity. */
+export function cartRows(attempts: AttemptRow[], touches: TouchRow[]): CartRow[] {
+  const byDev = new Map<string, AttemptRow[]>();
+  for (const a of attempts) (byDev.get(a.deviceId) ?? byDev.set(a.deviceId, []).get(a.deviceId)!).push(a);
+  const tByDev = new Map<string, TouchRow[]>();
+  for (const t of touches) (tByDev.get(t.deviceId) ?? tByDev.set(t.deviceId, []).get(t.deviceId)!).push(t);
+  const out: CartRow[] = [];
+  for (const [dev, list] of byDev) {
+    list.sort((x, y) => ms(x.createdAt) - ms(y.createdAt));
+    const withItems = [...list].reverse().find((a) => Array.isArray(a.items) && (a.items as unknown[]).length);
+    if (!withItems) continue;
+    const items = (withItems.items as any[]).map((i) => ({ title: String(i?.title || ''), qty: Number(i?.qty) || 1, image: i?.image || null, variant: i?.variant || null, price: i?.price != null && Number.isFinite(Number(i.price)) ? Number(i.price) : null }));
+    const step = list.reduce((s, a) => (STEP_ORDER.indexOf(a.event) > STEP_ORDER.indexOf(s) ? a.event : s), 'cart');
+    const last = ms(list[list.length - 1].createdAt);
+    const ts = (tByDev.get(dev) ?? []).filter((t) => ms(t.createdAt) <= last + 60_000).sort((x, y) => ms(y.createdAt) - ms(x.createdAt));
+    // prefer the last visit that came from an ad; otherwise the last labelled visit
+    const pick = ts.find((t) => classifyTouch(t).channel === 'meta_ads') ?? ts[0];
+    const src = pick ? { ...classifyTouch(pick), at: new Date(pick.createdAt).toISOString(), landing: pick.landing ?? null } : null;
+    out.push({
+      deviceId: dev, first: new Date(list[0].createdAt).toISOString(), last: new Date(last).toISOString(), items,
+      total: withItems.total ?? null, currency: withItems.currency ?? null, host: withItems.host ?? null,
+      step, orderId: list.find((a) => a.orderId)?.orderId ?? null, src,
+    });
+  }
+  return out.sort((a, b) => b.last.localeCompare(a.last));
+}

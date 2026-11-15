@@ -142,6 +142,8 @@ test('retention: 120 days checkout steps, 12 months checks / device events / log
   };
   const r = await runRetention(db, now);
   assert.deepEqual(r, { attempts: 1, orderChecks: 1, deviceEvents: 1, audit: 1, network: 1 });
+  const r2 = await runRetention({ ...db, adTouch: model([{ id: 't1', createdAt: ago(121) }, { id: 't2', createdAt: ago(5) }]) }, now);
+  assert.equal(r2.adTouches, 1);
   assert.deepEqual([db.checkoutAttempt, db.orderCheck, db.deviceEvent, db.auditLog, db.networkReport].map((m) => m.rows[0].id), ['a2', 'c2', 'v2', 'l2', 'n2']);
   assert.equal(cutoffs(now).attempts.toISOString(), ago(120).toISOString());
   assert.equal(retentionKey(now), 'retention:2026-10-19');

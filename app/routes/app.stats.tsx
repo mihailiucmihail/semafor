@@ -12,6 +12,7 @@ import { popupLeadMap } from "../semafor/popup.server";
 import { attributionSummary, backfillAttribution } from "../semafor/attribution.server";
 import { AttrKpi } from "../components/attribution";
 import db from "../db.server";
+import { classifyTouch } from "../../core/adattr";
 import { memo } from "../semafor/memo.server";
 import { ensureShop, SECRET } from "../semafor/shop.server";
 import { buildIdentifiers, nameOnlyEntries, nameOnlyHit } from "../semafor/entries.server";
@@ -184,10 +185,20 @@ async function computeStats(shop: Awaited<ReturnType<typeof ensureShop>>, admin:
   };
   const newest = (l: Dev[]) => [...l].sort((a, b) => +b.last - +a.last).slice(0, 2000);
   const lists = { all: newest(all), black: newest(black), slipped: newest(slipped), hopping: newest(hopping), ordered: newest(all.filter((d) => d.completed)) };
+  // ad that brought the browser (theme UTM visits, owner store) → shown as a badge
+  const adOf = new Map<string, string>();
+  try {
+    const ids = [...new Set(Object.values(lists).flat().map((d) => d.id))].slice(0, 5000);
+    const ts = ids.length ? ((await db.adTouch.findMany({ where: { shopId: shop.id, deviceId: { in: ids } }, orderBy: { createdAt: "asc" }, select: { deviceId: true, createdAt: true, source: true, medium: true, campaign: true, content: true, term: true, fbclid: true } })) as any[]) : [];
+    for (const t of ts) {
+      const v = classifyTouch(t);
+      if (v.channel === "meta_ads" && +t.createdAt <= +(lastAt.get(t.deviceId) ?? new Date()) + 60_000) adOf.set(t.deviceId, v.ad || v.campaign || "Meta");
+    }
+  } catch { /* table missing on an old deployment → no badges */ }
   const row = (d: Dev) => ({
     id: d.id.slice(0, 6), dev: d.id, first: d.first, last: d.last, emails: [...d.emails], phones: [...d.phones], names: [...d.names], city: d.city,
     events: d.events, steps: d.steps, completed: d.completed, orderId: d.orderId ? d.orderId.split("/").pop() : null, orderName: d.orderId ? nameOf.get(d.orderId) ?? null : null,
-    matched: d.matched, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null, popupSource: leads.get(d.id)?.source ?? null,
+    matched: d.matched, ad: adOf.get(d.id) ?? null, mail: mailInfo(d), popup: leads.get(d.id)?.email ?? null, popupSource: leads.get(d.id)?.source ?? null,
   });
 
   const firstAttempt = (await db.checkoutAttempt.findFirst({ where: { shopId: shop.id }, orderBy: { createdAt: "asc" }, select: { createdAt: true } })) as any;
@@ -370,6 +381,7 @@ export default function Stats() {
                             ? <><Badge tone="success">{tr(`stats.step.${stepKey}` as TKey)}</Badge><Link url={`https://admin.shopify.com/store/${storeHandle}/orders/${d.orderId}`} target="_top">{d.orderName || tr("stats.order")}</Link></>
                             : <><Badge tone={d.matched.length ? "critical" : undefined}>{tr(d.matched.length ? "stats.blackNoOrder" : "stats.abandoned")}</Badge><span className="sf-cl-muted">{tr(`stats.step.${stepKey}` as TKey)}</span></>}
                           {d.popup && <Badge tone="magic">{tr(d.popupSource === "cart" ? "popup.origin.cart" : d.popupSource === "site" ? "popup.origin.site" : "popup.badge")}</Badge>}
+                          {d.ad && <Badge tone="success">{`▶ ${d.ad}`}</Badge>}
                           {d.mail && <Badge tone={d.mail.orderedAfter ? "success" : d.mail.back ? "attention" : "info"}>{`✉ ${d.mail.count}` + (d.mail.orderedAfter ? " · " + tr("stats.orderedAfter") : d.mail.back ? " · " + tr("stats.cameBack") : "")}</Badge>}
                           <Link url={`/app/client/${d.dev}`}>{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Link>
                         </div>
@@ -408,6 +420,7 @@ export default function Stats() {
                           <IndexTable.Cell>
                             <BlockStack gap="050">
                               <Text as="span" variant="bodySm" tone={d.completed ? "success" : undefined}>{step}</Text>
+                              {d.ad && <span><Badge tone="success">{`▶ ${d.ad}`}</Badge></span>}
                               <Link url={`/app/client/${d.dev}`}><Text as="span" variant="bodySm">{tr(d.steps === 1 ? "stats.stepsOne" : "stats.stepsMany", { n: d.steps })}</Text></Link>
                             </BlockStack>
                           </IndexTable.Cell>

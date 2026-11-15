@@ -122,6 +122,8 @@ export async function redactCustomer(db: any, secret: string, shop: RedactShop, 
   for (const e of t.emails) for (const r of await db.emailSend.findMany({ where: { shopId, email: { equals: e, mode: 'insensitive' } }, select: { id: true } })) sendIds.add(r.id);
   if (devices.length) for (const r of await db.emailSend.findMany({ where: { shopId, deviceId: { in: devices } }, select: { id: true } })) sendIds.add(r.id);
   if (sendIds.size) c.emailSends = (await db.emailSend.deleteMany({ where: { shopId, id: { in: [...sendIds] } } })).count;
+  // ad visits of the buyer's browsers (UTM labels only, but keyed by the same browser id)
+  if (devices.length && db.adTouch) await db.adTouch.deleteMany({ where: { shopId, deviceId: { in: devices } } });
 
   // 4. order checks: the buyer's own orders (listed by Shopify, or the same phone / name+address hash) are deleted;
   //    in every other check the buyer's values inside the matches are replaced.

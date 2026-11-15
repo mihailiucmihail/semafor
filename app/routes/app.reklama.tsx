@@ -15,7 +15,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!isOwnerShop(session.shop)) throw new Response("Not found", { status: 404 });
   const sp = new URL(request.url).searchParams;
   const days = parsePeriod(sp.get("d"));
-  const data = await memo(`reklama:${session.shop}:${days}`, 10 * 60_000, () => reklama(admin as any, days), sp.get("fresh") === "1");
+  const data = await memo(`reklama:${session.shop}:${days}`, 10 * 60_000, () => reklama(admin as any, days, session.shop), sp.get("fresh") === "1");
   return { ...data, store: session.shop.replace(".myshopify.com", "") };
 };
 
@@ -42,7 +42,19 @@ export default function Reklama() {
     { id: "ads", content: `Рилсы / объявления (${d.rows.length})` },
     { id: "orders", content: `Заказы (${d.orders.length})` },
     { id: "channels", content: "Каналы" },
+    { id: "carts", content: `Корзины (${d.carts.list.length})` },
   ];
+  const STEP: Record<string, string> = { cart: "только корзина", started: "начал оформление", contact: "ввёл контакты", address: "ввёл адрес", shipping: "выбрал доставку", payment: "дошёл до оплаты", completed: "заказ" };
+  const cartsByAd = (() => {
+    const m = new Map<string, { campaign: string; ad: string; n: number; ordered: number }>();
+    for (const c of d.carts.list) {
+      const k = c.src?.channel === "meta_ads" ? `${c.src.campaign ?? ""}|${c.src.ad ?? ""}` : "—";
+      const r = m.get(k) ?? { campaign: c.src?.channel === "meta_ads" ? c.src.campaign ?? "(без названия)" : "Не из рекламы / нет данных", ad: c.src?.channel === "meta_ads" ? c.src.ad ?? "—" : "", n: 0, ordered: 0 };
+      r.n++; if (c.step === "completed") r.ordered++;
+      m.set(k, r);
+    }
+    return [...m.values()].sort((a, b) => (a.campaign.startsWith("Не из") ? 1 : 0) - (b.campaign.startsWith("Не из") ? 1 : 0) || b.n - a.n);
+  })();
 
   return (
     <Page fullWidth>
@@ -165,6 +177,62 @@ export default function Reklama() {
                       </tbody>
                     </table>
                   </div>
+                )}
+                {tab === 3 && (
+                  <BlockStack gap="0">
+                    {!d.carts.tracking && (
+                      <Box padding="400"><Banner tone="info" title="Метки рекламы для корзин ещё не приходили">
+                        <p>Источник корзины записывается, когда человек приходит на сайт по ссылке рекламы и принимает cookies. Первые данные появятся после первых таких визитов.</p>
+                      </Banner></Box>
+                    )}
+                    {cartsByAd.length > 0 && (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                          <thead><tr><th style={th}>Кампания</th><th style={th}>Объявление (рилс)</th><th style={{ ...th, textAlign: "right" }}>Корзин</th><th style={{ ...th, textAlign: "right" }}>Из них заказали</th></tr></thead>
+                          <tbody>
+                            {cartsByAd.map((r) => (
+                              <tr key={r.campaign + r.ad}>
+                                <td style={td}><Text as="span" fontWeight={r.campaign.startsWith("Не из") ? "regular" : "semibold"}>{r.campaign}</Text></td>
+                                <td style={td}>{r.ad || "—"}</td>
+                                <td style={num}>{String(r.n)}</td>
+                                <td style={num}>{r.ordered ? <Badge tone="success">{String(r.ordered)}</Badge> : "0"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                        <thead><tr>
+                          <th style={th}>Когда</th><th style={th}>Что в корзине</th><th style={{ ...th, textAlign: "right" }}>Сумма</th>
+                          <th style={th}>Дошёл до</th><th style={th}>Откуда пришёл</th><th style={th}>Объявление (рилс)</th>
+                        </tr></thead>
+                        <tbody>
+                          {d.carts.list.length === 0 && <tr><td style={td} colSpan={6}><Text as="p" tone="subdued">За этот период корзин нет.</Text></td></tr>}
+                          {d.carts.list.map((c) => (
+                            <tr key={c.deviceId}>
+                              <td style={td}>{when(c.last)}{c.host && <div style={{ color: "#8a8a8a", fontSize: 12 }}>{c.host}</div>}</td>
+                              <td style={td}>
+                                <BlockStack gap="100">
+                                  {c.items.map((it, k) => (
+                                    <InlineStack key={k} gap="200" blockAlign="center" wrap={false}>
+                                      {it.image && <img src={it.image} alt="" width={36} height={36} style={{ objectFit: "cover", borderRadius: 6 }} />}
+                                      <span>{it.title}{it.variant ? ` — ${it.variant}` : ""}{it.qty > 1 ? ` × ${it.qty}` : ""}</span>
+                                    </InlineStack>
+                                  ))}
+                                </BlockStack>
+                              </td>
+                              <td style={num}>{c.total != null ? `${c.total.toLocaleString("ro-RO", { maximumFractionDigits: 0 })} ${!c.currency || c.currency === "RON" ? "lei" : c.currency}` : "—"}</td>
+                              <td style={td}>{c.step === "completed" ? (c.orderId ? <a href={orderUrl(c.orderId)} target="_top"><Badge tone="success">заказ</Badge></a> : <Badge tone="success">заказ</Badge>) : STEP[c.step] ?? c.step}</td>
+                              <td style={td}>{c.src ? (c.src.channel === "meta_ads" ? <Badge tone="success">{CHANNEL_LABEL.meta_ads}</Badge> : CHANNEL_LABEL[c.src.channel as Channel]) : <span style={{ color: "#8a8a8a" }}>нет данных</span>}</td>
+                              <td style={td}>{c.src?.channel === "meta_ads" ? <><div>{c.src.ad ?? "—"}</div><div style={{ color: "#8a8a8a", fontSize: 12 }}>{c.src.campaign}</div></> : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </BlockStack>
                 )}
               </Box>
             </Card>
