@@ -143,10 +143,43 @@ export async function healMainCode(admin: Admin, p: PopupSettings): Promise<{ co
   return null;
 }
 
+/**
+ * A time-limited offer ran out (e.g. a weekend -20 %): the main code and every per-language code of the current
+ * percentage are expired / gone in Shopify, while the shop still has active Semafor per-language codes at another
+ * percentage (the standing welcome offer, BUNVENIT10 …). The pop-up then returns to that offer with the standard
+ * texts, so visitors are never promised a code that no longer works. null = nothing to do.
+ */
+export async function expiredPromoFallback(admin: Admin, p: PopupSettings): Promise<Partial<PopupSettings> | null> {
+  if (p.codeMode !== "own") return null;
+  const dead = async (code: string | undefined | null) => { if (!code) return true; const c = await checkDiscountCode(admin, code); return !c.error && !(c.exists && c.status === "ACTIVE"); };
+  if (!(await dead(p.code))) return null;
+  for (const l of POPUP_LANGS) if (!(await dead(p.localCodes?.[l]))) return null;
+  const cands = [10, 15, 5, 20, 25].filter((x) => x !== p.pct);
+  for (const pct of cands) {
+    const codes: Partial<Record<PopupLang, string>> = {};
+    for (const l of POPUP_LANGS) {
+      const name = localCodeName(l, pct);
+      const k = await checkDiscountCode(admin, name);
+      if (k.exists && k.status === "ACTIVE" && (k.pct == null || k.pct === pct)) codes[l] = name;
+    }
+    const main = codes.ro ?? codes.en ?? Object.values(codes)[0];
+    if (main) return { pct, pctByLang: {}, code: main, localCodes: codes, texts: {}, welcomeTexts: {} };
+  }
+  return null;
+}
+
 /** Heals the main code of a saved pop-up (see healMainCode), saves it and republishes the storefront config. */
 export async function healSavedMainCode(admin: Admin, shop: { id: string; plan?: string | null; domain?: string | null; settings: ShopSettings }) {
   const p = shop.settings.popup;
   if (!p || p.codeMode !== "own") return null;
+  const back = await expiredPromoFallback(admin, p);
+  if (back) {
+    const next = await saveSettings(shop.id, { popup: { ...p, ...back } }, "semafor");
+    shop.settings = next;
+    try { await pushPopupConfig(admin, { ...shop, settings: next }); } catch (e: any) { console.error("[semafor] popup push after promo end", e?.message || e); }
+    console.log("[semafor] popup offer ended", shop.domain, p.code, p.pct, "→", back.code, back.pct);
+    return { code: back.code!, from: p.code, reason: "inactive" as const };
+  }
   const h = await healMainCode(admin, p);
   if (!h) return null;
   const next = await saveSettings(shop.id, { popup: { ...p, code: h.code } }, "semafor");
