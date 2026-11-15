@@ -1,0 +1,124 @@
+// Where did an order come from? (owner page «Реклама»)
+// Input: Shopify's customerJourneySummary of the order (first and last visit, with UTM parameters).
+// Pure — no I/O; the Shopify / Meta calls live in app/semafor/adorders.server.ts.
+
+export type Channel = 'meta_ads' | 'email' | 'instagram' | 'facebook' | 'google' | 'tiktok' | 'direct' | 'other' | 'unknown';
+
+export const CHANNEL_LABEL: Record<Channel, string> = {
+  meta_ads: 'Реклама Meta',
+  email: 'E-mail рассылка',
+  instagram: 'Instagram (без рекламы)',
+  facebook: 'Facebook (без рекламы)',
+  google: 'Google',
+  tiktok: 'TikTok',
+  direct: 'Прямой заход',
+  other: 'Другие сайты',
+  unknown: 'Нет данных',
+};
+
+export type Utm = { source?: string | null; medium?: string | null; campaign?: string | null; content?: string | null; term?: string | null } | null | undefined;
+export type Visit = { source?: string | null; sourceType?: string | null; landingPage?: string | null; utmParameters?: Utm } | null | undefined;
+
+export type VisitInfo = {
+  channel: Channel;
+  /** ads only: campaign / ad set / ad as found in the link (names with our new links, IDs with the auto links, a single word with the old hand-made links) */
+  campaign: string | null;
+  adset: string | null;
+  ad: string | null;
+};
+
+const low = (s: unknown) => String(s ?? '').trim().toLowerCase();
+const META_SOURCES = ['facebook', 'fb', 'ig', 'instagram', 'meta', 'an', 'msg', 'threads'];
+
+/** One visit → channel (+ campaign / ad for Meta ads). */
+export function classifyVisit(v: Visit): VisitInfo {
+  const none = { campaign: null, adset: null, ad: null };
+  if (!v) return { channel: 'unknown', ...none };
+  const u = v.utmParameters || null;
+  const src = low(u?.source), med = low(u?.medium), camp = String(u?.campaign ?? '').trim();
+  const content = String(u?.content ?? '').trim(), term = String(u?.term ?? '').trim();
+  if (u && (src || med || camp)) {
+    if (src === 'shopify_email' || med === 'email' || src === 'email' || src === 'newsletter') return { channel: 'email', ...none };
+    // our ad links: utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}…  (also Meta's own {{…id}} links)
+    if (META_SOURCES.includes(src) && ['paid', 'cpc', 'ppc', 'ads', 'paid_social', 'paidsocial', 'cpm'].includes(med)) {
+      return { channel: 'meta_ads', campaign: camp || null, adset: term || null, ad: content || null };
+    }
+    if ((src === 'ig' || src === 'instagram') && (med === 'social' || content === 'link_in_bio' || !med)) return { channel: 'instagram', ...none };
+    if ((src === 'facebook' || src === 'fb') && (med === 'social' || !med)) return { channel: 'facebook', ...none };
+    if (src.includes('google')) return { channel: 'google', ...none };
+    if (src.includes('tiktok')) return { channel: 'tiktok', ...none };
+    // old hand-made ad links: the same word in source / medium / campaign / content ("germania-mia-maro", "miaciocolataromania")
+    const words = [src, med, low(camp), low(content)].filter(Boolean);
+    if (words.length >= 2 && new Set(words).size === 1) return { channel: 'meta_ads', campaign: u.campaign ? String(u.campaign) : String(u.source), adset: null, ad: content || null };
+  }
+  const s = low(v.source), st = low(v.sourceType);
+  if (st === 'newsletter' || s === 'email') return { channel: 'email', ...none };
+  if (s.includes('instagram')) return { channel: 'instagram', ...none };
+  if (s.includes('facebook')) return { channel: 'facebook', ...none };
+  if (s.includes('google') || st === 'seo' || st === 'sem') return { channel: 'google', ...none };
+  if (s.includes('tiktok')) return { channel: 'tiktok', ...none };
+  if (s === 'direct' || !s) return { channel: 'direct', ...none };
+  // a visit "from" our own pages (checkout, another of our domains) says nothing about the source
+  if (/mihailiuc\.|myshopify\.com/.test(s)) return { channel: 'direct', ...none };
+  return { channel: 'other', ...none };
+}
+
+export type OrderSource = VisitInfo & {
+  /** which visit carried the ad / the channel: 'last' (last click before the order) or 'first' (the first visit) */
+  touch: 'last' | 'first' | null;
+  /** channel of the other visit, when different (e.g. ad first, then came back from an e-mail) */
+  also: Channel | null;
+};
+
+/**
+ * Order source. An ad wins whenever one of the two visits came from an ad (last visit preferred);
+ * otherwise the last visit's channel ("direct" last visit falls back to the first visit's channel).
+ */
+export function orderSource(j: { firstVisit?: Visit; lastVisit?: Visit } | null | undefined): OrderSource {
+  const first = classifyVisit(j?.firstVisit), last = classifyVisit(j?.lastVisit);
+  const hasFirst = !!j?.firstVisit, hasLast = !!j?.lastVisit;
+  if (!hasFirst && !hasLast) return { ...first, channel: 'unknown', touch: null, also: null };
+  if (last.channel === 'meta_ads') return { ...last, touch: 'last', also: hasFirst && first.channel !== 'meta_ads' ? first.channel : null };
+  if (first.channel === 'meta_ads') return { ...first, touch: 'first', also: hasLast ? last.channel : null };
+  if (hasLast && last.channel !== 'direct' && last.channel !== 'unknown') return { ...last, touch: 'last', also: hasFirst && first.channel !== last.channel ? first.channel : null };
+  if (hasFirst && first.channel !== 'unknown') return { ...first, touch: 'first', also: hasLast && last.channel !== first.channel ? last.channel : null };
+  return { ...last, touch: 'last', also: null };
+}
+
+/** Long numbers in a UTM value are Meta IDs (campaign / ad set / ad). */
+export const isMetaId = (s: string | null | undefined) => !!s && /^\d{10,}$/.test(s);
+
+export type Money = Record<string, number>;
+export const addMoney = (m: Money, cur: string, v: number) => { m[cur] = Math.round(((m[cur] ?? 0) + v) * 100) / 100; return m; };
+
+export type AdOrder = { id: string; name: string; at: string; total: number; currency: string; cancelled: boolean; src: OrderSource };
+export type AdRow = {
+  key: string; campaign: string; ad: string; adset: string | null;
+  orders: AdOrder[]; revenue: Money; lastAt: string | null;
+};
+
+/** Meta-ad orders grouped by campaign + ad (cancelled orders are listed but not counted in the revenue). */
+export function groupByAd(orders: AdOrder[], names: { campaigns?: Record<string, string>; ads?: Record<string, string>; adsets?: Record<string, string> } = {}): AdRow[] {
+  const rows = new Map<string, AdRow>();
+  for (const o of orders) {
+    if (o.src.channel !== 'meta_ads') continue;
+    const c = o.src.campaign || '(без названия)';
+    const a = o.src.ad || '';
+    const key = `${c}|${a}`;
+    let r = rows.get(key);
+    if (!r) {
+      r = {
+        key,
+        campaign: names.campaigns?.[c] ?? c,
+        ad: a ? names.ads?.[a] ?? a : '—',
+        adset: o.src.adset ? names.adsets?.[o.src.adset] ?? o.src.adset : null,
+        orders: [], revenue: {}, lastAt: null,
+      };
+      rows.set(key, r);
+    }
+    r.orders.push(o);
+    if (!o.cancelled) addMoney(r.revenue, o.currency, o.total);
+    if (!r.lastAt || o.at > r.lastAt) r.lastAt = o.at;
+  }
+  return [...rows.values()].sort((x, y) => y.orders.filter((o) => !o.cancelled).length - x.orders.filter((o) => !o.cancelled).length || String(y.lastAt).localeCompare(String(x.lastAt)));
+}
